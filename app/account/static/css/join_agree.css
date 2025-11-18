@@ -1,0 +1,101 @@
+@charset "UTF-8";
+.select-all {
+  margin-bottom: 20px;
+  font-weight: bold;
+}
+
+.terms-section {
+  margin-bottom: 25px;
+}
+
+.terms-section label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.terms-box {
+  background-color: #f1f1f1;
+  padding: 15px;
+  border-radius: 5px;
+  height: 100px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #555;
+}
+
+.checkbox-group {
+  display: flex;          /* 가로 배치 */
+  align-items: center;    /* 세로 가운데 정렬 */
+  gap: 10px;              /* 체크박스와 글자 간격 */
+  margin-bottom: 10px;
+}
+
+.checkbox-group input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.button-group {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+}
+
+.button-group a {
+  text-decoration: none; /* 밑줄 제거 */
+}
+
+.cancel-btn,
+.next-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background-color: #ccc;
+  color: #333;
+}
+
+.next-btn {
+  background-color: #0078D4;
+  color: #fff;
+}
+
+.next-btn:hover {
+  background-color: #005a9e;
+}
+
+.terms-section {
+  position: relative;
+  padding: 18px 12px;              /* 위아래 여유 공간 확보 */
+  margin: 12px 0;                  /* 섹션 간 간격 */
+  border-top: 1px solid #e6e6e6;   /* 위쪽 구분선 */
+  border-bottom: 1px solid #e6e6e6;/* 아래쪽 구분선 */
+  background: #fff;                /* 원하면 배경 흰색으로 강조 */
+  border-radius: 6px;              /* 모서리 둥글게 (선택사항) */
+}
+
+/* 섹션이 연속으로 붙었을 때 더 자연스럽게 보이도록 그림자 약간 추가(선택) */
+.terms-section {
+  box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+}
+
+/* 제목(label)을 영역 바깥쪽으로 띄우고 강조하려면(선택) */
+.terms-section > label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 700;
+  color: #222;
+}
+
+/* 만약 첫/마지막 섹션의 바깥쪽에 선을 없애고 싶다면(선택) */
+.terms-section:first-child {
+  border-top: none;
+}
+.terms-section:last-child {
+  border-bottom: none;
+}

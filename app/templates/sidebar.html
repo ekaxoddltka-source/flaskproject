@@ -1,0 +1,86 @@
+<!---- 사이드바 ---->
+<div class="sidebar">
+
+    <!-- 광고 영역 -->
+    <div class="ad-top">
+        <a href="https://www.eduwill.net/sites/home" target="_blank">
+            <img src="{{ url_for('static', filename='images/adbaner.jpg') }}" alt="광고 이미지">
+        </a>
+    </div>
+
+    <!-- 탭 버튼들 -->
+    <div class="sidebar-tabs" role="tablist">
+        {% for tab in sidebar.tabs %}
+            <button 
+                class="tab-button {% if active == tab.id %}active{% endif %}"
+                data-target="panel-{{ tab.id }}"
+                role="tab"
+                aria-selected="{{ 'true' if active == tab.id else 'false' }}"
+            >
+                {% if tab.label_line1 %}
+                    <div class="tab-label">
+                        <div>{{ tab.label_line1 }}</div>
+                        <div style="font-size: 0.8em; color: #666;">{{ tab.label_line2 }}</div>
+                    </div>
+                {% else %}
+                    {{ tab.label }}
+                {% endif %}
+            </button>
+        {% endfor %}
+    </div>
+
+    <!-- 탭 패널 반복 -->
+    {% for tab in sidebar.tabs %}
+    <div 
+        class="tab-panel {% if active != tab.id %}hidden{% endif %}"
+        id="panel-{{ tab.id }}"
+        role="tabpanel"
+        aria-hidden="{{ 'false' if active == tab.id else 'true' }}"
+    >
+
+        {% if tab.id == "chat" %}
+        <!-- ------------------------------------------- -->
+        <!--                  실시간채팅                 -->
+        <!-- ------------------------------------------- -->
+        <div style="text-align: center;">
+            현재 접속자 수: <span id="user-count">0</span>명
+        </div>
+
+        <!-- 채팅로그 -->
+        <div class="messages"
+             id="chatMessages"
+             style="height:300px; overflow-y:auto; border:1px solid #ccc; padding:5px;">
+            <!-- 메시지가 JS로 추가됩니다 -->
+        </div>
+
+        <!-- 입력창 -->
+        <div class="chat-input">
+            <input type="text" id="chatInput" placeholder="내용을 입력하세요">
+            <button id="sendBtn">전송</button>
+        </div>
+
+
+        {% else %}
+        <!-- ------------------------------------------- -->
+        <!--             마이페이지 / 공지사항 등         -->
+        <!-- ------------------------------------------- -->
+
+        {% if tab.id in sidebar.lists %}
+        <ul class="mypage-list" style="flex: 1; overflow:auto;">
+            {% for item in sidebar.lists[tab.id] %}
+                <li><a href="{{ item.url }}">{{ item.label }}</a></li>
+            {% endfor %}
+        </ul>
+
+        {% else %}
+        <div style="padding:10px; color:#777;">
+            표시할 목록이 없습니다.
+        </div>
+        {% endif %}
+
+        {% endif %}
+
+    </div>
+    {% endfor %}
+
+</div>

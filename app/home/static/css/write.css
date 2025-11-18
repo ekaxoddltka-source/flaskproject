@@ -1,0 +1,296 @@
+@charset "UTF-8";
+.content-area {
+  display: flex;
+  flex-direction: column;
+  height: 100%;        /* 사이드바와 같은 높이 */
+  /* ✅ 여기에도 overflow 제거 */
+}
+
+/* 게시글 작성 영역 */
+.posts-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  /* ❌ 여기에도 overflow 주지 않기 */
+}
+
+.form-title {
+  font-size: 22px;
+  font-weight: bold;
+  margin: 0 0 16px 0; /* 아래쪽 여백 */
+  padding-top: 10px;
+  padding-left: 10px;
+  color: #333;
+}
+
+/* 글쓰기 폼 */
+.write-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  margin: 0;
+  padding: 10px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  box-sizing: border-box;
+
+  /* ✅ 강제로 늘어나지 않게 */
+  height: auto;
+}
+
+.write-form textarea {
+  width: 100%;
+  min-height: 400px;  /* ✅ 기본 크기 넉넉히 */
+  resize: vertical;   /* 사용자가 크기 조절 가능 */
+  overflow-y: auto;   /* 글이 길면 textarea 내부에서만 스크롤 */
+}
+
+.write-form label {
+  font-weight: bold;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.write-form input[type="text"],
+.write-form textarea {
+  width: 100%;             /* 부모 안에서만 100% */
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;  /* ✅ 넘침 방지 */
+}
+
+.write-form select {
+  width: auto;             /* 글자 크기에 맞게 */
+  min-width: 120px;        /* 너무 작아지지 않도록 최소폭 */
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.write-form textarea {
+  height: 200px;
+  resize: vertical;
+}
+
+/* 파일업로드 + 버튼행을 같은 줄에 배치 */
+.form-bottom {
+  display: flex;
+  justify-content: space-between; /* 좌-우 배치 */
+  align-items: center;
+  gap: 20px;
+}
+
+.file-upload-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-upload-wrapper input[type="file"] {
+  display: none;
+}
+
+.file-upload-label {
+  padding: 8px 14px;
+  background: #007bff;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.file-upload-label:hover {
+  background: #0056b3;
+}
+
+.file-name {
+  font-size: 14px;
+  color: #555;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.form-actions button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.btn-submit {
+  background: #28a745;
+  color: #fff;
+}
+
+.btn-submit:hover {
+  background: #218838;
+}
+
+.btn-cancel {
+  background: #6c757d;
+  color: #fff;
+}
+
+.btn-cancel:hover {
+  background: #5a6268;
+}
+
+.category-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.extra-category {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.extra-category select,
+.extra-category input[type="number"] {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  width: auto;
+  min-width: 120px;
+  box-sizing: border-box;
+}
+
+/* 🔹 추천 태그 전체 박스 */
+.recommended-tags-box {
+  margin-top: 14px;
+  margin-bottom: 10px;
+}
+
+.recommended-tags-box label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+/* 🔹 추천 태그 컨테이너 */
+.recommended-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #e7e7e7;
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+/* 🔹 추천 태그 pill 버튼 */
+.tag-suggestion {
+  padding: 6px 14px;
+  font-size: 14px;
+  border: none;
+  border-radius: 20px;
+  background: #f0f0f0;
+  color: #444;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* hover 시 강조 */
+.tag-suggestion:hover {
+  background: #4a83ff;
+  color: white;
+}
+
+/* 클릭 시(활성 시) 자연스러운 느낌 */
+.tag-suggestion:active {
+  transform: scale(0.93);
+}
+
+.recommended-tags {
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+/* --- 기존 첨부파일 리스트 스타일 개선 — 모던 & 깔끔한 UI --- */
+.existing-files {
+  margin-top: 12px;
+}
+
+.existing-files label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+  display: block;
+  font-size: 14px;
+}
+
+/* 파일 리스트 컨테이너 */
+.existing-files ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* 각 파일 항목 (pill 스타일 + 버튼 느낌) */
+.existing-files li {
+  display: inline-flex;
+  align-items: center;
+  background: #e3f0ff; /* 옅은 파랑 계열 배경 */
+  border: 1px solid #b0d4ff; /* 약간 진한 파랑 테두리 */
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 14px;
+  color: #1a4db7;
+  cursor: default;
+  transition: background 0.2s, border-color 0.2s;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.existing-files li:hover {
+  background: #d0e7ff;
+  border-color: #8bbcff;
+}
+
+/* 링크 스타일 (파일명 텍스트) */
+.existing-files a {
+  color: #1a4db7;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.existing-files a:hover {
+  text-decoration: underline;
+  color: #103e9f;
+}
+
+/* 만약 삭제(X) 버튼 같은 요소를 넣고 싶다면 이렇게 스타일 가능 */
+.existing-files .file-remove {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #777;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.existing-files .file-remove:hover {
+  color: #333;
+}

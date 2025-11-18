@@ -1,0 +1,128 @@
+@charset "UTF-8";
+/* join_info.css → body 안의 .post 영역에만 적용 */
+.post label {
+  font-weight: bold;
+  display: block;
+  margin-top: 15px;
+}
+
+.post .input-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.post input[type="text"],
+.post input[type="password"],
+.post input[type="email"],
+.post input[type="date"] {
+  width: 50%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.post .message {
+  font-size: 0.75em;
+  color: #d9534f;
+  margin-top: 5px;
+  margin-bottom: 10px; /* 아래 라벨과 간격 확보 */
+  min-height: 18px;     /* 메시지가 없을 때도 공간 확보 */
+}
+
+.post .captcha {
+  margin-top: 20px;
+}
+
+.post .button-group {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+  width: 50%;
+}
+
+.post .button-group button {
+  flex: 1;
+  margin: 0 5px;
+  font-size: 16px;
+}
+
+.post button {
+  padding: 10px 15px;
+  background-color: #0078D4;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.post button:hover {
+  background-color: #005a9e;
+}
+/* 보유 기술 태그 전체 영역 */
+.skill-tag-area label {
+    font-weight: 600;
+    margin-top: 10px;
+    display: block;
+}
+
+/* 태그 박스 */
+.skill-tag-area .tag-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0 4px;
+}
+
+/* 라운드 태그 스타일 */
+.skill-tag-area .tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 16px;
+    border: 1px solid #bfc6d4;
+    border-radius: 20px;
+    background: #f5f7fb;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.skill-tag-area .tag:hover {
+    background: #e9efff;
+    border-color: #8da9ff;
+}
+
+/* 체크박스 숨기기 */
+.skill-tag-area .tag input {
+    display: none;
+}
+
+/* 체크된 경우 */
+.skill-tag-area .tag input:checked + * {
+    color: white;
+}
+
+.skill-tag-area .tag input:checked ~ * {
+    color: white;
+}
+
+.skill-tag-area .tag input:checked + * {
+    background: #4a8bff;
+    border-color: #4a8bff;
+}
+
+/* 직접입력 input */
+.skill-tag-area .tag-input {
+    margin-top: 6px;
+    width: 150px !important;  /* 길이 줄임 */
+    padding: 9px 13px;
+    font-size: 14px;
+    border: 1px dashed #c4c4c4;
+    border-radius: 18px;
+    transition: 0.2s;
+}
+
+.skill-tag-area .tag-input:focus {
+    border-color: #4a8bff;
+    background: #f7faff;
+}

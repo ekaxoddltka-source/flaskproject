@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+<!-- 개별 css 불러오는 영역-->
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('account.static', filename='css/join_info.css') }}">
+{% endblock %}
+
+<!-- 컨텐츠 넣는 영역 -->
+{% block content %}
+<!-- 게시글 -->
+        <div class="posts">
+
+          <div class="post">
+            <h2>정보입력</h2>
+            <form action="/register" method="POST">
+            
+            <label for="userid">아이디</label>
+            <input type="text" id="userid" name="userid" required> 
+            <div class="message" id="userid-message"></div>      
+            
+            <label for="password">비밀번호</label>
+            <input type="password" id="password" name="password" required>
+            
+            <label for="confirm-password">비밀번호 확인</label>
+            <input type="password" id="confirm-password" name="confirm-password" required>
+            
+            <label for="nickname">닉네임</label>
+            <input type="text" id="nickname" name="nickname" required>
+            <div class="message" id="nickname-message"></div>    
+
+            <label for="email">이메일</label>
+            <input type="email" id="email" name="email" required>
+            <button type="button">인증코드 전송</button>
+            <div class="message" id="email-message"></div>
+
+            <label for="email-code">이메일 인증 코드</label>
+            <div class="input-group">
+                <input type="text" id="email-code" name="email-code" placeholder="코드 입력">
+                <button type="button">입력</button>
+            </div>
+
+            <label for="birthdate">생년월일</label>
+            <input type="date" id="birthdate" name="birthdate" required>
+
+            <label for="address">주소</label>
+            <div class="input-group">
+                <input type="text" id="address" name="address" required>
+                <button type="button">찾기</button>
+            </div>
+
+            <!-- 관심분야 -->
+            <div class="skill-tag-area">
+            <label>관심분야</label>
+            <div class="tag-box" id="interest-tags">
+                <label class="tag">
+                    <input type="checkbox" name="interests" value="웹개발"> 웹개발
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="interests" value="AI"> AI
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="interests" value="데이터분석"> 데이터분석
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="interests" value="머신러닝"> 머신러닝
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="interests" value="모바일개발"> 모바일개발
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="interests" value="데이터베이스"> 데이터베이스
+                </label>
+            </div>
+
+            <input 
+                type="text" 
+                id="interest-input" 
+                placeholder="직접 입력 후 Enter" 
+                class="tag-input"
+            >
+
+            <!-- 보유 기술 -->
+            <label>보유 기술</label>
+            <div class="tag-box" id="skill-tags">
+                <label class="tag">
+                    <input type="checkbox" name="skills" value="Python"> Python
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="skills" value="JavaScript"> JavaScript
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="skills" value="Django"> Django
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="skills" value="nods"> nods
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="skills" value="C언어"> C언어
+                </label>
+            </div>
+
+            <input 
+                type="text" 
+                id="skill-input" 
+                placeholder="직접 입력 후 Enter" 
+                class="tag-input"
+            >
+            </div>
+
+            <div class="captcha">
+                <label for="captcha">자동등록방지 문자</label>
+            </div>
+                <!-- reCAPTCHA 영역 -->
+                <div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"></div>
+                <!-- reCAPTCHA 스크립트 -->
+                <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+            <div class="button-group">
+                <button type="submit">등록</button>
+                <button type="reset">취소</button>
+            </div>
+            </form>
+          </div>
+
+        </div> 
+
+      </div> <!-- 게시글 래퍼 끝 -->
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+<!-- 개별 css 불러오는 영역-->
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('account.static', filename='css/join_agree.css') }}">
+{% endblock %}
+
+<!-- 컨텐츠 넣는 영역 -->
+{% block content %}
+        <div class="posts">
+
+          <!-- ✅ 약관동의 폼 게시글 -->
+          <div class="post">
+            <h2>약관동의</h2>
+            <form action="/step2" method="POST">
+              <div class="select-all">
+                <input type="checkbox" id="select-all">
+                <label for="select-all">전체 약관에 동의합니다.</label>
+              </div>
+
+              <div class="terms-section">
+                <label>이용약관 동의 <span style="color:red;">(필수)</span></label>
+                <div class="terms-box">여기에 이용약관 내용을 입력하세요.</div>
+                <div class="checkbox-group">
+                  <input type="checkbox" class="terms-checkbox" id="agree-terms" name="agree-terms" required>
+                  <label for="agree-terms">위 약관에 동의합니다.</label>
+                </div>
+              </div>
+
+              <div class="terms-section">
+                <label>개인정보 수집 및 이용 동의 <span style="color:red;">(필수)</span></label>
+                <div class="terms-box">여기에 개인정보 수집 및 이용 내용을 입력하세요.</div>
+                <div class="checkbox-group">
+                  <input type="checkbox" class="terms-checkbox" id="agree-privacy" name="agree-privacy" required>
+                  <label for="agree-privacy">개인정보 수집 및 이용에 동의합니다.</label>
+                </div>
+              </div>
+
+              <div class="terms-section">
+                <label>마케팅 정보 수신 동의 <span style="color:gray;">(선택)</span></label>
+                <div class="terms-box">여기에 마케팅 정보 수신 관련 내용을 입력하세요.</div>
+                <div class="checkbox-group">
+                  <input type="checkbox" class="terms-checkbox" id="agree-marketing" name="agree-marketing">
+                  <label for="agree-marketing">마케팅 정보 수신에 동의합니다.</label>
+                </div>
+              </div>
+
+              <div class="button-group">
+                <a href="home.html" class="cancel-btn">취소</a>
+                <a href="join_info.html" class="next-btn" id="nextBtn" style="pointer-events:none; opacity:0.5;">다음 단계</a>
+              </div>
+            </form>
+          </div>
+
+        </div>
+    </div> <!-- 게시글 래퍼 끝 -->
+{% endblock %}

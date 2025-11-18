@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>AEZEN 일반인 EZEN 개발자</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+</head>
+<body>
+  <!-------------------- 헤더영역 ---------------------->
+  <!-- 로고 + 타이틀 + 로그인박스 + 아이콘 -->
+  <header>
+    <!-- 로고 -->
+    <div class="logo">
+      <a href="/">
+        <img src="{{ url_for('static', filename='images/ezen_logo.jpg') }}" alt="Logo" style="width: 80px; height: 80px;">
+      </a>
+    </div>
+    <!-- 타이틀 -->
+    <div class="site-title">
+      <a href="/" class="site-link">
+        <img src="{{ url_for('static', filename='images/site_title.png') }}">
+      </a>
+    </div>
+    <!-- 로그인박스 (초기 보임) -->
+    <div class="login-box">
+      <input type="text" id="loginId" placeholder="ID 입력">
+      <input type="password" id="loginPw" placeholder="PW 입력">
+      <div class="login-options">
+        <label><input type="checkbox" id="rememberMe"> ID 기억하기</label>
+        <a href="join_find.html">ID/PW 찾기</a>
+        <a href="join_agree.html">회원가입</a>
+      </div>
+      <button id="loginBtn">로그인</button>
+    </div>
+    <!-- 아이콘 (초기 숨김) -->
+    <div class="icons" style="display:none;">
+      <button id="btnMyPage" data-tooltip="마이페이지">👨</button>
+      <button id="btnNotify" data-tooltip="알림">🔔</button>
+      <button id="btnMsg" data-tooltip="메세지">📬</button>
+      <button id="btnTrophy" data-tooltip="포인트">🏆</button>
+      <button id="btnLogout" data-tooltip="로그아웃">🔑</button>
+    </div>
+  </header>
+  <!-------------------- 헤더 끝 ---------------------->
+
+  <!-------------------- 메인영역 ---------------------->
+  <main>
+    <!-- 컨테이너 (게시글 래퍼 + 사이드바) -->
+    <div class="container">
+      <!-- 게시글 래퍼( 공지/정렬버튼 + 게시글 ) -->
+      <div class="posts-wrapper">
+        <!-- 공지/정렬버튼 -->
+        <div class="notice-bar">
+          <div class="notice-row">
+
+            <div class="notice-text">
+            <strong>📢 공지사항&nbsp;&nbsp;: </strong>&nbsp;&nbsp;
+            <a href="info.html" class="notice-note" style="color: rgb(219, 219, 93);">이용규칙 안내 .......</a>
+            </div>
+
+            <!-- 조건부 렌더링 영역 -->
+            {% if show_notice_buttons %}
+            <div class="notice-buttons">
+              <div class="top-buttons">
+                {% for btn in notice_buttons.top_buttons %}
+                    <button>{{ btn }}</button>
+                {% endfor %}
+              </div>
+              <div class="feed-buttons">
+                {% for btn in notice_buttons.feed_buttons %}
+                    <button>{{ btn }}</button>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>

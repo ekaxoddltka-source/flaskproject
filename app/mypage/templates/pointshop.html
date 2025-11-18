@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+<!-- 개별 css 불러오는 영역-->
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('home.static', filename='css/home.css') }}">
+{% endblock %}
+
+<!-- 컨텐츠 넣는 영역 -->
+{% block content %}
+<!-- 게시글 -->
+<div class="posts">
+
+	<!-- 게시글 예시 2 -->
+	<c:forEach items="${boardList}" var="post">
+		<div class="post" data-id="${post.boardNo}">
+
+			<div class="post-header">
+				<span class="kind">[ <c:choose>
+						<c:when test="${post.boardCategory == 1}">자유게시판</c:when>
+						<c:when test="${post.boardCategory == 2}">Q&A</c:when>
+						<c:when test="${post.boardCategory == 3}">코딩테스트</c:when>
+						<c:when test="${post.boardCategory == 4}">공지사항</c:when>
+						<c:when test="${post.boardCategory == 5}">이용약관</c:when>
+						<c:when test="${post.boardCategory == 6}">개인정보처리방침</c:when>
+            <c:when test="${post.boardCategory == 7}">상품응모</c:when>
+						<c:when test="${post.boardCategory == 8}">당첨자발표</c:when>
+            <c:when test="${post.boardCategory == 9}">아이콘</c:when>
+						<c:when test="${post.boardCategory == 10}">휘장</c:when>
+            <c:when test="${post.boardCategory == 11}">배경이미지</c:when>
+						<c:otherwise>미분류</c:otherwise>
+					</c:choose> ]
+				</span>
+                <span class="title"><c:out value="${post.boardTitle}" /></span>
+                <span class="nick dropdown">작성자: <c:out value="${post.nick}" /></span>
+                <span class="hit">구매수: <c:out value="${post.hit}" /></span>
+                <span class="wdate">작성일: ${post.boardCreatedAt}</span>
+			</div>
+
+      <div class="post-body">
+        <div class="item-row" style="display:flex; gap:12px; align-items:center;">
+          <img src="{{ url_for('mypage.static', filename='gae.jpg') }}" alt="icon" style="width:80px;height:80px;border-radius:8px;object-fit:cover;">
+          <div style="flex:1;">
+            <div class="bnote">프로필에 사용할 수 있는 개죽이 아이콘 세트입니다. 사용권 구매 시 프로필에 적용됩니다.</div>
+            <div style="margin-top:8px;">가격: <strong>2,500 P</strong></div>
+          </div>
+          <div>
+            <button class="buy-btn">구매</button>
+          </div>
+        </div>
+      </div>
+
+			<div class="post-footer">
+				<span class="comment">리뷰 <c:set var="commentCount" value="0" />
+					<c:forEach var="c" items="${post.comments}">
+						<c:if test="${c.commentAnswerType == 1}">
+							<c:set var="commentCount" value="${commentCount + 1}" />
+						</c:if>
+					</c:forEach> ${commentCount}개
+				</span>
+				<div class="post-actions">
+					<c:if test="${not empty login and login.id eq post.id}">
+						<a href="write?board_no=${post.boardNo}" class="edit-btn">수정</a>
+						<span class="delete-btn" data-type="post"
+							data-board-no="${post.boardNo}">삭제</span>
+					</c:if>
+				</div>
+				<a href="#" class="more">더보기</a>
+			</div>
+
+			<!-- 댓글 영역 -->
+			<br>
+			<div class="comments">
+				<c:forEach var="comment" items="${post.comments}">
+					<c:if test="${comment.commentAnswerType == 1}">
+						<div class="comment-item" data-id="${comment.commentAnswerNo}">
+							<span class="c-text"><c:out
+									value="${comment.commentAnswerContent}" /></span>
+							<c:if test="${not empty login and login.nick eq comment.id}">
+								<div class="comment-actions">
+									<span class="edit-btn">수정</span> <span class="delete-btn"
+										data-type="comment">삭제</span>
+								</div>
+							</c:if>
+						</div>
+					</c:if>
+				</c:forEach>
+			</div>
+			<!-- 댓글 입력창 -->
+			<div class="comment-form" style="display: none;">
+				<textarea placeholder="댓글을 입력하세요..."></textarea>
+				<button type="button" class="submit-comment">작성</button>
+			</div>
+		</div>
+	</c:forEach>
+</div>
+<!-- 조건부 렌더링 영역 -->
+        {% if show_writeBtn %}
+        <!-- 글쓰기 버튼 -->
+        <button id="writeBtn" class="write-btn">✏</button>
+        {% endif %}
+
+		</div> <!-- 게시글 래퍼 끝 -->
+{% endblock %}

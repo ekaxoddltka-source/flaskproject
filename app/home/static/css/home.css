@@ -1,0 +1,562 @@
+/* ====================================
+ * 5. 개별 게시글 (Post Item)
+ * ==================================== */
+.posts {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.post {
+    background: #fff;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+/* 게시글 헤더 */
+.post-header {
+    font-weight: bold;
+    margin-bottom: 8px;
+    align-items: center;
+    display: flex;
+    gap: 10px;
+}
+.post-header .kind {
+    flex: 0.7;
+    font-size: 14px;
+}
+.post-header .title {
+    flex: 1.8;
+    font-size: 12px;
+    font-weight: bold;
+}
+.post-header .report {
+    flex: 0.5;
+    font-size: 12px;
+    color: red;
+    text-align: right;
+    cursor: pointer;
+}
+.report:hover {
+    text-decoration: underline;
+}
+.post-header .hit {
+    flex: 0.5;
+    font-size: 13px;
+    text-align: right;
+}
+.post-header .wdate {
+    flex: 1;
+    font-size: 12px;
+    color: gray;
+    text-align: right;
+}
+.post-header .nick {
+    flex: 0.8;
+    font-size: 12px;
+    text-align: right;
+}
+
+/* 닉네임 드롭다운 */
+.nick.dropdown {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    user-select: none;
+}
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+    list-style: none;
+    margin: 0;
+    padding: 6px 0;
+    min-width: 120px;
+    font-size: 14px;
+    z-index: 1000;
+    text-align: center;
+}
+.dropdown-menu li {
+    padding: 6px 10px;
+}
+.dropdown-menu li a {
+    text-decoration: none;
+    color: #333;
+    display: block;
+}
+.dropdown-menu li:hover {
+    background: #f0f0f0;
+}
+.nick.dropdown.open .dropdown-menu {
+    display: block;
+}
+
+/* 게시글 바디 */
+.post-body {
+    background: #f5f5f5;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+}
+.post-body .upload {
+    align-self: flex-end;
+    font-size: 10px;
+    color: blue;
+    margin-bottom: 5px;
+}
+.post-body .bnote {
+    align-self: flex-start;
+}
+.post-body .tag {
+    align-self: flex-start;
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.post-body .tag a {
+    color: #3DADFF;
+    text-decoration: none;
+    font-size: 13px;
+    cursor: pointer;
+}
+.post-body .tag a:hover {
+    text-decoration: underline;
+    color: #1E90FF;
+}
+
+/* 본문 이미지 영역 (JS로 토글) */
+.post-images {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.post-images img {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.post-images img:hover {
+    transform: scale(1.05);
+}
+
+/* ====================================
+ * 6. 게시글 푸터 (Post Footer)
+ * ==================================== */
+.post-footer {
+    position: relative;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    color: #666;
+    margin-top: 12px;
+}
+/* 댓글수 영역 */
+.post-footer .comment {
+    flex: 1;
+    text-align: left;
+    font-weight: bold;
+}
+/* 추천/비추천 버튼 */
+.post-footer .votes {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+}
+.post-footer .votes span {
+    display: inline-block;
+    margin: 0 8px;
+    cursor: pointer;
+    border-radius: 20px;
+    padding: 2px 6px;
+    outline: 2px solid transparent;
+    outline-offset: 3px;
+    transition: box-shadow 0.2s ease, outline-color 0.2s ease;
+}
+.post-footer .votes .post-up:hover {
+    box-shadow: 0 2px 6px rgba(46, 44, 44, 0.15);
+    outline-color: #3DADFF;
+}
+.post-footer .votes .post-down:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    outline-color: #FF4D4D;
+}
+/* 수정/삭제 */
+.post-actions {
+    display: flex;
+    gap: 8px;
+    font-size: 12px;
+    margin-right: 26px;
+}
+.post-actions a, .post-actions span {
+    color: #000;
+    cursor: pointer;
+    text-decoration: none;
+}
+.post-actions a:hover, .post-actions span:hover {
+    text-decoration: underline;
+}
+
+/* 더보기 링크/버튼 */
+.more {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 14px;
+    color: #0073e6;
+    cursor: pointer;
+    text-decoration: none;
+    margin: 0; /* 우측 정렬 */
+}
+.more:hover {
+    color: #005bb5;
+    text-decoration: underline;
+}
+
+/* ====================================
+ * 7. 댓글 영역 (Comments)
+ * ==================================== */
+.comments {
+    padding: 10px;
+    border-top: 1px solid #eee;
+    display: none; /* 기본 숨김 (JS 토글) */
+}
+.comments.show {
+    display: block;
+}
+.comment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+}
+.comment-item .c-text {
+    flex: 1;
+}
+/* 댓글 수정/삭제/추천/비추천 */
+.c-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+}
+.comment-actions {
+    display: flex;
+    gap: 6px;
+    font-size: 12px;
+}
+.comment-actions span {
+    color: #666;
+    cursor: pointer;
+}
+.comment-actions span:hover {
+    text-decoration: underline;
+}
+.c-votes {
+    display: flex;
+    gap: 6px;
+    font-size: 12px;
+}
+.c-votes span {
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 12px;
+    transition: box-shadow 0.2s ease, outline 0.2s ease;
+}
+.comment-item .c-votes span:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+.comment-item .c-votes .comment-:hover { /* 댓글 추천/비추천 hover */
+    outline: 1px solid #3DADFF;
+    outline-offset: 2px;
+}
+.comment-item .c-votes .comment-:hover {
+    outline: 1px solid #FF4D4D;
+    outline-offset: 2px;
+}
+
+/* 댓글 입력 폼 */
+.comment-form {
+    margin: 10px 0;
+    display: flex;
+    gap: 8px;
+}
+.comment-form textarea {
+    flex: 1;
+    min-height: 60px;
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    resize: vertical;
+}
+.comment-form button.submit-comment {
+    padding: 6px 12px;
+    background: #3DADFF;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.comment-form button.submit-comment:hover {
+    background: #1d8ae0;
+}
+
+/* ====================================
+ * 8. 답안 영역 (Answers - Q&A/코딩)
+ * ==================================== */
+/* 답안 토글 버튼 */
+.answer-toggle {
+    margin-top: 5px;
+    text-align: center;
+}
+.answer-btn {
+    width: 20%;
+    padding: 5px;
+    background: #3DADFF;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-bottom: 10px;
+}
+.answer-btn:hover {
+    background: #5AD8CC;
+}
+/* 답안 목록 영역 */
+.answers {
+    display: none;
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #f9f9f9;
+}
+.answers.show {
+    display: block;
+}
+/* 답안 아이템 */
+.answer-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+}
+.answer-item .a-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+}
+/* 채택된 답안 배지 */
+.answer-item .chosen-label {
+    display: inline-block;
+    background: #3DADFF;
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 6px;
+}
+/* 답안 푸터 (작성자, 액션, 채택) */
+.answer-item .a-footer {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #666;
+    gap: 10px;
+}
+.answer-item .a-footer .author {
+    margin-right: 6px;
+}
+.answer-actions {
+    display: flex;
+    gap: 6px;
+    font-size: 12px;
+    color: #666;
+}
+.answer-actions span {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0;
+}
+.answer-actions span:hover {
+    text-decoration: underline;
+}
+.answer-item .a-choice {
+    margin-left: auto;
+    padding: 2px 8px;
+    font-size: 13px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+.answer-item .a-choice:hover {
+    background: #f5f5f5;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+/* 답안 작성 폼 */
+.answer-form {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.answer-form textarea {
+    resize: vertical;
+    min-height: 80px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+}
+.answer-form button {
+    align-self: flex-end;
+    padding: 6px 14px;
+    background: #3DADFF;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.answer-form button:hover {
+    background: #1d8ae0;
+}
+
+/* ====================================
+ * 9. 글쓰기 버튼 (Write Button)
+ * ==================================== */
+.write-btn {
+    position: sticky;
+    bottom: 20px;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    background: #3DADFF;
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+    transition: background 0.2s;
+    z-index: 100;
+}
+.write-btn:hover {
+    background: #5AD8CC;
+}
+
+/* ====================================
+ * 11. 신고 모달 (Report Modal)
+ * ==================================== */
+/* 모달 기본 숨김 */
+#reportModal.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+}
+/* 모달 박스 */
+#reportModal .modal-content {
+    background: #fff;
+    margin: 10% auto;
+    padding: 24px;
+    border-radius: 12px;
+    width: 320px;
+    text-align: left;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+    position: relative;
+    animation: fadeIn 0.3s ease;
+}
+/* 닫기 버튼 */
+#reportModal .close {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    font-size: 20px;
+    cursor: pointer;
+    color: #999;
+}
+#reportModal .close:hover {
+    color: #333;
+}
+/* 모달 타이틀 */
+#reportModal .modal-content h2 {
+    margin: 0 0 12px;
+    font-size: 18px;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+}
+/* 라디오 버튼 리스트 */
+#reportForm label {
+    display: block;
+    padding: 6px 0;
+    cursor: pointer;
+}
+#reportForm input[type="radio"] {
+    margin-right: 8px;
+}
+/* 모달 버튼 스타일 */
+#reportForm button {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-right: 8px;
+    font-size: 14px;
+}
+#reportForm button[type="submit"] {
+    background: #e74c3c;
+    color: #fff;
+}
+#reportForm button[type="submit"]:hover {
+    background: #c0392b;
+}
+#reportForm #cancelBtn {
+    background: #ddd;
+    color: #333;
+}
+#reportForm #cancelBtn:hover {
+    background: #bbb;
+}
+/* 애니메이션 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
