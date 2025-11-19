@@ -23,24 +23,33 @@
       </a>
     </div>
     <!-- 로그인박스 (초기 보임) -->
+    {% if not session.get("user") %}
     <div class="login-box">
-      <input type="text" id="loginId" placeholder="ID 입력">
-      <input type="password" id="loginPw" placeholder="PW 입력">
-      <div class="login-options">
-        <label><input type="checkbox" id="rememberMe"> ID 기억하기</label>
-        <a href="join_find.html">ID/PW 찾기</a>
-        <a href="join_agree.html">회원가입</a>
-      </div>
-      <button id="loginBtn">로그인</button>
+      <form action="{{ url_for('account.login') }}" method="POST">
+        <input type="text" name="username" placeholder="ID 입력" required>
+        <input type="password" name="password" placeholder="PW 입력" required>
+
+        <div class="login-options">
+          <label><input type="checkbox" id="rememberMe"> ID 기억하기</label>
+          <a href="join-find">ID/PW 찾기</a>
+          <a href="join-agree">회원가입</a>
+        </div>
+
+        <button type="submit">로그인</button>
+      </form>
     </div>
+    {% else %}
     <!-- 아이콘 (초기 숨김) -->
-    <div class="icons" style="display:none;">
+    <div class="icons">
       <button id="btnMyPage" data-tooltip="마이페이지">👨</button>
       <button id="btnNotify" data-tooltip="알림">🔔</button>
       <button id="btnMsg" data-tooltip="메세지">📬</button>
       <button id="btnTrophy" data-tooltip="포인트">🏆</button>
-      <button id="btnLogout" data-tooltip="로그아웃">🔑</button>
+      <form action="{{ url_for('account.logout') }}" method="GET" style="display:inline;">
+        <button type="submit" id="btnLogout" data-tooltip="로그아웃">🔑</button>
+      </form>
     </div>
+    {% endif %}
   </header>
   <!-------------------- 헤더 끝 ---------------------->
 
@@ -56,7 +65,7 @@
 
             <div class="notice-text">
             <strong>📢 공지사항&nbsp;&nbsp;: </strong>&nbsp;&nbsp;
-            <a href="info.html" class="notice-note" style="color: rgb(219, 219, 93);">이용규칙 안내 .......</a>
+            <a href="info" class="notice-note" style="color: rgb(219, 219, 93);">이용규칙 안내 .......</a>
             </div>
 
             <!-- 조건부 렌더링 영역 -->
