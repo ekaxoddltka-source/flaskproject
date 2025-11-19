@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+<!-- 개별 css 불러오는 영역-->
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage-point.css') }}">
+{% endblock %}
+
+<!-- 컨텐츠 넣는 영역 -->
+{% block content %}
+<div class="posts">
+<!--------------------포인트 패널-------------------->
+      <div id="points-panel" class="content-panel hidden">
+        <div class="panel-wrapper">
+        <div class="point-top-bar">
+          <div class="point-tabs">
+          <button id="btn-point-history" class="tab-btn active"
+                      onclick="showPointHistory()">포인트 내역</button>
+          <button id="btn-point-store" class="tab-btn"
+                      onclick="goToPointStore()">포인트 상점</button>
+          </div>
+          <div class="point-filters">
+            <button class="filter-btn">최신순</button>
+            <button class="filter-btn">포인트순</button>
+            <button class="filter-btn">적립사유</button>
+            <button class="filter-btn">적립상태</button>
+          </div>
+        </div>
+        <!-- 포인트 내역 테이블 -->
+        <div id="point-history-section">
+          <div class="point-controls">
+            <div class="left-controls">
+              
+            </div>
+            <div class="right-controls">
+              
+            </div>
+          </div>
+          <table class="point-table">
+            <thead>
+              <tr>
+                <th><input type="checkbox" disabled></th>
+                <th>일자</th>
+                <th>상세내역</th>
+                <th>포인트 수량</th>
+                <th>누적 포인트</th>
+                <th>활동 링크</th>
+                <th>상태</th>
+                
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><input type="checkbox" class="point-check"></td>
+                <td>2025-09-26</td>
+                <td>출석 체크</td>
+                <td>+10</td>
+                <td>120</td>
+                <td><a href="#">바로가기</a></td>
+                <td>적립완료</td>
+                
+              </tr>
+              <!-- 추가 행들 -->
+            </tbody>
+          </table>
+        </div>
+        </div>
+      </div>
+      </div>
+	  </div>
+	
+	
+	
+
+{% endblock %}

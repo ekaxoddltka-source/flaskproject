@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage-interest.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="posts">
+
+  <section id="panel-graph" class="content-panel interest-ai-panel">
+
+    <h2 class="panel-title">AI 관심 분석 패널</h2>
+    <p class="panel-sub">AI가 분석한 최근 관심 기술 그래프입니다.</p>
+
+   <div class="chart-container small">
+     <h3 class="chart-title">관심 기술 TOP 5</h3>
+    <canvas id="top5TechChart" width="500" height="300"></canvas>
+</div>
+
+
+    <div class="chart-container small">
+      <h3 class="chart-title">기술 역량 / 관심도 레이더 차트</h3>
+    <canvas id="radarTechChart" width="500" height="400"></canvas>
+</div>
+  </section>
+ 
+
+</div>
+</div>
+
+<!-- 🔥🔥 여기서 JS 직접 삽입 (base.html이 extra_js 인식 안 하므로) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script id="chart-data" type="application/json">
+{
+  "top5_labels": {{ top5_labels | tojson }},
+  "top5_values": {{ top5_values | tojson }},
+  "radar_labels": {{ radar_labels | tojson }},
+  "radar_values": {{ radar_values | tojson }}
+}
+</script>
+
+<script src="{{ url_for('mypage.static', filename='js/mypage-interest.js') }}"></script>
+
+{% endblock %}
+

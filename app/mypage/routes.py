@@ -9,7 +9,7 @@ bp = Blueprint(
     static_url_path='/mypage/static'
 )
 
-@bp.route('/mypage-posts')
+@bp.route('/mypage')
 def mypage():
     notice_buttons = {
     "top_buttons": ["최신순", "조회순", "추천순", "팔로우순", "검색순"],
@@ -23,6 +23,78 @@ def mypage():
     sidebar=SIDEBAR_CONFIG["default"],
     active="mypage"
 )
+@bp.route('/mypage-interest')
+def mypage_interest():
+
+    # 실제 DB 기반이면 여기서 분석
+    top5_labels = ["Python", "React", "AI", "SQL", "Docker"]
+    top5_values = [55, 40, 30, 22, 15]
+
+    radar_labels = ["Frontend", "Backend", "AI/ML", "DevOps", "CS 기본"]
+    radar_values = [65, 45, 88, 40, 55]
+
+    return render_template(
+        'mypage-interest.html',
+        sidebar=SIDEBAR_CONFIG["default"],
+        active="mypage",
+        top5_labels=top5_labels,
+        top5_values=top5_values,
+        radar_labels=radar_labels,
+        radar_values=radar_values
+    )
+
+
+@bp.route('/mypage-info')
+def mypage_info():
+    return render_template(
+    'mypage-info.html',            
+    sidebar=SIDEBAR_CONFIG["default"],
+    active="mypage"
+)
+
+@bp.route('/mypage-follow')
+def mypage_follow():
+    return render_template(
+    'mypage-follow.html',            
+    sidebar=SIDEBAR_CONFIG["default"],
+    active="mypage"
+)
+
+@bp.route('/mypage-message')
+def mypage_message():
+    return render_template(
+    'mypage-message.html',            
+    sidebar=SIDEBAR_CONFIG["default"],
+    active="mypage"
+)
+
+@bp.route('/mypage-point')
+def mypage_point():
+    return render_template(
+    'mypage-point.html',            
+    sidebar=SIDEBAR_CONFIG["default"],
+    active="mypage"
+)
+
+@bp.route('/mypage-alert')
+def mypage_alert():
+    return render_template(
+    'mypage-alert.html',            
+    sidebar=SIDEBAR_CONFIG["default"],
+    active="mypage"
+)
+
+@bp.route('/mypage-withdraw')
+def mypage_withdraw():
+    return render_template(
+    'mypage-withdraw.html',            
+    sidebar=SIDEBAR_CONFIG["default"],
+    active="mypage"
+)
+
+
+
+
 
 @bp.route('/minigame')
 def minigame():

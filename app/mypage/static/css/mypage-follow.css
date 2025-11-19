@@ -1,0 +1,66 @@
+/* ===== 팔로우/팔로워 영역 ===== */
+.follow-wrapper {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.follow-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.follow-tabs .tab-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #eee;
+  cursor: pointer;
+}
+
+.follow-tabs .tab-button.active {
+  background: #3DADFF;
+  color: #fff;
+}
+
+/* 목록 기본 표시 */
+.follow-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 숨김 처리 */
+.follow-list.hidden {
+  display: none;
+}
+
+.follow-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.nickname {
+  font-weight: bold;
+  font-size: 15px;
+}
+
+.follow-toggle {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #3DADFF;
+  background: #fff;
+  color: #3DADFF;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.follow-toggle.following {
+  background: #3DADFF;
+  color: #fff;
+}

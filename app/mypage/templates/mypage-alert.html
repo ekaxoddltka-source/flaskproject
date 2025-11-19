@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+<!-- 개별 css 불러오는 영역-->
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage-alert.css') }}">
+{% endblock %}
+
+<!-- 컨텐츠 넣는 영역 -->
+{% block content %}
+<div class="posts">
+<!--------------------- 알림 패널 --------------------->
+<div id="alerts-panel" class="content-panel hidden">
+  <div class="panel-wrapper">
+
+    <!-- 상단 바 -->
+    <div class="point-top-bar">
+      <div class="point-tabs">
+        <button id="btn-alert-history" class="tab-btn active">알림 내역</button>
+      </div>
+      <div class="point-filters">
+        <button class="btn-delete-selected" style="background-color: #ff6b6b; color: white;">선택 삭제</button>
+      </div>
+    </div>
+
+    <!-- 알림 테이블 -->
+    <div id="alert-history-section">
+      <table class="point-table">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="select-all-notifications"></th>
+            <th>알림일시</th>
+            <th>내용</th>
+            <th>타입</th>
+            <th>관련 게시글</th>
+            <th>삭제</th>
+          </tr>
+        </thead>
+        <tbody id="alert-tbody">
+          <tr>
+            <td colspan="6" style="text-align:center; color:gray;">알림 내역을 불러오는 중...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+</div>
+</div>
+	
+	
+	
+	
+
+{% endblock %}

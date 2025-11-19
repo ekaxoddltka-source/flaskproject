@@ -1,0 +1,68 @@
+/* ===== 메시지 / 포인트 / 알림 공통 wrapper ===== */
+.panel-wrapper {
+  background: #fff;
+  padding: 20px 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  margin-top: 20px;
+}
+.point-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.point-table th, .point-table td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.point-table th {
+  background-color: #f5f5f5;
+}
+
+.point-controls {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.btn-delete, .btn-delete-selected {
+  background-color: #ff5c5c;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.point-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.point-tabs .tab-btn {
+  padding: 8px 16px;
+  margin-right: 8px;
+  border: none;
+  background-color: #eee;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.point-tabs .tab-btn.active {
+  background-color: #3DADFF;
+  color: white;
+}
+
+.point-filters .filter-btn {
+  padding: 6px 12px;
+  margin-left: 8px;
+  border: 1px solid #ccc;
+  background-color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}

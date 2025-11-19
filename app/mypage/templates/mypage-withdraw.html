@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+<!-- 개별 css 불러오는 영역-->
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage-withdraw.css') }}">
+{% endblock %}
+
+<!-- 컨텐츠 넣는 영역 -->
+{% block content %}
+<div class="posts">
+ <!-------------------회원탈퇴 패널---------------------->
+      <div id="withdraw-panel" class="content-panel">
+        <div class="withdraw-card">
+          <h2>회원탈퇴</h2>
+          <div class="withdraw-warning">
+            <p>
+              회원탈퇴 시 <strong>모든 활동 정보가 삭제</strong>되며, 복구가 불가능합니다.<br>
+              탈퇴 후에는 동일한 아이디로 <strong>재가입할 수 없습니다.</strong><br>
+              포인트, 게시글, 댓글 등 모든 데이터가 삭제됩니다.
+            </p>
+          </div>
+          <label class="withdraw-agree">
+            <input type="checkbox" id="agree-check">
+            <span>위 내용을 확인하고, 회원탈퇴 약관에 동의합니다.</span>
+          </label>
+          <button id="btn-withdraw" class="btn-danger">회원탈퇴</button>
+        </div>
+      </div>
+
+      <!-- 탈퇴 확인 모달 -->
+      <div id="withdrawal-popup" class="modal hidden">
+        <div class="modal-content">
+          <h3>회원탈퇴 확인</h3>
+          <p>회원탈퇴를 진행하려면 아이디와 비밀번호를 입력해주세요.</p>
+          <input type="text" id="withdraw-id" placeholder="아이디 입력">
+          <input type="password" id="withdraw-pw" placeholder="비밀번호 입력">
+          <div class="modal-buttons">
+            <button class="confirm" onclick="confirmWithdrawal()">확인</button>
+            <button class="cancel" onclick="closeWithdrawalPopup()">취소</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 탈퇴 완료 모달 -->
+      <div id="withdrawal-complete" class="modal hidden">
+        <div class="modal-content">
+          <h3>회원탈퇴가 완료되었습니다.</h3>
+          <p>그동안 이용해주셔서 감사합니다.</p>
+          <button class="confirm" onclick="goToHome()">홈으로 이동</button>
+        </div>
+      </div>
+	  </div>
+	  </div>	
+	
+	
+	
+
+{% endblock %}
