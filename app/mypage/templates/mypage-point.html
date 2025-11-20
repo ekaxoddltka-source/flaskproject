@@ -23,8 +23,9 @@ body::before {
           <div class="point-tabs">
           <button id="btn-point-history" class="tab-btn active"
                       onclick="showPointHistory()">포인트 내역</button>
-          <button id="btn-point-store" class="tab-btn"
-                      onclick="goToPointStore()">포인트 상점</button>
+          <a href="{{ url_for('mypage.pointstore') }}">
+              <button id="btn-point-store" class="tab-btn">포인트 상점</button>
+          </a>  <!-- 링크이동하려고 a태그로 감싼 수정 -->
           </div>
           <div class="point-filters">
             <button class="filter-btn">최신순</button>

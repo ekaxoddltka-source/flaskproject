@@ -14,8 +14,8 @@ bp = Blueprint(
 
 def get_db_connection():
     return pymysql.connect(
-        host='192.168.60.187',
-        user='jwh',
+        host='localhost',
+        user='root',
         password='ezen',
         db='aezen',
         charset='utf8mb4',

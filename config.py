@@ -29,8 +29,8 @@ SIDEBAR_CONFIG = {
         "lists": {
             "info": [
                 {"url": "/info", "label": "공지사항"},
-                {"url": "/mypage?panel=terms", "label": "이용약관"},
-                {"url": "/mypage?panel=privacy", "label": "개인정보처리방침"}
+                {"url": "/terms", "label": "이용약관"},
+                {"url": "/privacy", "label": "개인정보처리방침"}
             ]
         },
         "default_active": "info",
@@ -44,8 +44,7 @@ SIDEBAR_CONFIG = {
         ],
         "lists": {
             "pointstore": [
-                {"url": "/pointstore?panel=info", "label": "상품응모"},
-                {"url": "/pointstore?panel=terms", "label": "당첨자발표"},
+                {"url": "/pointstore", "label": "상품응모 / 당첨자발표"},
                 {"url": "/pointshop", "label": "포인트샵"},
                 {"url": "/minigame", "label": "미니게임"},
             ]

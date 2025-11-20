@@ -125,5 +125,86 @@ document.addEventListener("DOMContentLoaded", () => {
     // 주기적 갱신 (5초마다)
     setInterval(loadLatestNotice, 5000);
 
+    // ===========================
+    // 4. 사이드바 탭 전환 기능
+    // ===========================
+    const sidebar = document.querySelector(".sidebar");
+    if (!sidebar) return;
+
+    // 모든 패널/탭 버튼
+    const tabs = Array.from(document.querySelectorAll(".tab-button"));
+    const panels = Array.from(document.querySelectorAll(".tab-panel"));
+
+    // 현재 페이지 URL
+    const currentURL = window.location.pathname + window.location.search;
+
+    // 1) 모든 리스트 li 순회
+    panels.forEach(panel => {
+        const lis = panel.querySelectorAll("ul li");
+        lis.forEach(li => {
+            const a = li.querySelector("a");
+            if (!a) return;
+
+            // href와 현재 URL 비교
+            if (a.href === window.location.href) {
+                li.classList.add("selected");
+
+                // 패널 보여주기
+                panels.forEach(p => p.classList.add("hidden"));
+                panel.classList.remove("hidden");
+
+                // 탭 버튼 활성화
+                const panelId = panel.id; // panel-chat, panel-mypage 등
+                const tab = document.querySelector(`.tab-button[data-target="${panelId}"]`);
+                if (tab) {
+                    tabs.forEach(t => t.classList.remove("active"));
+                    tab.classList.add("active");
+                    tabs.forEach(t => t.setAttribute("aria-selected", "false"));
+                    tab.setAttribute("aria-selected", "true");
+                }
+            }
+        });
+    });
+
+    // 2) 기존 탭 클릭 기능
+    tabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+            const target = tab.dataset.target;
+            const activePanel = document.getElementById(target);
+
+            // 탭 활성화
+            tabs.forEach(t => t.classList.remove("active"));
+            tab.classList.add("active");
+
+            // 패널 토글
+            panels.forEach(panel => panel.classList.add("hidden"));
+            if (activePanel) activePanel.classList.remove("hidden");
+
+            // 접근성
+            tabs.forEach(t => t.setAttribute("aria-selected", "false"));
+            tab.setAttribute("aria-selected", "true");
+            panels.forEach(panel => panel.setAttribute("aria-hidden", "true"));
+            if (activePanel) activePanel.setAttribute("aria-hidden", "false");
+        });
+    });
+
+    // 3) 리스트 클릭 시 선택 표시
+    sidebar.addEventListener("click", e => {
+        const li = e.target.closest("li");
+        if (!li) return;
+        const list = li.closest("ul");
+        if (!list) return;
+
+        // 같은 리스트 내 selected 제거
+        list.querySelectorAll("li").forEach(item => item.classList.remove("selected"));
+        li.classList.add("selected");
+    });
+
+
+
+
+
+
+
 
 });
