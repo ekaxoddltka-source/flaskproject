@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // ===========================
-    // 1. ID 기억하기 / 쿠키 저장,삭제 기능
-    // ===========================
+// ===========================
+// 1. ID 기억하기 / 쿠키 저장,삭제 기능
+// ===========================
     const REMEMBER_ID_KEY = "rememberedId";  // 쿠키 이름
     const loginIdInput = document.querySelector("input[name='username']");
     const rememberMeCheckbox = document.getElementById("rememberMe");
@@ -48,9 +48,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // ===========================
-    // 2. 마이페이지 버튼이동, 아이콘 요약풍선 기능
-    // ===========================
+// ===========================
+// 2. 마이페이지 버튼이동, 아이콘 요약풍선 기능
+// ===========================
     const btnMyPage = document.getElementById("btnMyPage");
     if (btnMyPage) {
         btnMyPage.addEventListener("click", function() {
@@ -104,9 +104,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // ===========================
-    // 3. 공지사항 실시간 갱신
-    // ===========================
+// ===========================
+// 3. 공지사항 실시간 갱신
+// ===========================
     function loadLatestNotice() {
         fetch("/api/latest_notice")  // Flask에서 만들어줄 API
             .then(response => response.json())
@@ -125,9 +125,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // 주기적 갱신 (5초마다)
     setInterval(loadLatestNotice, 5000);
 
-    // ===========================
-    // 4. 사이드바 탭 전환 기능
-    // ===========================
+// ===========================
+// 4. 사이드바 탭 전환 기능
+// ===========================
     const sidebar = document.querySelector(".sidebar");
     if (!sidebar) return;
 
@@ -145,9 +145,12 @@ document.addEventListener("DOMContentLoaded", () => {
             const a = li.querySelector("a");
             if (!a) return;
 
-            // href와 현재 URL 비교
-            if (a.href === window.location.href) {
+            const linkPath = new URL(a.href).pathname;
+            const currentPath = window.location.pathname;
+
+             if (linkPath === currentPath) {
                 li.classList.add("selected");
+
 
                 // 패널 보여주기
                 panels.forEach(p => p.classList.add("hidden"));
@@ -157,7 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const panelId = panel.id; // panel-chat, panel-mypage 등
                 const tab = document.querySelector(`.tab-button[data-target="${panelId}"]`);
                 if (tab) {
-                    tabs.forEach(t => t.classList.remove("active"));
+                    document.querySelectorAll(".tab-button").forEach(t => t.classList.remove("active"));
                     tab.classList.add("active");
                     tabs.forEach(t => t.setAttribute("aria-selected", "false"));
                     tab.setAttribute("aria-selected", "true");
