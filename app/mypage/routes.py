@@ -9,8 +9,8 @@ bp = Blueprint(
     static_url_path='/mypage/static'
 )
 
-@bp.route('/mypage')
-def mypage():
+@bp.route('/mypage-posts')
+def mypage_posts():
     notice_buttons = {
     "top_buttons": ["최신순", "조회순", "추천순", "팔로우순", "검색순"],
     "feed_buttons": ["전체", "자유", "코딩테스트", "Q&A"]

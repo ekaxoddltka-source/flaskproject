@@ -267,7 +267,7 @@ header {
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+    transition: opacity 0.05s ease-in-out, transform 0.05s ease-in-out;
 }
 /* 툴팁 hover 표시 */
 .icons button:hover::after {

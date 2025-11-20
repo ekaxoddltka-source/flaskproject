@@ -41,7 +41,7 @@
     {% else %}
     <!-- 아이콘 (초기 숨김) -->
     <div class="icons">
-      <button id="btnMyPage" data-tooltip="마이페이지">👨</button>
+      <button id="btnMyPage" data-tooltip="마이페이지" data-url="{{ url_for('mypage.mypage_posts') }}">👨</button>
       <button id="btnNotify" data-tooltip="알림">🔔</button>
       <button id="btnMsg" data-tooltip="메세지">📬</button>
       <button id="btnTrophy" data-tooltip="포인트">🏆</button>

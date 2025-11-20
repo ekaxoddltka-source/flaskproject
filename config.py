@@ -6,15 +6,15 @@ SIDEBAR_CONFIG = {
         ],
         "lists": {
             "mypage": [
-                {"url": "/mypage?panel=posts", "label": "내 글 관리"},
-                {"url": "/mypage?panel=graph", "label": "내 관심 그래프"},
-                {"url": "/mypage?panel=item", "label": "아이템관리"},
-                {"url": "/mypage?panel=edit", "label": "정보수정"},
-                {"url": "/mypage?panel=follow", "label": "팔로우 / 팔로워 관리"},
-                {"url": "/mypage?panel=messages", "label": "메세지"},
-                {"url": "/mypage?panel=points", "label": "포인트"},
-                {"url": "/mypage?panel=alerts", "label": "알림"},
-                {"url": "/mypage?panel=withdraw", "label": "회원탈퇴"},
+                {"url": "/mypage-posts", "label": "내 글 관리"},
+                {"url": "/mypage-interest", "label": "내 관심 그래프"},
+                {"url": "/mypage-items", "label": "아이템관리"},
+                {"url": "/mypage-info", "label": "정보수정"},
+                {"url": "/mypage-follow", "label": "팔로우 / 팔로워 관리"},
+                {"url": "/mypage-message", "label": "메세지"},
+                {"url": "/mypage-point", "label": "포인트"},
+                {"url": "/mypage-alert", "label": "알림"},
+                {"url": "/mypage-withdraw", "label": "회원탈퇴"},
             ]
         },
         "default_active": "chat",
@@ -28,7 +28,7 @@ SIDEBAR_CONFIG = {
         ],
         "lists": {
             "info": [
-                {"url": "/mypage?panel=info", "label": "공지사항"},
+                {"url": "/info", "label": "공지사항"},
                 {"url": "/mypage?panel=terms", "label": "이용약관"},
                 {"url": "/mypage?panel=privacy", "label": "개인정보처리방침"}
             ]
