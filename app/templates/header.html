@@ -65,21 +65,25 @@
 
             <div class="notice-text">
             <strong>📢 공지사항&nbsp;&nbsp;: </strong>&nbsp;&nbsp;
-            <a href="info" class="notice-note" style="color: rgb(219, 219, 93);">이용규칙 안내 .......</a>
+            <a href="info" id="latestNotice" class="notice-note" style="color: rgb(219, 219, 93);">이용규칙 안내 .......</a>
             </div>
 
             <!-- 조건부 렌더링 영역 -->
             {% if show_notice_buttons %}
             <div class="notice-buttons">
               <div class="top-buttons">
-                {% for btn in notice_buttons.top_buttons %}
-                    <button>{{ btn }}</button>
-                {% endfor %}
+                  {% for btn in notice_buttons.top_buttons %}
+                      <a href="{{ url_for('home.home', top=btn, feed=request.args.get('feed','전체')) }}">
+                          <button {% if request.args.get('top','최신순') == btn %}class="active"{% endif %}>{{ btn }}</button>
+                      </a>
+                  {% endfor %}
               </div>
               <div class="feed-buttons">
-                {% for btn in notice_buttons.feed_buttons %}
-                    <button>{{ btn }}</button>
-                {% endfor %}
+                  {% for btn in notice_buttons.feed_buttons %}
+                      <a href="{{ url_for('home.home', top=request.args.get('top','최신순'), feed=btn) }}">
+                          <button {% if request.args.get('feed','전체') == btn %}class="active"{% endif %}>{{ btn }}</button>
+                      </a>
+                  {% endfor %}
               </div>
             </div>
             {% endif %}
