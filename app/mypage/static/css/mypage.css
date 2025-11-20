@@ -1,0 +1,19 @@
+body::before {
+    content: "";
+    position: fixed;
+    left: 0;
+    right: 0;
+
+    /* 🔥 헤더 아래부터 시작 */
+    top: 110px;
+
+    /* 🔥 푸터 위까지만 보여지게 */
+    bottom: 60px;
+
+    background-image: url("{{ url_for('mypage.static', filename=current_bg) }}");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    z-index: -1;
+}

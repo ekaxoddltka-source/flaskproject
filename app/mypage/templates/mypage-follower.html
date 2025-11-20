@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage-follow.css') }}">
+<link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage.css') }}">
+<style>
+body::before {
+    background-image: url("{{ url_for('mypage.static', filename=current_bg) }}");
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="posts">
+
+    <section id="panel-follow" class="content-panel">
+
+        <div class="follow-tabs">
+            <a href="/mypage-following">팔로우</a>
+            <a href="/mypage-follower" class="active">팔로워</a>
+        </div>
+
+        {% for user in follower_list %}
+        <div class="follow-item">
+            <span class="nickname">{{ user.nickname }}</span>
+
+            {% if user.is_following %}
+                <button class="follow-toggle following">팔로잉</button>
+            {% else %}
+                <button class="follow-toggle">팔로우</button>
+            {% endif %}
+        </div>
+        
+        {% endfor %}
+
+    </section>
+
+</div>
+</div>
+{% endblock %}

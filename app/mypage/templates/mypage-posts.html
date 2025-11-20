@@ -3,6 +3,14 @@
 <!-- 개별 css 불러오는 영역-->
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage-posts.css') }}">
+<link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage.css') }}">
+
+<style>
+
+body::before {
+    background-image: url("{{ url_for('mypage.static', filename=current_bg) }}");
+}
+</style>
 {% endblock %}
 
 <!-- 컨텐츠 넣는 영역 -->

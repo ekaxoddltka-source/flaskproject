@@ -1,66 +1,71 @@
-/* ===== 팔로우/팔로워 영역 ===== */
-.follow-wrapper {
-  background: #fff;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+/* 공지사항 탭 폭과 동일하게 맞추기 */
+#panel-follow {
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.07);
+    margin-top: 20px;
+    margin-bottom: 20px;
+
+    width: 100%;
+    max-width: 980px;      /* 공지사항과 동일 폭 */
+    margin-left: auto;
+    margin-right: auto;
 }
 
+/* 탭 버튼 */
 .follow-tabs {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
 }
 
-.follow-tabs .tab-button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  background: #eee;
-  cursor: pointer;
+.follow-tabs a {
+    padding: 10px 18px;
+    background: #eee;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    color: #333;
 }
 
-.follow-tabs .tab-button.active {
-  background: #3DADFF;
-  color: #fff;
+.follow-tabs a.active {
+    background: #3DADFF;
+    color: #fff;
 }
 
-/* 목록 기본 표시 */
-.follow-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* 숨김 처리 */
-.follow-list.hidden {
-  display: none;
-}
-
+/* 리스트 */
 .follow-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #ddd;
 }
 
 .nickname {
-  font-weight: bold;
-  font-size: 15px;
+    font-weight: 600;
 }
 
 .follow-toggle {
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid #3DADFF;
-  background: #fff;
-  color: #3DADFF;
-  cursor: pointer;
-  transition: all 0.2s;
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
 }
 
-.follow-toggle.following {
-  background: #3DADFF;
-  color: #fff;
+.following {
+    background: #3DADFF;
+    color: #fff;
+}
+.follow-wrapper {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+}
+#panel-follow.content-panel {
+    width: 100%;
+    max-width: 1100px;   /* 공지사항 패널과 동일한 폭 */
+    margin-left: auto;
+    margin-right: auto;
 }

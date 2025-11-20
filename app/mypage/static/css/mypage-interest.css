@@ -4,6 +4,7 @@
   border-radius: 12px;
   box-shadow: 0 4px 18px rgba(0,0,0,0.07);
   margin-bottom: 30px;
+  margin-top: 20px;
 }
 
 .panel-title {
@@ -42,4 +43,52 @@
     width: 100%;
     max-width: 600px;  /* 지금은 너무 좁아서 그래프가 축소되는 중 */
     margin: 0 auto;
+}
+.chart-row {
+    display: flex;
+    gap: 30px;           /* 그래프 간격 */
+    justify-content: center;   /* 가운데 정렬 */
+    align-items: flex-start;   /* 위쪽에 맞추기 */
+    margin-top: 20px;
+}
+
+.chart-container.small {
+    flex: 1;                 /* 각각 넓게 차지 */
+    max-width: 450px;        /* 필요하면 너비 제한 */
+}
+/* 두 그래프를 가로 정렬 */
+.chart-row {
+    display: flex;
+    justify-content: center;   /* 가운데 정렬 */
+    align-items: flex-start;   /* 위로 맞춰줌 */
+    gap: 30px;                 /* 카드 간 간격 */
+    margin-top: 20px;
+}
+
+/* 그래프 카드 디자인 */
+.chart-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    width: 420px;           /* 카드 크기 */
+    min-height: 380px;      /* 카드 균형 맞추기 */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 그래프 타이틀 */
+.chart-card .chart-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    text-align: center;
+    width: 100%;
+}
+
+/* 캔버스 기본 크기 */
+.chart-card canvas {
+    width: 100% !important;
+    height: 300px !important;
 }

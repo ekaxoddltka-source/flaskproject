@@ -1,4 +1,6 @@
-/* ===== 정보 수정 폼 전체 영역 ===== */
+/* =========================================================
+   1) 정보수정 전체 컨테이너 스타일
+   ========================================================= */
 .info-edit-wrapper {
   background: #fff;
   padding: 24px 32px;
@@ -7,9 +9,9 @@
   margin-top: 20px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
 }
 
+/* 제목 */
 .info-edit-wrapper h2 {
   font-size: 22px;
   margin-bottom: 20px;
@@ -18,20 +20,24 @@
   padding-bottom: 10px;
 }
 
-/* ===== 폼 구조 ===== */
+
+/* =========================================================
+   2) 폼 기본 구조
+   ========================================================= */
 .edit-form {
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
+/* 라벨 */
 .edit-form label {
   font-weight: bold;
   font-size: 14px;
-  margin-bottom: 4px;
   color: #333;
 }
 
+/* 텍스트 입력 기본 스타일 */
 .edit-form input[type="text"],
 .edit-form input[type="email"],
 .edit-form input[type="password"],
@@ -41,16 +47,20 @@
   border: 1px solid #ccc;
   border-radius: 6px;
   background: #fdfdfd;
-  width: 70%;
+  width: 70%;                /* 적당한 가로폭 */
 }
 
+/* 읽기전용 아이디 */
 .edit-form input[readonly] {
   background: #f0f0f0;
   color: #666;
   cursor: not-allowed;
 }
 
-/* ===== 입력 + 버튼 조합 ===== */
+
+/* =========================================================
+   3) 인풋 + 버튼 조합 (닉네임, 이메일 등)
+   ========================================================= */
 .input-group {
   display: flex;
   gap: 8px;
@@ -77,7 +87,39 @@
   background: #f0f0f0;
 }
 
-/* ===== 하단 수정/취소 버튼 ===== */
+
+/* =========================================================
+   4) 비밀번호 확인 안내 문구 (한 줄만 차지)
+   ========================================================= */
+.pw-message {
+  font-size: 12px;
+  margin-top: 3px;
+  margin-bottom: -5px;
+  height: 14px;        /* 문구가 딱 한 줄만 차지하도록 고정 */
+  line-height: 14px;
+  color: red;
+}
+
+
+/* =========================================================
+   5) 이메일 인증번호 입력 필드
+   ========================================================= */
+#email-auth-wrap {
+  margin-top: 5px;
+}
+
+#email-auth-wrap input {
+  width: 180px;             /* 기본 email_input보다 짧게 */
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  text-align: center;
+}
+
+
+/* =========================================================
+   6) 하단 버튼 (수정 / 취소)
+   ========================================================= */
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -108,15 +150,18 @@
 .form-actions button:hover {
   opacity: 0.9;
 }
-/* 사이드바 탭 버튼 (마이페이지 활성화) */
+
+
+/* =========================================================
+   7) 사이드바 (마이페이지 메뉴 디자인 통일)
+   ========================================================= */
 .sidebar .sidebar-tabs .tab-button.active {
   background: #fff;
   font-weight: 600;
   border-bottom: 2px solid #666;
-  color: #333; /* 글자색은 기본 다크그레이 */
+  color: #333;
 }
 
-/* 마이페이지 리스트 */
 .sidebar #panel-mypage .mypage-list li {
   border: 1px solid #f0f0f0;
   border-radius: 6px;
@@ -124,17 +169,17 @@
   transition: background 0.2s;
 }
 
-/* 선택된 항목 (내 글 관리) */
+/* 현재 선택된 메뉴 */
 .sidebar #panel-mypage .mypage-list li.selected {
-  background: #f0f0f0;   /* home.css와 동일한 연그레이 */
+  background: #f0f0f0;
   font-weight: 600;
 }
 
 .sidebar #panel-mypage .mypage-list li.selected a {
-  color: #000; /* 선택된 글자색 진하게 */
+  color: #000;
 }
 
-/* 기본 링크 */
+/* 일반 메뉴 */
 .sidebar #panel-mypage .mypage-list li a {
   display: block;
   padding: 8px;
@@ -145,8 +190,37 @@
   transition: background 0.2s, color 0.2s;
 }
 
-/* hover 효과 */
 .sidebar #panel-mypage .mypage-list li a:hover {
   background: #f0f0f0;
   color: #000;
+}
+.email-auth-area {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+#email-code {
+    width: 150px;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    text-align: center;
+}
+
+#email-code-confirm {
+    padding: 8px 12px;
+    font-size: 13px;
+    border: 1px solid #3DADFF;
+    background: #fff;
+    color: #3DADFF;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+#email-code-confirm:hover {
+    background: #3DADFF;
+    color: #fff;
 }

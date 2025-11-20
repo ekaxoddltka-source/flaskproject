@@ -10,7 +10,7 @@ SIDEBAR_CONFIG = {
                 {"url": "/mypage-interest", "label": "내 관심 그래프"},
                 {"url": "/mypage-items", "label": "아이템관리"},
                 {"url": "/mypage-info", "label": "정보수정"},
-                {"url": "/mypage-follow", "label": "팔로우 / 팔로워 관리"},
+                {"url": "/mypage-following", "label": "팔로우 / 팔로워 관리"},
                 {"url": "/mypage-message", "label": "메세지"},
                 {"url": "/mypage-point", "label": "포인트"},
                 {"url": "/mypage-alert", "label": "알림"},

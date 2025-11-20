@@ -1,0 +1,89 @@
+.item-panel {
+  background: #fff;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.07);
+  margin-top: 20px;
+}
+
+.item-filter {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.filter-btn {
+  padding: 8px 14px;
+  border: 1px solid #ddd;
+  background: #f7f7f7;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.filter-btn.active {
+  background: #6366f1;
+  color: #fff;
+  border-color: #6366f1;
+}
+
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 20px;
+}
+
+.item-card {
+  background: #fafafa;
+  border-radius: 10px;
+  padding: 15px;
+  border: 1px solid #eee;
+  text-align: center;
+}
+
+.item-img img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  margin-bottom: 10px;
+}
+
+.item-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.item-desc {
+  display: block;
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 10px;
+}
+
+.item-actions .btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn.equip {
+  background: #1315b1;
+  color: #fff;
+}
+
+.btn.equip.active {
+  background: #4f46e5;
+}
+
+.btn.unequip {
+  background: #ff7777;
+  color: white;
+}
+.posts {
+    background: #fff;      /* 흰색 배경 */
+    position: relative;
+    z-index: 2;
+    border-radius: 12px;   /* 선택 */
+}

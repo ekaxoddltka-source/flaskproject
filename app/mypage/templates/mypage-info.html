@@ -3,6 +3,14 @@
 <!-- 개별 css 불러오는 영역-->
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage-info.css') }}">
+<link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage.css') }}">
+
+<style>
+
+body::before {
+    background-image: url("{{ url_for('mypage.static', filename=current_bg) }}");
+}
+</style>
 {% endblock %}
 
 <!-- 컨텐츠 넣는 영역 -->
@@ -21,6 +29,7 @@
 
             <label for="confirm-password">비밀번호 확인</label>
             <input type="password" id="confirm-password" name="confirm-password" placeholder="비밀번호 확인">
+            <p id="pw-message" class="pw-message"></p>
 
             <label for="nickname">닉네임</label>
             <div class="input-group">
@@ -28,12 +37,15 @@
               <button type="button">중복확인</button>
             </div>
 
+            
             <label for="email">이메일</label>
             <div class="input-group">
               <input type="email" id="email" name="email" placeholder="이메일 주소 입력">
-              <button type="button">이메일 인증</button>
+              <button type="button" id="email-auth-btn">이메일 인증</button>
             </div>
 
+              <!-- 인증번호 넣는 영역 추가 -->
+              <div id="email-auth-wrap" class="email-auth-area"></div>
               <div class="form-actions">
               <button type="submit">수정하기</button>
               <button type="button">취소</button>
@@ -45,5 +57,6 @@
 	</div>
 	
 	
+<script src="{{ url_for('mypage.static', filename='js/mypage-info.js') }}"></script>
 
 {% endblock %}
