@@ -30,10 +30,6 @@
   min-height: 18px;     /* 메시지가 없을 때도 공간 확보 */
 }
 
-.post .captcha {
-  margin-top: 20px;
-}
-
 .post .button-group {
   display: flex;
   justify-content: space-between;
