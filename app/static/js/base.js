@@ -104,6 +104,26 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // ===========================
+    // 3. 공지사항 실시간 갱신
+    // ===========================
+    function loadLatestNotice() {
+        fetch("/api/latest_notice")  // Flask에서 만들어줄 API
+            .then(response => response.json())
+            .then(data => {
+                const el = document.getElementById("latestNotice");
+                if (el && data.title) {
+                    el.textContent = data.title;   // 화면 텍스트 교체
+                }
+            })
+            .catch(err => console.error("공지사항 불러오기 오류:", err));
+    }
+
+    // 첫 로딩 때 한번 실행
+    loadLatestNotice();
+
+    // 주기적 갱신 (5초마다)
+    setInterval(loadLatestNotice, 5000);
 
 
 });

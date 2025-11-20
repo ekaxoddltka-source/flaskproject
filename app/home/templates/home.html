@@ -1,207 +1,225 @@
 {% extends 'base.html' %}
 
-<!-- 개별 css 불러오는 영역-->
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('home.static', filename='css/home.css') }}">
 {% endblock %}
 
-<!-- 컨텐츠 넣는 영역 -->
 {% block content %}
-<!-- 게시글 -->
+
 <div class="posts">
 
-	<!-- 게시글 예시 2 -->
-	<c:forEach items="${boardList}" var="post">
-		<div class="post" data-id="${post.boardNo}">
+    {% for post in boardList %}
+    <div class="post" data-id="{{ post.boardNo }}">
 
-			<div class="post-header">
-				<span class="kind">[ <c:choose>
-						<c:when test="${post.boardCategory == 1}">자유게시판</c:when>
-						<c:when test="${post.boardCategory == 2}">Q&A</c:when>
-						<c:when test="${post.boardCategory == 3}">코딩테스트</c:when>
-						<c:when test="${post.boardCategory == 4}">공지사항</c:when>
-						<c:when test="${post.boardCategory == 5}">이용약관</c:when>
-						<c:when test="${post.boardCategory == 6}">개인정보처리방침</c:when>
-						<c:otherwise>미분류</c:otherwise>
-					</c:choose> ]
-				</span> <span class="title"><c:out value="${post.boardTitle}" /></span> <span
-					class="nick dropdown">작성자: <c:out value="${post.nick}" />
-					<ul class="dropdown-menu">
-						<li><a href="#">프로필 보기</a></li>
-						<li><a href="#">팔로우 하기</a></li>
-						<li><a href="#">메세지 보내기</a></li>
-						<li><a href="#">차단하기</a></li>
-					</ul>
-				</span> <span class="hit">조회수: <c:out value="${post.hit}" /></span> <span
-					class="wdate">작성일: ${post.boardCreatedAt}</span> <span
-					class="report" data-post-id="${post.boardNo}">🚨신고하기</span>
-			</div>
+        <div class="post-header">
+            <span class="kind">
+                [ 
+                {% if post.boardCategory == 1 %}자유게시판
+                {% elif post.boardCategory == 2 %}Q&A
+                {% elif post.boardCategory == 3 %}코딩테스트
+                {% elif post.boardCategory == 4 %}공지사항
+                {% elif post.boardCategory == 5 %}이용약관
+                {% elif post.boardCategory == 6 %}개인정보처리방침
+                {% else %}미분류
+                {% endif %}
+                ]
+            </span>
 
-			<div class="post-body">
-				<c:choose>
-					<c:when test="${not empty post.files}">
-						<c:forEach var="file" items="${post.files}">
-							<a
-								href="${pageContext.request.contextPath}/download?no=${file.fileNo}"
-								class="upload"> <c:out value="${file.logicalFileName}" />
-							</a>
-						</c:forEach>
-					</c:when>
-					<c:otherwise>
-							        첨부파일 없음
-							    </c:otherwise>
-				</c:choose>
-				<div class="bnote">
-					<c:out value="${post.boardContent}" />
-				</div>
-				<!-- 이미지 미리보기 -->
-				<c:choose>
-					<c:when test="${empty post.files}">
-						<div class="post-images" style="display: none;"></div>
-					</c:when>
-					<c:otherwise>
-						<div class="post-images" style="display: none;">
-							<c:forEach var="file" items="${post.files}">
-								<c:if
-									test="${fn:toLowerCase(file.fileExt) == 'jpg' 
-									                     or fn:toLowerCase(file.fileExt) == 'png' 
-									                     or fn:toLowerCase(file.fileExt) == 'gif'}">
-									<img
-										src="${pageContext.request.contextPath}/download?no=${file.fileNo}"
-										alt="${file.logicalFileName}">
-								</c:if>
-							</c:forEach>
-						</div>
-					</c:otherwise>
-				</c:choose>
-				<br>
-				<c:set var="tagNames" value="" />
-				<!-- 중복 체크용 문자열 -->
-				<div class="tag">
-					<c:forEach var="tag" items="${post.tags}">
-						<c:if test="${!fn:contains(tagNames, tag.tagName)}">
-							<a href="/tags/${tag}">#<c:out value="${tag.tagName}" /></a>
-							<c:set var="tagNames" value="${tagNames},${tag.tagName}" />
-						</c:if>
-					</c:forEach>
-				</div>
-			</div>
+            <span class="title">{{ post.boardTitle }}</span>
 
-			<!-- 답안 토글 -->
-			<c:if test="${post.boardCategory == 2 or post.boardCategory == 3}">
-				<div class="answer-toggle">
-					<button class="answer-btn">답안 작성 / 모아보기</button>
-				</div>
-				<!-- 답안 영역 -->
-				<div class="answers">
-					<div class="answer-list">
-						<c:forEach var="answer" items="${post.comments}">
-							<c:if test="${answer.commentAnswerType == 2}">
-								<div class="answer-item" data-id="${answer.commentAnswerNo}">
-									<div class="a-text">
-										<c:out value="${answer.commentAnswerContent}" />
-									</div>
-									<div class="a-footer">
-										<span class="author">by <c:out value="${answer.id}" /></span>
-										<c:if test="${not empty login and login.nick eq answer.id}">
-											<div class="answer-actions">
-												<span class="edit-btn">수정</span> <span class="delete-btn"
-													data-type="answer">삭제</span>
-											</div>
-										</c:if>
-										<button class="a-choice">채택</button>
-									</div>
-								</div>
-							</c:if>
-						</c:forEach>
-					</div>
-					<!-- 답안 입력 창-->
-					<form class="answer-form">
-						<textarea placeholder="답안을 작성해보세요..." required></textarea>
-						<button type="submit">등록</button>
-					</form>
-				</div>
-			</c:if>
+            <span class="nick dropdown">
+                작성자: {{ post.nick }}
+                <ul class="dropdown-menu">
+                    <li><a href="#">프로필 보기</a></li>
+                    <li><a href="#">팔로우 하기</a></li>
+                    <li><a href="#">메세지 보내기</a></li>
+                    <li><a href="#">차단하기</a></li>
+                </ul>
+            </span>
 
-			<div class="post-footer">
-				<span class="comment">댓글 <c:set var="commentCount" value="0" />
-					<c:forEach var="c" items="${post.comments}">
-						<c:if test="${c.commentAnswerType == 1}">
-							<c:set var="commentCount" value="${commentCount + 1}" />
-						</c:if>
-					</c:forEach> ${commentCount}개
-				</span>
-				<div class="votes">
-					<span class="post-up" data-id="${post.boardNo}">추천 <c:out
-							value="${post.boardLike}" /> 👍
-					</span> <span class="post-down" data-id="${post.boardNo}">비추천 <c:out
-							value="${post.boardDislike}" /> 👎
-					</span>
-				</div>
-				<div class="post-actions">
-					<c:if test="${not empty login and login.id eq post.id}">
-						<a href="write?board_no=${post.boardNo}" class="edit-btn">수정</a>
-						<span class="delete-btn" data-type="post"
-							data-board-no="${post.boardNo}">삭제</span>
-					</c:if>
-				</div>
-				<a href="#" class="more">더보기</a>
-			</div>
+            <span class="hit">조회수: {{ "{:,}".format(post.hit) }}</span>
+            <span class="wdate">작성일: {{ post.boardCreatedAt.strftime("%Y-%m-%d %H:%M") }}</span>
+            <span class="report" data-post-id="{{ post.boardNo }}">🚨신고하기</span>
+        </div>
 
-			<!-- 댓글 영역 -->
-			<br>
-			<div class="comments">
-				<c:forEach var="comment" items="${post.comments}">
-					<c:if test="${comment.commentAnswerType == 1}">
-						<div class="comment-item" data-id="${comment.commentAnswerNo}">
-							<span class="c-text"><c:out
-									value="${comment.commentAnswerContent}" /></span>
-							<div class="c-votes">
-								<span class="comment-up" data-id="${comment.commentAnswerNo}">
-									<c:out value="${comment.commentLikeCount}" /> 👍
-								</span> <span class="comment-down" data-id="${comment.commentAnswerNo}"><c:out
-										value="${comment.commentDislikeCount}" /> 👎</span>
-							</div>
-							<c:if test="${not empty login and login.nick eq comment.id}">
-								<div class="comment-actions">
-									<span class="edit-btn">수정</span> <span class="delete-btn"
-										data-type="comment">삭제</span>
-								</div>
-							</c:if>
-						</div>
-					</c:if>
-				</c:forEach>
-			</div>
-			<!-- 댓글 입력창 -->
-			<div class="comment-form" style="display: none;">
-				<textarea placeholder="댓글을 입력하세요..."></textarea>
-				<button type="button" class="submit-comment">작성</button>
-			</div>
-		</div>
-	</c:forEach>
-</div>
-<!-- 조건부 렌더링 영역 -->
-        {% if show_writeBtn %}
-        <!-- 글쓰기 버튼 -->
-        <button id="writeBtn" class="write-btn">✏</button>
+        <div class="post-body">
+
+            {% if post.files %}
+                {% for file in post.files %}
+                    <a href="/download?no={{ file.fileNo }}" class="upload">
+                        {{ file.logicalFileName }}
+                    </a>
+                {% endfor %}
+            {% else %}
+                <span class="upload">첨부파일 없음</span>
+            {% endif %}
+
+            <div class="bnote">
+                {{ post.boardContent }}
+            </div>
+
+            <!-- 이미지 미리보기 -->
+            {% if post.files %}
+            <div class="post-images" style="display: none;">
+                {% for file in post.files %}
+                    {% set ext = file.fileExt.lower() %}
+                    {% if ext in ["jpg", "png", "gif"] %}
+                        <img src="/download?no={{ file.fileNo }}" alt="{{ file.logicalFileName }}">
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="post-images" style="display: none;"></div>
+            {% endif %}
+
+            <br>
+
+            <!-- 태그 -->
+            {% set tagNames = [] %}
+            <div class="tag">
+                {% for tag in post.tags %}
+                    {% if tag.tagName not in tagNames %}
+                        <a href="/tags/{{ tag.tagName }}">#{{ tag.tagName }}</a>
+                        {% set _ = tagNames.append(tag.tagName) %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+        </div>
+
+        <!-- 답안 카테고리 -->
+        {% if post.boardCategory == 2 or post.boardCategory == 3 %}
+        <div class="answer-toggle">
+            <button class="answer-btn">답안 작성 / 모아보기</button>
+        </div>
+
+        <div class="answers">
+            <div class="answer-list">
+
+                {% for answer in post.comments %}
+                    {% if answer.commentAnswerType == 2 %}
+                    <div class="answer-item" data-id="{{ answer.commentAnswerNo }}">
+                        <div class="a-text">{{ answer.commentAnswerContent }}</div>
+                        <div class="a-footer">
+                            <span class="author">by {{ answer.id }}</span>
+
+                            {% if login and login.nick == answer.id %}
+                            <div class="answer-actions">
+                                <span class="edit-btn">수정</span>
+                                <span class="delete-btn" data-type="answer">삭제</span>
+                            </div>
+                            {% endif %}
+
+                            <button class="a-choice">채택</button>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+
+            </div>
+
+            <form class="answer-form">
+                <textarea placeholder="답안을 작성해보세요..." required></textarea>
+                <button type="submit">등록</button>
+            </form>
+        </div>
         {% endif %}
 
-		</div> <!-- 게시글 래퍼 끝 -->
+        <div class="post-footer">
 
-      <!-- 신고모달 -->
-        <div id="reportModal" class="modal">
-          <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>신고하기</h2>
-            <p>신고 사유를 선택해주세요:</p>
-            <form id="reportForm">
-              <label><input type="radio" name="reason" value="욕설/비방"> 욕설/비방</label><br>
-              <label><input type="radio" name="reason" value="스팸/광고"> 스팸/광고</label><br>
-              <label><input type="radio" name="reason" value="음란물"> 음란물</label><br>
-              <label><input type="radio" name="reason" value="도배"> 도배</label><br><br>
-              <button type="submit">신고하기</button>
-              <button type="button" id="cancelBtn">취소</button>
-            </form>
-          </div>
+            <!-- 댓글 개수 -->
+            <span class="comment">
+                댓글 
+                {% set commentCount = 0 %}
+                {% for c in post.comments %}
+                    {% if c.commentAnswerType == 1 %}
+                        {% set commentCount = commentCount + 1 %}
+                    {% endif %}
+                {% endfor %}
+                {{ commentCount }}개
+            </span>
+
+            <div class="votes">
+                <span class="post-up" data-id="{{ post.boardNo }}">
+                    추천 {{ post.boardLike }} 👍
+                </span>
+                <span class="post-down" data-id="{{ post.boardNo }}">
+                    비추천 {{ post.boardDislike }} 👎
+                </span>
+            </div>
+
+            <div class="post-actions">
+                {% if login and login.id == post.id %}
+                    <a href="write?board_no={{ post.boardNo }}" class="edit-btn">수정</a>
+                    <span class="delete-btn" data-type="post" data-board-no="{{ post.boardNo }}">삭제</span>
+                {% endif %}
+            </div>
+
+            <a href="#" class="more">더보기</a>
         </div>
+
+        <br>
+
+        <!-- 댓글 영역 -->
+        <div class="comments">
+            {% for comment in post.comments %}
+                {% if comment.commentAnswerType == 1 %}
+                <div class="comment-item" data-id="{{ comment.commentAnswerNo }}">
+                    <span class="c-text">{{ comment.commentAnswerContent }}</span>
+
+                    <div class="c-votes">
+                        <span class="comment-up" data-id="{{ comment.commentAnswerNo }}">
+                            {{ comment.commentLikeCount }} 👍
+                        </span>
+                        <span class="comment-down" data-id="{{ comment.commentAnswerNo }}">
+                            {{ comment.commentDislikeCount }} 👎
+                        </span>
+                    </div>
+
+                    {% if login and login.nick == comment.id %}
+                    <div class="comment-actions">
+                        <span class="edit-btn">수정</span>
+                        <span class="delete-btn" data-type="comment">삭제</span>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <div class="comment-form" style="display: none;">
+            <textarea placeholder="댓글을 입력하세요..."></textarea>
+            <button type="button" class="submit-comment">작성</button>
+        </div>
+
+    </div>
+    {% endfor %}
+</div>
+
+{% if show_writeBtn %}
+<button id="writeBtn" class="write-btn">✏</button>
+{% endif %}
+
+<!-- 신고 모달 -->
+<div id="reportModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>신고하기</h2>
+
+        <p>신고 사유를 선택해주세요:</p>
+
+        <form id="reportForm">
+            <label><input type="radio" name="reason" value="욕설/비방"> 욕설/비방</label><br>
+            <label><input type="radio" name="reason" value="스팸/광고"> 스팸/광고</label><br>
+            <label><input type="radio" name="reason" value="음란물"> 음란물</label><br>
+            <label><input type="radio" name="reason" value="도배"> 도배</label><br><br>
+
+            <button type="submit">신고하기</button>
+            <button type="button" id="cancelBtn">취소</button>
+        </form>
+    </div>
+</div>
+
+</div>
+
 {% endblock %}

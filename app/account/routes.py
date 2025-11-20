@@ -12,19 +12,21 @@ bp = Blueprint(
     static_url_path='/account/static'
 )
 
-conn = pymysql.connect(
-    host='192.168.60.187',
-    user='jwh',
-    password='ezen',
-    db='aezen',
-    charset='utf8mb4',
-    cursorclass=pymysql.cursors.DictCursor
-)
+def get_db_connection():
+    return pymysql.connect(
+        host='192.168.60.187',
+        user='jwh',
+        password='ezen',
+        db='aezen',
+        charset='utf8mb4',
+        cursorclass=pymysql.cursors.DictCursor
+    )
 
 # ------------- account 관련 라우트 영역 -------------------------
 
 @bp.route("/login", methods=["POST"])
 def login():
+    conn = get_db_connection()
     username = request.form["username"]
     password = request.form["password"]
 
