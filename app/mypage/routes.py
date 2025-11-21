@@ -1,5 +1,26 @@
 from flask import Blueprint, render_template
 from config import SIDEBAR_CONFIG
+from app.account.routes import get_db_connection
+
+from app.dao.user_dao import UserDao
+from app.dao.alert_dao import AlertDao
+from app.dao.follow_dao import FollowDao
+from app.dao.message_dao import MessageDao
+from app.dao.mypage_posts_dao import MyPagePostsDao
+from app.dao.point_dao import PointDao
+from app.dao.user_info_dao import UserInfoDao
+from app.dao.withdraw_dao import WithdrawDao
+
+user_dao = UserDao(get_db_connection)
+alert_dao = AlertDao(get_db_connection)
+follow_dao = FollowDao(get_db_connection)
+message_dao = MessageDao(get_db_connection)
+posts_dao = MyPagePostsDao(get_db_connection)
+point_dao = PointDao(get_db_connection)
+user_info_dao = UserInfoDao(get_db_connection)
+withdraw_dao = WithdrawDao(get_db_connection)
+
+
 
 bp = Blueprint(
     'mypage',
@@ -9,24 +30,74 @@ bp = Blueprint(
     static_url_path='/mypage/static'
 )
 
+
+
+
+
+from flask import Blueprint, render_template, request
+from config import SIDEBAR_CONFIG
+from app.account.routes import get_db_connection
+
+# DAO들
+from app.dao.follow_dao import FollowDao
+from app.dao.mypage_posts_dao import MyPagePostsDao
+
+posts_dao = MyPagePostsDao(get_db_connection)
+follow_dao = FollowDao(get_db_connection)
+
 @bp.route('/mypage-posts')
 def mypage_posts():
 
     current_bg = "backgrounds/m.png"
+    user_id = "1"   # 로그인 되면 session에서 가져오면 됨
+
+    sort = request.args.get("top", "최신순")
+
+    # 기본: 내 글 전체
+    posts = posts_dao.get_my_posts_full(user_id)
+
+    # -------------------------------------------------
+    # 팔로우순 → 팔로우한 유저들의 글만 가져오기 (내 글 제외)
+    # -------------------------------------------------
+    if sort == "팔로우순":
+        posts = follow_dao.get_following_posts(user_id)  
+        # 팔로우한 사람 글이 이미 완성된 형태로 반환됨
+        # posts_dao.get_my_posts_full 과 구조 다를 수 있어서 주의!
+
+    # -------------------------------------------------
+    # 정렬 옵션
+    # -------------------------------------------------
+    if sort == "최신순":
+        posts.sort(key=lambda x: x["board_no"], reverse=True)
+
+    elif sort == "조회순":
+        if posts and "hit" in posts[0]:
+            posts.sort(key=lambda x: x["hit"], reverse=True)
+
+    elif sort == "추천순":
+        if posts and "like_count" in posts[0]:
+            posts.sort(key=lambda x: x["like_count"], reverse=True)
+
+    # 검색순은 데이터 X → 생략
 
     notice_buttons = {
-    "top_buttons": ["최신순", "조회순", "추천순", "팔로우순", "검색순"],
-    "feed_buttons": ["전체", "자유", "코딩테스트", "Q&A"]
+        "top_buttons": ["최신순", "조회순", "추천순", "팔로우순", "검색순"],
+        "feed_buttons": ["전체", "자유", "코딩테스트", "Q&A"]
     }
+
     return render_template(
-    'mypage-posts.html', 
-    show_notice_buttons=True,
-    notice_buttons=notice_buttons,
-    show_writeBtn=True,
-    sidebar=SIDEBAR_CONFIG["default"],
-    active="mypage",
-    current_bg = current_bg
-)
+        'mypage-posts.html',
+        posts=posts,
+        show_notice_buttons=True,
+        notice_buttons=notice_buttons,
+        show_writeBtn=True,
+        sidebar=SIDEBAR_CONFIG["default"],
+        active="mypage",
+        current_bg=current_bg,
+        top_filter=sort
+    )
+
+
 @bp.route('/mypage-interest')
 def mypage_interest():
 

@@ -11,6 +11,8 @@ body::before {
     background-image: url("{{ url_for('mypage.static', filename=current_bg) }}");
 }
 </style>
+<script src="{{ url_for('mypage.static', filename='js/mypage-point.js') }}"></script>
+
 {% endblock %}
 
 <!-- 컨텐츠 넣는 영역 -->
@@ -28,10 +30,10 @@ body::before {
           </a>  <!-- 링크이동하려고 a태그로 감싼 수정 -->
           </div>
           <div class="point-filters">
-            <button class="filter-btn">최신순</button>
-            <button class="filter-btn">포인트순</button>
-            <button class="filter-btn">적립사유</button>
-            <button class="filter-btn">적립상태</button>
+              <button class="filter-btn" data-sort="newest">최신 내역</button>
+              <button class="filter-btn" data-sort="oldest">과거 내역</button>
+              <button class="filter-btn" data-sort="high">높은 포인트</button>
+              <button class="filter-btn" data-sort="low">낮은 포인트</button>
           </div>
         </div>
         <!-- 포인트 내역 테이블 -->

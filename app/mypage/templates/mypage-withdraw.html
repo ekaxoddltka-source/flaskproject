@@ -11,6 +11,7 @@ body::before {
     background-image: url("{{ url_for('mypage.static', filename=current_bg) }}");
 }
 </style>
+<script src="{{ url_for('mypage.static', filename='js/mypage-withdraw.js') }}"></script>
 {% endblock %}
 
 <!-- 컨텐츠 넣는 영역 -->

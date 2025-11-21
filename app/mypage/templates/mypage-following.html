@@ -8,6 +8,7 @@ body::before {
     background-image: url("{{ url_for('mypage.static', filename=current_bg) }}");
 }
 </style>
+<script src="{{ url_for('mypage.static', filename='js/mypage-follow.js') }}"></script>
 {% endblock %}
 
 {% block content %}
