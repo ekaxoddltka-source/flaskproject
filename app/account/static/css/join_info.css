@@ -49,6 +49,7 @@
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  color: white;
 }
 
 .post button:hover {
@@ -93,16 +94,12 @@
     display: none;
 }
 
-/* 체크된 경우 */
-.skill-tag-area .tag input:checked + * {
-    color: white;
+/* 체크된 경우, input 바로 뒤에 오는 span의 텍스트 색상을 변경합니다. */
+.skill-tag-area .tag input:checked + span {
+    color: white; /* 💡 white 색상은 span에만 적용 (텍스트 색상) */
 }
-
-.skill-tag-area .tag input:checked ~ * {
-    color: white;
-}
-
-.skill-tag-area .tag input:checked + * {
+/* ✅ 해결책: :has() 선택자 (최신 브라우저 권장) */
+.skill-tag-area .tag:has(input:checked) {
     background: #4a8bff;
     border-color: #4a8bff;
 }

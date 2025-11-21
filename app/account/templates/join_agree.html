@@ -161,11 +161,13 @@
 
               <div class="button-group">
                 <a href="home.html" class="cancel-btn">취소</a>
-                <a href="join_info.html" class="next-btn" id="nextBtn" style="pointer-events:none; opacity:0.5;">다음 단계</a>
+                <button type="submit" class="next-btn" id="nextBtn" disabled>다음 단계</button>
               </div>
             </form>
           </div>
 
         </div>
     </div> <!-- 게시글 래퍼 끝 -->
+
+<script src="{{ url_for('account.static', filename='js/join-agree.js') }}"></script>
 {% endblock %}
