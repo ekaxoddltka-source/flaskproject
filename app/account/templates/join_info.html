@@ -53,22 +53,22 @@
             <label>관심분야</label>
             <div class="tag-box" id="interest-tags">
                 <label class="tag">
-                    <input type="checkbox" name="interests" value="웹개발"> 웹개발
+                    <input type="checkbox" name="interests" value="웹개발"> <span>웹개발</span>
                 </label>
                 <label class="tag">
-                    <input type="checkbox" name="interests" value="AI"> AI
+                    <input type="checkbox" name="interests" value="AI"> <span>AI</span>
                 </label>
                 <label class="tag">
-                    <input type="checkbox" name="interests" value="데이터분석"> 데이터분석
+                    <input type="checkbox" name="interests" value="데이터분석"> <span>데이터분석</span>
                 </label>
                 <label class="tag">
-                    <input type="checkbox" name="interests" value="머신러닝"> 머신러닝
+                    <input type="checkbox" name="interests" value="머신러닝"> <span>머신러닝</span>
                 </label>
                 <label class="tag">
-                    <input type="checkbox" name="interests" value="모바일개발"> 모바일개발
+                    <input type="checkbox" name="interests" value="모바일개발"> <span>모바일개발</span>
                 </label>
                 <label class="tag">
-                    <input type="checkbox" name="interests" value="데이터베이스"> 데이터베이스
+                    <input type="checkbox" name="interests" value="데이터베이스"><span>데이터베이스</span>
                 </label>
             </div>
 
@@ -83,31 +83,31 @@
             <label>보유 기술</label>
             <div class="tag-box" id="skill-tags">
                 <label class="tag">
-                    <input type="checkbox" name="skills" value="Python"> Python
+                    <input type="checkbox" name="skills" value="Python"><span>Python</span>
                 </label>
                 <label class="tag">
-                    <input type="checkbox" name="skills" value="JavaScript"> JavaScript
+                    <input type="checkbox" name="skills" value="JavaScript"><span>JavaScript</span>
                 </label>
                 <label class="tag">
-                    <input type="checkbox" name="skills" value="Django"> Django
+                    <input type="checkbox" name="skills" value="Django"><span>Django</span>
                 </label>
                 <label class="tag">
-                    <input type="checkbox" name="skills" value="nods"> nods
+                    <input type="checkbox" name="skills" value="nods"><span>nods</span>
                 </label>
                 <label class="tag">
-                    <input type="checkbox" name="skills" value="C언어"> C언어
+                    <input type="checkbox" name="skills" value="C언어"><span>C언어</span>
                 </label>
                 <label class="tag">
-                    <input type="checkbox" name="skills" value="HTML/CSS"> HTML/CSS
+                    <input type="checkbox" name="skills" value="HTML/CSS"><span>HTML/CSS</span>
                 </label>
                 <label class="tag">
-                    <input type="checkbox" name="skills" value="Kotlin"> Kotlin
+                    <input type="checkbox" name="skills" value="Kotlin"> <span>Kotlin</span>
                 </label>
                 <label class="tag">
-                    <input type="checkbox" name="skills" value="Node.js"> Node.js
+                    <input type="checkbox" name="skills" value="Node.js"><span> Node.js</span>
                 </label>
                 <label class="tag">
-                    <input type="checkbox" name="skills" value="SQL"> SQL
+                    <input type="checkbox" name="skills" value="SQL"><span>SQL</span>
                 </label>
             </div>
 
@@ -129,4 +129,5 @@
         </div> 
 
       </div> <!-- 게시글 래퍼 끝 -->
+      <script src="{{ url_for('account.static', filename='js/join-info.js') }}"></script>
 {% endblock %}
