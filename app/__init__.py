@@ -1,18 +1,38 @@
 # app/__init__.py
 from flask import Flask
+import pymysql
 
 def create_app():
     app = Flask(__name__)
-
     app.config['SECRET_KEY'] = 'aezen'
 
-    # 🔹 home 블루프린트 등록
+    # -------------------------------------
+    # 🔥 MySQL 기본 설정 (pymysql 사용)
+    # -------------------------------------
+    app.config["MYSQL_HOST"] = "localhost"
+    app.config["MYSQL_USER"] = "root"
+    app.config["MYSQL_PASSWORD"] = "ezen"
+    app.config["MYSQL_DB"] = "aezen"
+    app.config["MYSQL_CURSORCLASS"] = "DictCursor"
+
+    # DB 커넥터 함수
+    def get_db_connection():
+        return pymysql.connect(
+            host=app.config["MYSQL_HOST"],
+            user=app.config["MYSQL_USER"],
+            password=app.config["MYSQL_PASSWORD"],
+            db=app.config["MYSQL_DB"],
+            cursorclass=pymysql.cursors.DictCursor
+        )
+
+    # Flask app 에 등록
+    app.get_db_connection = get_db_connection
+
+    # -------------------------------------
+    # 블루프린트 등록
+    # -------------------------------------
     from app.home.routes import bp as home_bp
     app.register_blueprint(home_bp)
-
-    # (필요하다면 다른 블루프린트도 등록)
-    # from app.mypage.routes import bp as mypage_bp
-    # app.register_blueprint(mypage_bp, url_prefix="/mypage")
 
     from app.account.routes import bp as account_bp
     app.register_blueprint(account_bp)

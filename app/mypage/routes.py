@@ -2,14 +2,14 @@ from flask import Blueprint, render_template
 from config import SIDEBAR_CONFIG
 from app.account.routes import get_db_connection
 
-from app.dao.user_dao import UserDao
-from app.dao.alert_dao import AlertDao
-from app.dao.follow_dao import FollowDao
-from app.dao.message_dao import MessageDao
-from app.dao.mypage_posts_dao import MyPagePostsDao
-from app.dao.point_dao import PointDao
-from app.dao.user_info_dao import UserInfoDao
-from app.dao.withdraw_dao import WithdrawDao
+from app.mypage.dao.user_dao import UserDao
+from app.mypage.dao.alert_dao import AlertDao
+from app.mypage.dao.follow_dao import FollowDao
+from app.mypage.dao.message_dao import MessageDao
+from app.mypage.dao.mypage_posts_dao import MyPagePostsDao
+from app.mypage.dao.point_dao import PointDao
+from app.mypage.dao.user_info_dao import UserInfoDao
+from app.mypage.dao.withdraw_dao import WithdrawDao
 
 user_dao = UserDao(get_db_connection)
 alert_dao = AlertDao(get_db_connection)
@@ -39,8 +39,8 @@ from config import SIDEBAR_CONFIG
 from app.account.routes import get_db_connection
 
 # DAO들
-from app.dao.follow_dao import FollowDao
-from app.dao.mypage_posts_dao import MyPagePostsDao
+from app.mypage.dao.follow_dao import FollowDao
+from app.mypage.dao.mypage_posts_dao import MyPagePostsDao
 
 posts_dao = MyPagePostsDao(get_db_connection)
 follow_dao = FollowDao(get_db_connection)
