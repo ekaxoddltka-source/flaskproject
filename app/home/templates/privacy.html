@@ -3,6 +3,9 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('home.static', filename='css/home.css') }}">
 {% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('home.static', filename='js/home.js') }}"></script>
+{% endblock %}
 
 {% block content %}
 
@@ -83,7 +86,7 @@
             </span>
 
             <div class="post-actions">
-                {% if login and login.id == post.id %}
+                {% if login_user_id == post.id %}
                     <a href="write?board_no={{ post.boardNo }}" class="edit-btn">수정</a>
                     <span class="delete-btn" data-type="post" data-board-no="{{ post.boardNo }}">삭제</span>
                 {% endif %}
@@ -110,7 +113,7 @@
                         </span>
                     </div>
 
-                    {% if login and login.nick == comment.id %}
+                    {% if login_user_id == comment.commenterId %}
                     <div class="comment-actions">
                         <span class="edit-btn">수정</span>
                         <span class="delete-btn" data-type="comment">삭제</span>

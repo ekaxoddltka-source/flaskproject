@@ -1,5 +1,6 @@
 # app/home/routes.py
-from flask import Blueprint, render_template, jsonify, request
+from flask import Blueprint, render_template, jsonify, request, session
+from datetime import datetime
 from config import SIDEBAR_CONFIG
 import pymysql
 from app.account.routes import get_db_connection
@@ -137,6 +138,8 @@ def home():
     top_filter = request.args.get('top', '최신순')
     feed_filter = request.args.get('feed', '전체')
 
+    login_user_id = session.get("user", {}).get("id")
+
     return render_template(
         'home.html',
         boardList=boardList,
@@ -146,7 +149,8 @@ def home():
         active="chat",
         sidebar=SIDEBAR_CONFIG["default"],
         top_filter=top_filter,       
-        feed_filter=feed_filter      
+        feed_filter=feed_filter,
+        login_user_id=login_user_id      
     )
 
 @bp.route('/write')
@@ -267,6 +271,8 @@ def terms():
     top_filter = request.args.get('top', '최신순')
     feed_filter = request.args.get('feed', '전체')
 
+    login_user_id = session.get("user", {}).get("id")
+
     return render_template(
     'info.html',
     boardList=boardList,
@@ -274,7 +280,8 @@ def terms():
     notice_buttons=notice_buttons,
     show_writeBtn=True,
     sidebar=SIDEBAR_CONFIG["info"],
-    active="info"
+    active="info",
+    login_user_id=login_user_id 
 )
 
 @bp.route('/info')
@@ -387,6 +394,8 @@ def info():
     top_filter = request.args.get('top', '최신순')
     feed_filter = request.args.get('feed', '전체')
 
+    login_user_id = session.get("user", {}).get("id")
+
     return render_template(
     'terms.html',
     boardList=boardList,
@@ -394,7 +403,8 @@ def info():
     notice_buttons=notice_buttons,
     show_writeBtn=True,
     sidebar=SIDEBAR_CONFIG["info"],
-    active="info"
+    active="info",
+    login_user_id=login_user_id 
 )
 
 @bp.route('/privacy')
@@ -507,6 +517,8 @@ def privacy():
     top_filter = request.args.get('top', '최신순')
     feed_filter = request.args.get('feed', '전체')
 
+    login_user_id = session.get("user", {}).get("id")
+
     return render_template(
     'privacy.html',
     boardList=boardList,
@@ -514,5 +526,178 @@ def privacy():
     notice_buttons=notice_buttons,
     show_writeBtn=True,
     sidebar=SIDEBAR_CONFIG["info"],
-    active="info"
+    active="info",
+    login_user_id=login_user_id
 )
+
+@bp.route("/report", methods=["POST"])
+def report_post():
+    if "user" not in session:
+        return jsonify({"success": False, "msg": "로그인이 필요합니다."})
+
+    data = request.get_json()
+    board_no = data.get("board_no")
+    report_category = data.get("report_category")
+    report_content = data.get("report_content")
+    report_user_id = session["user"]["id"]
+    now = datetime.now()
+
+    conn = get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+    try:
+        # 1. 중복 신고 체크
+        sql_check = """
+            SELECT COUNT(*) AS cnt 
+            FROM report
+            WHERE board_no=%s AND report_user_id=%s
+        """
+        cursor.execute(sql_check, (board_no, report_user_id))
+        count = cursor.fetchone()["cnt"]
+
+        if count > 0:
+            return jsonify({"success": False, "msg": "이미 신고한 게시글입니다."})
+
+        # 2. 신고 등록
+        sql_insert = """
+            INSERT INTO report
+            (report_user_id, report_category, report_content, board_no, reported_at, report_status, report_updated_at)
+            VALUES (%s, %s, %s, %s, %s, 1, %s)
+        """
+        cursor.execute(sql_insert, (report_user_id, report_category, report_content, board_no, now, now))
+        conn.commit()
+
+        return jsonify({"success": True, "msg": "신고가 접수되었습니다."})
+
+    except Exception as e:
+        conn.rollback()
+        print("Report insert error:", e)
+        return jsonify({"success": False, "msg": str(e)})
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@bp.route("/post/delete", methods=["POST"])
+def delete_post():
+    if "user" not in session:
+        return jsonify(success=False, msg="로그인이 필요합니다.")
+
+    data = request.get_json()
+    board_no = data.get("id")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE board SET board_deleted = 1 WHERE board_no = %s",
+        (board_no,)
+    )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify(success=True)
+
+@bp.route("/comment/delete", methods=["POST"])
+def delete_comment():
+    if "user" not in session:
+        return jsonify(success=False, msg="로그인이 필요합니다.")
+
+    # form-urlencoded로 전달된 데이터 받기
+    data = request.get_json()
+    comment_id = data.get("id")
+    if not comment_id:
+        return jsonify(success=False, msg="댓글 ID가 없습니다.")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "DELETE FROM comment_answer WHERE comment_answer_no = %s",
+        (comment_id,)
+    )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify(success=True)
+
+
+@bp.route("/answer/delete", methods=["POST"])
+def delete_answer():
+    if "user" not in session:
+        return jsonify(success=False, msg="로그인이 필요합니다.")
+
+    # form-urlencoded로 전달된 데이터 받기
+    data = request.get_json()   
+    answer_id = data.get("id")
+    if not answer_id:
+        return jsonify(success=False, msg="답변 ID가 없습니다.")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "DELETE FROM comment_answer WHERE comment_answer_no = %s",
+        (answer_id,)
+    )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify(success=True)
+
+
+@bp.route("/comment/update", methods=["POST"])
+def update_comment():
+    if "user" not in session:
+        return jsonify(success=False, msg="로그인이 필요합니다.")
+
+    comment_id = request.form.get("id")
+    content = request.form.get("content", "").strip()
+
+    if not comment_id or not content:
+        return jsonify(success=False, msg="필수 정보 누락")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE comment_answer SET comment_answer_content = %s, comment_answer_updated_at = NOW() WHERE comment_answer_no = %s",
+        (content, comment_id)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify(success=True)
+
+@bp.route("/answer/update", methods=["POST"])
+def update_answer():
+    if "user" not in session:
+        return jsonify(success=False, msg="로그인이 필요합니다.")
+
+    answer_id = request.form.get("id")
+    content = request.form.get("content", "").strip()
+
+    if not answer_id or not content:
+        return jsonify(success=False, msg="필수 정보 누락")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE comment_answer SET comment_answer_content = %s, comment_answer_updated_at = NOW() WHERE comment_answer_no = %s",
+        (content, answer_id)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify(success=True)
+
+
