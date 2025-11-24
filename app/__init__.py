@@ -1,10 +1,13 @@
 # app/__init__.py
 from flask import Flask
 import pymysql
+import os
+
 
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'aezen'
+    app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads')
 
     # -------------------------------------
     # 🔥 MySQL 기본 설정 (pymysql 사용)

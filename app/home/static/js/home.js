@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
              return;
         }
 
-        moreBtn.addEventListener("click", (e) => {
+        moreBtn.addEventListener("click", async (e) => {
             e.preventDefault();
             expanded = !expanded;
 
@@ -59,6 +59,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // 버튼 텍스트 변경
             moreBtn.textContent = expanded ? "접기" : "더보기";
+
+            // === 조회수 증가 ===
+            if (expanded) {  // 처음 확장할 때만 조회수 증가
+                const postId = post.dataset.id;  // dataset.id → board_no
+                const hitEl = post.querySelector('.hit');
+
+                fetch(`/post/hit/${postId}`, { method: "POST" })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success && hitEl) {
+                            hitEl.textContent = `조회수: ${data.hit}`; // UI 바로 갱신
+                        }
+                    })
+                    .catch(err => console.error(err));
+            }
         });
     });
 
@@ -418,7 +433,8 @@ if (reportModal) {
         if (isEditing && targetId) {
             // 수정
             const url = type === 'comment' ? '/comment/update' : '/answer/update';
-            const res = await fetch(url, options(url, { id: targetId, content }));
+            const payload = {id: targetId,content: content,boardNo: postId };
+            const res = await fetch(url, options(url, payload));
             const data = await res.json();
 
             if (data.success) {
@@ -499,8 +515,56 @@ if (reportModal) {
     }
 }
 
+// ===========================
+// 6. 게시글+댓글 추천/비추천 기능
+// =========================== 
+    document.querySelectorAll(".posts").forEach(container => {
+        container.addEventListener('click', e => {
+            const btn = e.target.closest('.post-up, .post-down, .comment-up, .comment-down');
+            if (!btn) return;
 
+            let type, action;
+            if (btn.classList.contains('post-up')) { type = 'post'; action = 'like'; }
+            else if (btn.classList.contains('post-down')) { type = 'post'; action = 'dislike'; }
+            else if (btn.classList.contains('comment-up')) { type = 'comment'; action = 'like'; }
+            else if (btn.classList.contains('comment-down')) { type = 'comment'; action = 'dislike'; }
+            else return;
 
+            const id = btn.dataset.id;
+            if (!id) return;
+
+            fetch('/vote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type, action, id })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    alert(data.msg || '오류가 발생했습니다.');
+                    return;
+                }
+
+                if (type === 'post') {
+                    const postEl = btn.closest('.post');
+                    const postUpBtn = postEl.querySelector('.post-up');
+                    const postDownBtn = postEl.querySelector('.post-down');
+
+                    if (action === 'like') postUpBtn.textContent = `추천 ${data.count} 👍`;
+                    else postDownBtn.textContent = `비추천 ${data.count} 👎`;
+                } else if (type === 'comment') {
+                    btn.textContent = `${data.count} ${action === 'like' ? '👍' : '👎'}`;
+                }
+
+                // 사용자에게 알림
+                alert(`${type === 'post' ? '게시글' : '댓글'}을 ${action === 'like' ? '추천' : '비추천'} 하셨습니다.`);
+            })
+            .catch(err => {
+                console.error(err);
+                alert('서버 요청 중 오류가 발생했습니다.');
+            });
+        });
+    });
 
 
 });

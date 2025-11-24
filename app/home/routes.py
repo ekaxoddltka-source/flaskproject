@@ -1,8 +1,9 @@
 # app/home/routes.py
-from flask import Blueprint, render_template, jsonify, request, session
+from flask import Blueprint, render_template, jsonify, request, session, send_from_directory, abort
 from datetime import datetime
 from config import SIDEBAR_CONFIG
 import pymysql
+import os
 from app.account.routes import get_db_connection
 
 bp = Blueprint(
@@ -661,8 +662,9 @@ def update_comment():
     if "user" not in session:
         return jsonify(success=False, msg="로그인이 필요합니다.")
 
-    comment_id = request.form.get("id")
-    content = request.form.get("content", "").strip()
+    data = request.get_json()
+    comment_id = data.get("id")
+    content = data.get("content", "").strip()
 
     if not comment_id or not content:
         return jsonify(success=False, msg="필수 정보 누락")
@@ -685,8 +687,9 @@ def update_answer():
     if "user" not in session:
         return jsonify(success=False, msg="로그인이 필요합니다.")
 
-    answer_id = request.form.get("id")
-    content = request.form.get("content", "").strip()
+    data = request.get_json()
+    answer_id = data.get("id")
+    content = data.get("content", "").strip()
 
     if not answer_id or not content:
         return jsonify(success=False, msg="필수 정보 누락")
@@ -822,3 +825,115 @@ def accept_answer():
     finally:
         cursor.close()
         conn.close()
+
+@bp.route("/vote", methods=["POST"])
+def vote():
+    if "user" not in session:
+        return jsonify(success=False, msg="로그인이 필요합니다.")
+
+    data = request.get_json()
+    type_ = data.get("type")        # 'post' or 'comment'
+    action = data.get("action")     # 'like' or 'dislike'
+    target_id = data.get("id")      # 게시글 번호 또는 댓글 번호
+
+    if not type_ or not action or not target_id:
+        return jsonify(success=False, msg="필수 정보 누락")
+
+    conn = get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+    try:
+        if type_ == "post":
+            table = "board"
+            like_col = "board_like"
+            dislike_col = "board_dislike"
+            id_col = "board_no"
+        elif type_ == "comment":
+            table = "comment_answer"
+            like_col = "comment_like_count"
+            dislike_col = "comment_dislike_count"
+            id_col = "comment_answer_no"
+        else:
+            return jsonify(success=False, msg="잘못된 타입")
+
+        # 추천/비추천 업데이트
+        if action == "like":
+            cursor.execute(f"UPDATE {table} SET {like_col} = {like_col} + 1 WHERE {id_col} = %s", (target_id,))
+        else:
+            cursor.execute(f"UPDATE {table} SET {dislike_col} = {dislike_col} + 1 WHERE {id_col} = %s", (target_id,))
+
+        conn.commit()
+
+        # 최종 카운트 조회
+        cursor.execute(f"SELECT {like_col}, {dislike_col} FROM {table} WHERE {id_col} = %s", (target_id,))
+        row = cursor.fetchone()
+        count = row[like_col] if action == "like" else row[dislike_col]
+
+        return jsonify(success=True, count=count)
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify(success=False, msg=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
+@bp.route("/post/hit/<int:board_no>", methods=["POST"])
+def increment_hit(board_no):
+    conn = get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    try:
+        cursor.execute("UPDATE board SET hit = hit + 1 WHERE board_no = %s", (board_no,))
+        conn.commit()
+        cursor.execute("SELECT hit FROM board WHERE board_no = %s", (board_no,))
+        new_hit = cursor.fetchone()["hit"]
+        return jsonify(success=True, hit=new_hit)
+    except Exception as e:
+        conn.rollback()
+        return jsonify(success=False, msg=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
+@bp.route("/download")
+def download_file():
+    from flask import current_app
+    UPLOAD_FOLDER = os.path.join(current_app.root_path, 'uploads')
+
+    file_no = request.args.get("no")
+    if not file_no:
+        return abort(400, "파일 번호가 필요합니다.")
+
+    conn = get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+    try:
+        # DB에서 물리/논리 파일명 가져오기
+        cursor.execute(
+            "SELECT physical_file_name, logical_file_name FROM file WHERE file_no = %s",
+            (file_no,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            return abort(404, "파일이 존재하지 않습니다.")
+
+        physical_name = row["physical_file_name"]
+        logical_name = row["logical_file_name"]
+
+        file_path = os.path.join(UPLOAD_FOLDER, physical_name)
+        if not os.path.exists(file_path):
+            return abort(404, "파일이 존재하지 않습니다.")
+
+        # send_from_directory로 다운로드
+        return send_from_directory(
+            UPLOAD_FOLDER,
+            physical_name,
+            as_attachment=True,
+            download_name=logical_name
+        )
+    except Exception as e:
+        return jsonify({"success": False, "msg": str(e)})
+    finally:
+        cursor.close()
+        conn.close()
+
