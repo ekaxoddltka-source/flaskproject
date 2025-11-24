@@ -23,8 +23,21 @@ body::before {
 
         {% for user in following_list %}
         <div class="follow-item">
+
             <span class="nickname">{{ user.nickname }}</span>
-            <button class="follow-toggle following">팔로잉</button>
+
+            {% if user.is_following %}
+                <button class="follow-toggle following"
+                        data-user-id="{{ user.user_id }}">
+                    팔로잉
+                </button>
+            {% else %}
+                <button class="follow-toggle"
+                        data-user-id="{{ user.user_id }}">
+                    팔로우
+                </button>
+            {% endif %}
+
         </div>
         {% endfor %}
 

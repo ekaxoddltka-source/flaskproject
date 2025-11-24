@@ -9,7 +9,6 @@ body::before {
 }
 </style>
 <script src="{{ url_for('mypage.static', filename='js/mypage-follow.js') }}"></script>
-
 {% endblock %}
 
 {% block content %}
@@ -24,15 +23,24 @@ body::before {
 
         {% for user in follower_list %}
         <div class="follow-item">
+
+            <!-- 닉네임 -->
             <span class="nickname">{{ user.nickname }}</span>
 
+            <!-- 버튼 -->
             {% if user.is_following %}
-                <button class="follow-toggle following">팔로잉</button>
+                <button class="follow-toggle following" 
+                        data-user-id="{{ user.user_id }}">
+                    팔로잉
+                </button>
             {% else %}
-                <button class="follow-toggle">팔로우</button>
+                <button class="follow-toggle" 
+                        data-user-id="{{ user.user_id }}">
+                    팔로우
+                </button>
             {% endif %}
+
         </div>
-        
         {% endfor %}
 
     </section>

@@ -1,4 +1,38 @@
 document.addEventListener("DOMContentLoaded", () => {
+    
+    document.querySelectorAll(".btn-more").forEach(btn => {
+
+        btn.addEventListener("click", () => {
+            const id = btn.dataset.id;
+            const box = document.getElementById(`detail-${id}`);
+
+            // 이미 로딩했다면 토글만
+            if (box.dataset.loaded === "1") {
+                box.style.display = box.style.display === "none" ? "block" : "none";
+                return;
+            }
+
+            // AJAX 요청
+            fetch(`/api/mypage/post/${id}`)
+                .then(res => res.json())
+                .then(data => {
+
+                    box.innerHTML = `
+                        <div class="body">${data.post.board_content}</div>
+                        <div class="tags">
+                            ${data.tags.map(t => `#${t.tag_name}`).join(" ")}
+                        </div>
+                        <div class="comments">
+                            ${data.comments.map(c =>
+                                `<div class="comment">${c.comment_answer_content}</div>`
+                            ).join("")}
+                        </div>
+                    `;
+                    box.dataset.loaded = "1";
+                });
+        });
+
+    });
 
     /* ============================================================
      * 0) 정렬 기능 (조회순 / 추천순 / 팔로우순)
@@ -83,32 +117,69 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
 
-    /* ============================================================
-     * 5) 좋아요 / 싫어요 증가
-     * ============================================================ */
+/* ============================================================
+ * 5) 좋아요 / 싫어요 증가 (백엔드 연동 + 1인1회 토글)
+ * ============================================================ */
 
-    // 게시글 추천
-    document.querySelectorAll(".post-up").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const id = btn.dataset.id;
-            const current = parseInt(btn.textContent.match(/\d+/)[0]);
+// 추천
+document.querySelectorAll(".post-up").forEach(btn => {
+    btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
 
-            btn.innerHTML = `추천 ${current + 1} 👍`;
-
-            // AJAX 연동시
-            // fetch(`/api/post/like/${id}`, { method:"POST" })
+        const res = await fetch("/api/post/like", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ board_no: id })
         });
+
+        const data = await res.json();
+
+        if (data.success) {
+            btn.innerHTML = `추천 ${data.board_like} 👍`;
+            const down = btn.closest(".votes").querySelector(".post-down");
+            down.innerHTML = `비추천 ${data.board_dislike} 👎`;
+
+            // 버튼 스타일 처리 (선택 / 비선택)
+            if (data.vote === 1) {      // 추천 상태
+                btn.classList.add("active");
+                down.classList.remove("active");
+            } else {                      // 취소됨
+                btn.classList.remove("active");
+            }
+        }
     });
+});
 
-    // 게시글 비추천
-    document.querySelectorAll(".post-down").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const id = btn.dataset.id;
-            const current = parseInt(btn.textContent.match(/\d+/)[0]);
+// 비추천
+document.querySelectorAll(".post-down").forEach(btn => {
+    btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
 
-            btn.innerHTML = `비추천 ${current + 1} 👎`;
+        const res = await fetch("/api/post/dislike", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ board_no: id })
         });
+
+        const data = await res.json();
+
+        if (data.success) {
+            btn.innerHTML = `비추천 ${data.board_dislike} 👎`;
+            const up = btn.closest(".votes").querySelector(".post-up");
+            up.innerHTML = `추천 ${data.board_like} 👍`;
+
+            // 버튼 스타일 처리
+            if (data.vote === -1) {      // 비추천 상태
+                btn.classList.add("active");
+                up.classList.remove("active");
+            } else {                      // 취소됨
+                btn.classList.remove("active");
+            }
+        }
     });
+});
+
+
 
     // 댓글 추천 / 비추천
     document.querySelectorAll(".comment-up").forEach(btn => {

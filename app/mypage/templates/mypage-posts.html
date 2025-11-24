@@ -28,11 +28,12 @@ body::before {
                 {% elif post.board_category == 3 %} 코딩테스트
                 {% elif post.board_category == 4 %} 공지사항
                 {% elif post.board_category == 5 %} 이용약관
-                {% elif post.board_category == 6 %} 개인정보처리방침
+                {% elif post.board_category == 6 %} 개인정보처리방침 
                 {% else %} 미분류
                 {% endif %}
                 ]
             </span>
+            
 
             <span class="title">{{ post.board_title }}</span>
 
@@ -54,7 +55,7 @@ body::before {
 
         <!-- 본문 -->
         <div class="post-body">
-
+            
             <!-- 파일 -->
             {% if post.files and post.files|length > 0 %}
                 {% for f in post.files %}
@@ -131,10 +132,10 @@ body::before {
             <!-- 추천/비추천 -->
             <div class="votes">
                 <span class="post-up" data-id="{{ post.board_no }}">
-                    추천 {{ post.like_count }} 👍
+                    추천 {{ post.board_like }} 👍
                 </span>
                 <span class="post-down" data-id="{{ post.board_no }}">
-                    비추천 {{ post.dislike_count }} 👎
+                    비추천 {{ post.board_dislike }} 👎
                 </span>
             </div>
 

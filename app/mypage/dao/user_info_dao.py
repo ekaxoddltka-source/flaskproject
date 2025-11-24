@@ -15,7 +15,7 @@ class UserInfoDao:
         cur = conn.cursor()
 
         sql = """
-            SELECT id, nick, email, profile, withdraw
+            SELECT id, nick, email, withdraw
             FROM user
             WHERE id = %s
         """

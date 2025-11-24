@@ -7,33 +7,32 @@ document.addEventListener("DOMContentLoaded", () => {
         btn.addEventListener("click", () => {
 
             const isFollowing = btn.classList.contains("following");
+            const targetUserId = btn.dataset.userId;  // 🔥 추가됨
 
             if (isFollowing) {
-                // 현재 팔로잉 → 팔로우로 전환
                 btn.classList.remove("following");
                 btn.textContent = "팔로우";
             } else {
-                // 현재 팔로우 → 팔로잉으로 전환
                 btn.classList.add("following");
                 btn.textContent = "팔로잉";
             }
 
-            // 나중에 AJAX 추가할 자리
-            /*
-            fetch("/api/follow", {
+            // 🔥 AJAX 요청 (백엔드 구현 후 활성화)
+            fetch("/api/follow-toggle", {
                 method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ target_user: userId, follow: !isFollowing })
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    target_id: targetUserId,
+                    follow: !isFollowing
+                })
             });
-            */
         });
     });
 
 
     /* --------------------------------------
-     * 2) 탭 이동 강조 효과 (현재 페이지 표시)
+     * 2) 탭 이동 강조 효과
      * -------------------------------------- */
-
     const path = window.location.pathname;
 
     const followTab = document.querySelector(".follow-tabs a[href='/mypage-following']");
