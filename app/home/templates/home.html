@@ -12,7 +12,8 @@
 <div class="posts">
 
     {% for post in boardList %}
-    <div class="post" data-id="{{ post.boardNo }}">
+    <div class="post" data-id="{{ post.boardNo }}" data-author-id="{{ post.id }}"
+    data-login-user-id="{{ login_user_id }}">
 
         <div class="post-header">
             <span class="kind">
@@ -102,7 +103,12 @@
                 {% for answer in post.comments %}
                     {% if answer.commentAnswerType == 2 %}
                     <div class="answer-item" data-id="{{ answer.commentAnswerNo }}">
-                        <div class="a-text">{{ answer.commentAnswerContent }}</div>
+                        <div class="a-text">
+                            {% if answer.answerAccepted %}
+                                <span class="chosen-label">채택된 답안</span>
+                            {% endif %}
+                            {{ answer.commentAnswerContent }}
+                        </div>
                         <div class="a-footer">
                             <span class="author">by {{ answer.commenterNick }}</span>
 
@@ -113,7 +119,10 @@
                             </div>
                             {% endif %}
 
-                            <button class="a-choice">채택</button>
+                            <button class="a-choice {% if answer.answerAccepted %}disabled{% endif %}" 
+                            {% if answer.answerAccepted %}disabled{% endif %}>
+                                {% if answer.answerAccepted %}채택 완료{% else %}채택{% endif %}
+                            </button>
                         </div>
                     </div>
                     {% endif %}

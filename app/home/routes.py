@@ -113,19 +113,20 @@ def home():
         if row["tag_name"] is not None and not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
             post["tags"].append({"tagName": row["tag_name"]})
         if row["comment_answer_no"] is not None:
-            post["comments"].append({
-                "commentAnswerNo": row["comment_answer_no"],
-                "boardNo": row["board_no"],
-                "commenterId": row["commenter_id"],
-                "commenterNick": row["commenter_nick"],
-                "commentAnswerContent": row["comment_answer_content"],
-                "commentLikeCount": row["comment_like_count"],
-                "commentDislikeCount": row["comment_dislike_count"],
-                "commentAnswerAt": row["comment_answer_at"],
-                "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
-                "commentAnswerType": row["comment_answer_type"],
-                "answerAccepted": row["answer_accepted"]
-            })
+            if not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
+                post["comments"].append({
+                    "commentAnswerNo": row["comment_answer_no"],
+                    "boardNo": row["board_no"],
+                    "commenterId": row["commenter_id"],
+                    "commenterNick": row["commenter_nick"],
+                    "commentAnswerContent": row["comment_answer_content"],
+                    "commentLikeCount": row["comment_like_count"],
+                    "commentDislikeCount": row["comment_dislike_count"],
+                    "commentAnswerAt": row["comment_answer_at"],
+                    "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
+                    "commentAnswerType": row["comment_answer_type"],
+                    "answerAccepted": row["answer_accepted"]
+                })
 
     boardList = list(board_map.values())
 
@@ -247,19 +248,20 @@ def terms():
         if row["tag_name"] is not None and not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
             post["tags"].append({"tagName": row["tag_name"]})
         if row["comment_answer_no"] is not None:
-            post["comments"].append({
-                "commentAnswerNo": row["comment_answer_no"],
-                "boardNo": row["board_no"],
-                "commenterId": row["commenter_id"],
-                "commenterNick": row["commenter_nick"],
-                "commentAnswerContent": row["comment_answer_content"],
-                "commentLikeCount": row["comment_like_count"],
-                "commentDislikeCount": row["comment_dislike_count"],
-                "commentAnswerAt": row["comment_answer_at"],
-                "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
-                "commentAnswerType": row["comment_answer_type"],
-                "answerAccepted": row["answer_accepted"]
-            })
+            if not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
+                post["comments"].append({
+                    "commentAnswerNo": row["comment_answer_no"],
+                    "boardNo": row["board_no"],
+                    "commenterId": row["commenter_id"],
+                    "commenterNick": row["commenter_nick"],
+                    "commentAnswerContent": row["comment_answer_content"],
+                    "commentLikeCount": row["comment_like_count"],
+                    "commentDislikeCount": row["comment_dislike_count"],
+                    "commentAnswerAt": row["comment_answer_at"],
+                    "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
+                    "commentAnswerType": row["comment_answer_type"],
+                    "answerAccepted": row["answer_accepted"]
+                })
 
     boardList = list(board_map.values())
 
@@ -274,7 +276,7 @@ def terms():
     login_user_id = session.get("user", {}).get("id")
 
     return render_template(
-    'info.html',
+    'terms.html',
     boardList=boardList,
     show_notice_buttons=True,
     notice_buttons=notice_buttons,
@@ -370,19 +372,20 @@ def info():
         if row["tag_name"] is not None and not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
             post["tags"].append({"tagName": row["tag_name"]})
         if row["comment_answer_no"] is not None:
-            post["comments"].append({
-                "commentAnswerNo": row["comment_answer_no"],
-                "boardNo": row["board_no"],
-                "commenterId": row["commenter_id"],
-                "commenterNick": row["commenter_nick"],
-                "commentAnswerContent": row["comment_answer_content"],
-                "commentLikeCount": row["comment_like_count"],
-                "commentDislikeCount": row["comment_dislike_count"],
-                "commentAnswerAt": row["comment_answer_at"],
-                "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
-                "commentAnswerType": row["comment_answer_type"],
-                "answerAccepted": row["answer_accepted"]
-            })
+            if not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
+                post["comments"].append({
+                    "commentAnswerNo": row["comment_answer_no"],
+                    "boardNo": row["board_no"],
+                    "commenterId": row["commenter_id"],
+                    "commenterNick": row["commenter_nick"],
+                    "commentAnswerContent": row["comment_answer_content"],
+                    "commentLikeCount": row["comment_like_count"],
+                    "commentDislikeCount": row["comment_dislike_count"],
+                    "commentAnswerAt": row["comment_answer_at"],
+                    "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
+                    "commentAnswerType": row["comment_answer_type"],
+                    "answerAccepted": row["answer_accepted"]
+                })
 
     boardList = list(board_map.values())
 
@@ -397,7 +400,7 @@ def info():
     login_user_id = session.get("user", {}).get("id")
 
     return render_template(
-    'terms.html',
+    'info.html',
     boardList=boardList,
     show_notice_buttons=True,
     notice_buttons=notice_buttons,
@@ -493,19 +496,20 @@ def privacy():
         if row["tag_name"] is not None and not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
             post["tags"].append({"tagName": row["tag_name"]})
         if row["comment_answer_no"] is not None:
-            post["comments"].append({
-                "commentAnswerNo": row["comment_answer_no"],
-                "boardNo": row["board_no"],
-                "commenterId": row["commenter_id"],
-                "commenterNick": row["commenter_nick"],
-                "commentAnswerContent": row["comment_answer_content"],
-                "commentLikeCount": row["comment_like_count"],
-                "commentDislikeCount": row["comment_dislike_count"],
-                "commentAnswerAt": row["comment_answer_at"],
-                "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
-                "commentAnswerType": row["comment_answer_type"],
-                "answerAccepted": row["answer_accepted"]
-            })
+            if not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
+                post["comments"].append({
+                    "commentAnswerNo": row["comment_answer_no"],
+                    "boardNo": row["board_no"],
+                    "commenterId": row["commenter_id"],
+                    "commenterNick": row["commenter_nick"],
+                    "commentAnswerContent": row["comment_answer_content"],
+                    "commentLikeCount": row["comment_like_count"],
+                    "commentDislikeCount": row["comment_dislike_count"],
+                    "commentAnswerAt": row["comment_answer_at"],
+                    "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
+                    "commentAnswerType": row["comment_answer_type"],
+                    "answerAccepted": row["answer_accepted"]
+                })
 
     boardList = list(board_map.values())
 
@@ -700,4 +704,121 @@ def update_answer():
 
     return jsonify(success=True)
 
+@bp.route("/addComment", methods=["POST"])
+def add_comment():
+    if "user" not in session:
+        return jsonify(success=False, msg="로그인이 필요합니다.")
 
+    data = request.get_json()
+    board_no = data.get("boardNo")
+    content = data.get("content", "").strip()
+
+    if not board_no or not content:
+        return jsonify(success=False, msg="필수 정보 누락")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        sql = """
+            INSERT INTO comment_answer 
+            (board_no, id, comment_answer_content, comment_answer_type, comment_answer_at)
+            VALUES (%s, %s, %s, 1, NOW())
+        """
+        cursor.execute(sql, (board_no, session["user"]["id"], content))
+        conn.commit()
+        comment_id = cursor.lastrowid
+    except Exception as e:
+        conn.rollback()
+        return jsonify(success=False, msg=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
+    return jsonify(success=True, id=comment_id)
+
+@bp.route("/addAnswer", methods=["POST"])
+def add_answer():
+    if "user" not in session:
+        return jsonify(success=False, msg="로그인이 필요합니다.")
+
+    data = request.get_json()
+    board_no = data.get("boardNo")
+    content = data.get("content", "").strip()
+
+    if not board_no or not content:
+        return jsonify(success=False, msg="필수 정보 누락")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        sql = """
+            INSERT INTO comment_answer
+            (board_no, id, comment_answer_content, comment_answer_type, comment_answer_at)
+            VALUES (%s, %s, %s, 2, NOW())
+        """
+        cursor.execute(sql, (board_no, session["user"]["id"], content))
+        conn.commit()
+        answer_id = cursor.lastrowid
+    except Exception as e:
+        conn.rollback()
+        return jsonify(success=False, msg=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
+    return jsonify(success=True, id=answer_id, author=session["user"]["nick"])
+
+@bp.route("/answer/accept", methods=["POST"])
+def accept_answer():
+    if "user" not in session:
+        return jsonify(success=False, msg="로그인이 필요합니다.")
+    
+    data = request.get_json()
+    answer_id = data.get("answerId")
+    if not answer_id:
+        return jsonify(success=False, msg="답변 ID가 없습니다.")
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    
+    try:
+        # 1. 답변 정보 가져오기
+        cursor.execute("SELECT board_no, id FROM comment_answer WHERE comment_answer_no=%s", (answer_id,))
+        answer = cursor.fetchone()
+        if not answer:
+            return jsonify(success=False, msg="답변이 존재하지 않습니다.")
+        
+        board_no = answer["board_no"]
+        
+        # 2. 게시글 작성자 확인
+        cursor.execute("SELECT id FROM board WHERE board_no=%s", (board_no,))
+        board = cursor.fetchone()
+        if not board:
+            return jsonify(success=False, msg="게시글이 존재하지 않습니다.")
+        
+        if board["id"] != session["user"]["id"]:
+            return jsonify(success=False, msg="게시글 작성자만 답변을 채택할 수 있습니다.")
+        
+        # 3. 기존 채택 답변 해제
+        cursor.execute(
+            "UPDATE comment_answer SET answer_accepted=0 WHERE board_no=%s AND answer_accepted=1",
+            (board_no,)
+        )
+        
+        # 4. 선택 답변 채택
+        cursor.execute(
+            "UPDATE comment_answer SET answer_accepted=1 WHERE comment_answer_no=%s",
+            (answer_id,)
+        )
+        conn.commit()
+        return jsonify(success=True, msg="답변이 채택되었습니다.", answerId=answer_id)
+    
+    except Exception as e:
+        conn.rollback()
+        return jsonify(success=False, msg=str(e))
+    
+    finally:
+        cursor.close()
+        conn.close()

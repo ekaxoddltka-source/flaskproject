@@ -75,20 +75,14 @@
 
             <!-- 댓글 개수 -->
             <span class="comment">
-                댓글 
-                {% set commentCount = 0 %}
-                {% for c in post.comments %}
-                    {% if c.commentAnswerType == 1 %}
-                        {% set commentCount = commentCount + 1 %}
-                    {% endif %}
-                {% endfor %}
-                {{ commentCount }}개
+                {% set commentCount = post.comments | selectattr("commentAnswerType", "equalto", 1) | list | length %}
+                댓글 {{ commentCount }}개
             </span>
 
             <div class="post-actions">
                 {% if login_user_id == post.id %}
                     <a href="write?board_no={{ post.boardNo }}" class="edit-btn">수정</a>
-                    <span class="delete-btn" data-type="post" data-board-no="{{ post.boardNo }}">삭제</span>
+                    <span class="delete-btn" data-type="post" data-id="{{ post.boardNo }}">삭제</span>
                 {% endif %}
             </div>
 
@@ -116,7 +110,7 @@
                     {% if login_user_id == comment.commenterId %}
                     <div class="comment-actions">
                         <span class="edit-btn">수정</span>
-                        <span class="delete-btn" data-type="comment">삭제</span>
+                        <span class="delete-btn" data-type="comment" data-id="{{ comment.commentAnswerNo }}">삭제</span>
                     </div>
                     {% endif %}
                 </div>
