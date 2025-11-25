@@ -2,69 +2,66 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage-items.css') }}">
-
 <link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage.css') }}">
 
 <style>
-
 body::before {
-    background-image: url("{{ url_for('mypage.static', filename=current_bg) }}");
+    content: "";
+    background-image: var(--dynamic-bg, url("{{ url_for('mypage.static', filename=current_bg) }}"));
 }
 </style>
 {% endblock %}
 
 {% block content %}
-
 <div class="posts">
 
-  <section class="content-panel item-panel">
+<section class="content-panel item-panel">
 
-    <h2 class="panel-title">아이템 관리</h2>
-    <p class="panel-sub">
-      보유 중인 프로필 아이템을 관리하세요.
-    </p>
+  <h2 class="panel-title">아이템 관리</h2>
+  <p class="panel-sub">
+    보유 중인 프로필 아이템을 관리하세요.
+  </p>
 
-    <!-- 필터 버튼 -->
-    <div class="item-filter">
-      <button class="filter-btn active" data-type="all">전체</button>
-      <button class="filter-btn" data-type="icon">아이콘</button>
-      
-      <button class="filter-btn" data-type="bg">배경이미지</button>
+  <!-- 필터 버튼 -->
+  <div class="item-filter">
+    <button class="filter-btn active" data-type="all">전체</button>
+    <button class="filter-btn" data-type="icon">아이콘</button>
+    <button class="filter-btn" data-type="background">배경이미지</button>
+    <button class="filter-btn" data-type="insignia">휘장</button>
+  </div>
+
+  <!-- 아이템 그리드 -->
+  <div class="item-grid">
+
+    {% for item in items %}
+<div class="item-card" data-type="{{ item.item_type }}">
+
+    <div class="item-img">
+      <img src="{{ url_for('mypage.static', filename='/' ~ item.item_img) }}">
     </div>
 
-    <!-- 아이템 그리드 -->
-    <div class="item-grid">
-
-      {% for item in items %}
-      <div class="item-card" data-type="{{ item.type }}">
-
-        <div class="item-img">
-          <img src="{{ url_for('mypage.static', filename=item.img) }}" alt="{{ item.name }}" height="50" width="50">
-        </div>
-
-        <div class="item-info">
-          <span class="item-name">{{ item.name }}</span>
-          <span class="item-desc">{{ item.desc }}</span>
-        </div>
-
-        <div class="item-actions">
-          {% if item.equipped %}
-            <button class="btn equip active" >장착됨</button>
-            <button class="btn unequip" data-id="{{ item.id }}">해제</button>
-          {% else %}
-            <button class="btn equip" data-id="{{ item.id }}">장착</button>
-          {% endif %}
-        </div>
-
-      </div>
-      {% endfor %}
-
+    <div class="item-info">
+      <span class="item-name">{{ item.item_name }}</span>
+      <span class="item-desc">{{ item.item_type }}</span>
     </div>
 
-  </section>
+    <div class="item-actions">
+      {% if item.is_equipped %}
+          <button class="btn equip active" data-id="{{ item.item_no }}">장착됨</button>
+          <button class="btn unequip" data-id="{{ item.item_no }}">해제</button>
+      {% else %}
+          <button class="btn equip" data-id="{{ item.item_no }}">장착</button>
+      {% endif %}
+    </div>
 
 </div>
+{% endfor %}
 
+  </div>
+
+</section>
+
+</div>
 </div>
 
 <script src="{{ url_for('mypage.static', filename='js/mypage-items.js') }}"></script>

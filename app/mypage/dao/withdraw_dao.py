@@ -2,11 +2,10 @@
 
 class WithdrawDao:
     def __init__(self, db_conn_func):
-        """db_conn_func = lambda: current_app.get_db_connection()"""
         self.db_conn_func = db_conn_func
 
     # -----------------------------------------------------
-    # 1) 유저 존재 여부 확인
+    # 1) 유저 존재 여부 확인 (id + pw)
     # -----------------------------------------------------
     def verify_user(self, user_id, pw):
         conn = self.db_conn_func()
@@ -15,7 +14,7 @@ class WithdrawDao:
         sql = """
             SELECT id
             FROM user
-            WHERE id = %s AND pw = %s AND withdraw = 0
+            WHERE id = %s AND password = %s AND withdraw = 0
         """
         cur.execute(sql, (user_id, pw))
         row = cur.fetchone()
@@ -25,7 +24,7 @@ class WithdrawDao:
         return row is not None
 
     # -----------------------------------------------------
-    # 2) 회원 탈퇴 처리
+    # 2) 회원 탈퇴 처리 (withdraw = 1)
     # -----------------------------------------------------
     def withdraw_user(self, user_id):
         conn = self.db_conn_func()
@@ -44,14 +43,14 @@ class WithdrawDao:
         return True
 
     # -----------------------------------------------------
-    # 3) 탈퇴 여부 확인 (로그인 차단용)
+    # 3) 탈퇴 여부 확인
     # -----------------------------------------------------
     def is_withdrawn(self, user_id):
         conn = self.db_conn_func()
         cur = conn.cursor()
 
         sql = """
-            SELECT withdraw 
+            SELECT withdraw
             FROM user
             WHERE id = %s
         """
@@ -60,4 +59,5 @@ class WithdrawDao:
 
         cur.close()
         conn.close()
+
         return row and row["withdraw"] == 1

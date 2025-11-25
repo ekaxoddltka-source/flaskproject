@@ -1,14 +1,15 @@
+// app/mypage/static/js/mypage-items.js
+
 document.addEventListener("DOMContentLoaded", () => {
 
-    /* ---------------------------
-     * 1) 필터 기능
-     * ---------------------------*/
+    /* --------------------------------------------------- */
+    /* 1) 필터 */
+    /* --------------------------------------------------- */
     const filterBtns = document.querySelectorAll(".filter-btn");
     const itemCards = document.querySelectorAll(".item-card");
 
     filterBtns.forEach(btn => {
         btn.addEventListener("click", () => {
-            // 버튼 active 변경
             filterBtns.forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
 
@@ -24,59 +25,125 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    /* ---------------------------
-     * 2) 장착 기능
-     * ---------------------------*/
+    /* --------------------------------------------------- */
+    /* 2) 장착 / 해제 */
+    /* --------------------------------------------------- */
 
-    function unequipButtonEvent(btn) {
-        btn.addEventListener("click", () => {
+    function attachUnequipEvent(btn) {
+        btn.onclick = async () => {
+            const itemNo = btn.dataset.id;
             const card = btn.closest(".item-card");
-            const equipBtn = card.querySelector(".equip");
 
-            // 해제 동작
-            equipBtn.classList.remove("active");
-            equipBtn.textContent = "장착";
+            const ok = await unequipItem(itemNo);
+            if (!ok) return;
 
-            // 해제 버튼 삭제
-            btn.remove();
-        });
+            updateUI_Unequip(card);
+        };
     }
 
-    // 장착 버튼
-    document.querySelectorAll(".equip").forEach(button => {
-        button.addEventListener("click", () => {
+    document.querySelectorAll(".equip").forEach(btn => {
+        btn.onclick = async () => {
+            const card = btn.closest(".item-card");
+            const itemType = card.dataset.type;
+            const itemNo = btn.dataset.id;
 
-            const itemType = button.closest(".item-card").dataset.type;
+            const ok = await equipItem(itemNo);
+            if (!ok) return;
 
-            // 같은 type 의 기존 active 모두 해제
-            document.querySelectorAll(`.item-card[data-type="${itemType}"] .equip.active`)
-                .forEach(btn => {
-                    btn.classList.remove("active");
-                    btn.textContent = "장착";
+            // 같은 타입 전체 해제
+            document.querySelectorAll(`.item-card[data-type="${itemType}"]`)
+                .forEach(c => updateUI_Unequip(c));
 
-                    let removeBtn = btn.closest(".item-card").querySelector(".unequip");
-                    if (removeBtn) removeBtn.remove();
-                });
-
-            // 현재 아이템 장착 처리
-            button.classList.add("active");
-            button.textContent = "장착됨";
-
-            // 해제 버튼 자동 생성
-            let itemCard = button.closest(".item-card");
-            let unequipBtn = itemCard.querySelector(".unequip");
-            if (!unequipBtn) {
-                unequipBtn = document.createElement("button");
-                unequipBtn.classList.add("btn", "unequip");
-                unequipBtn.textContent = "해제";
-                unequipBtn.dataset.id = button.dataset.id;
-                itemCard.querySelector(".item-actions").appendChild(unequipBtn);
-
-                unequipButtonEvent(unequipBtn);
-            }
-        });
+            // 장착
+            updateUI_Equip(card);
+        };
     });
 
-    // 기존 해제 버튼들
-    document.querySelectorAll(".unequip").forEach(b => unequipButtonEvent(b));
+    document.querySelectorAll(".unequip").forEach(btn => attachUnequipEvent(btn));
+
+    /* --------------------------------------------------- */
+    /* 3) UI 업데이트 */
+    /* --------------------------------------------------- */
+    function updateUI_Equip(card) {
+        const equipBtn = card.querySelector(".equip");
+        equipBtn.classList.add("active");
+        equipBtn.textContent = "장착됨";
+
+        let un = card.querySelector(".unequip");
+        if (un) un.remove();
+
+        const newUn = document.createElement("button");
+        newUn.className = "btn unequip";
+        newUn.dataset.id = equipBtn.dataset.id;
+        newUn.textContent = "해제";
+        card.querySelector(".item-actions").appendChild(newUn);
+
+        attachUnequipEvent(newUn);
+    }
+
+    function updateUI_Unequip(card) {
+        const equipBtn = card.querySelector(".equip");
+        const un = card.querySelector(".unequip");
+
+        if (equipBtn) {
+            equipBtn.classList.remove("active");
+            equipBtn.textContent = "장착";
+        }
+        if (un) un.remove();
+    }
+
+    /* --------------------------------------------------- */
+    /* 4) API */
+    /* --------------------------------------------------- */
+    async function equipItem(item_no) {
+        try {
+            const res = await fetch("/api/mypage/item/equip", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ item_no })
+            });
+
+            const data = await res.json();
+            if (!data.success) return false;
+
+            // 배경 즉시 적용
+            if (data.item_type === "background") {
+                document.body.style.setProperty(
+                    "--dynamic-bg",
+                    `url('/mypage/static/${data.item_img}')`
+                );
+            }
+            
+
+            return true;
+
+        } catch (err) {
+            console.error(err);
+            return false;
+        }
+    }
+
+    async function unequipItem(item_no) {
+        try {
+            const res = await fetch("/api/mypage/item/unequip", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ item_no })
+            });
+
+            const data = await res.json();
+            if (!data.success) return false;
+
+            if (data.item_type === "background") {
+                document.body.style.removeProperty("--dynamic-bg");
+            }
+
+            return true;
+
+        } catch (err) {
+            console.error(err);
+            return false;
+        }
+    }
+
 });
