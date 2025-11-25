@@ -442,7 +442,7 @@ if (reportModal) {
                     ? `.comment-item[data-id="${targetId}"] .c-text`
                     : `.answer-item[data-id="${targetId}"] .a-text`;
                 const textEl = post.querySelector(textSelector);
-                if (textEl) textEl.textContent = content;
+                if (textEl) textEl.innerHTML = escapeHtml(content);
 
                 // 초기화
                 textarea.value = '';
@@ -565,6 +565,77 @@ if (reportModal) {
             });
         });
     });
+
+// ===========================
+// 7. 인피니티 스크롤
+// ===========================
+    let postsContainer = document.querySelector('.posts');
+    let offset = postsContainer.children.length;
+    const limit = 10;
+    let loading = false;
+    let allLoaded = false;
+
+    window.addEventListener('scroll', () => {
+        if (loading || allLoaded) return;
+
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+            loadMorePosts();
+        }
+    });
+
+    function loadMorePosts() {
+        loading = true;
+        let loadingDiv = document.createElement('div');
+        loadingDiv.className = 'loading';
+        loadingDiv.textContent = '로딩중...';
+        postsContainer.appendChild(loadingDiv);
+
+        fetch(`/api/load_posts?offset=${offset}&limit=${limit}`)
+            .then(res => res.json())
+            .then(data => {
+                loadingDiv.remove();
+                if (data.length === 0) {
+                    allLoaded = true;
+                    return;
+                }
+                appendPosts(data);
+                offset += data.length;
+                loading = false;
+            })
+            .catch(err => {
+                console.error(err);
+                loadingDiv.remove();
+                loading = false;
+            });
+    }
+
+    function appendPosts(posts) {
+        posts.forEach(post => {
+            const div = document.createElement('div');
+            div.className = 'post';
+            div.dataset.id = post.boardNo;
+            div.dataset.authorId = post.id;
+            div.dataset.loginUserId = post.login_user_id;
+
+            div.innerHTML = `
+                <div class="post-header">
+                    <span class="kind">[${post.boardCategoryName}]</span>
+                    <span class="title">${post.boardTitle}</span>
+                    <span class="nick dropdown">작성자: ${post.nick}</span>
+                    <span class="hit">조회수: ${post.hit}</span>
+                    <span class="wdate">${post.boardCreatedAt}</span>
+                    <span class="report" data-post-id="${post.boardNo}">🚨신고하기</span>
+                </div>
+                <div class="post-body">
+                    <div class="bnote">${post.boardContent}</div>
+                </div>
+                <div class="post-footer"><a href="#" class="more">더보기</a></div>
+            `;
+            postsContainer.appendChild(div);
+        });
+    }
+
+
 
 
 });

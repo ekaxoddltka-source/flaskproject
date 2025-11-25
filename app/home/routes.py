@@ -4,6 +4,7 @@ from datetime import datetime
 from config import SIDEBAR_CONFIG
 import pymysql
 import os
+from urllib.parse import unquote
 from app.account.routes import get_db_connection
 
 bp = Blueprint(
@@ -19,7 +20,7 @@ def latest_notice():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    sql = "SELECT board_title FROM board where board_category = 4 ORDER BY board_created_at DESC LIMIT 1"
+    sql = "SELECT board_title FROM board where board_category = 4 and board_deleted = 0 ORDER BY board_created_at DESC LIMIT 1"
     cur.execute(sql)
     row = cur.fetchone()
 
@@ -936,4 +937,126 @@ def download_file():
     finally:
         cursor.close()
         conn.close()
+
+@bp.route('/tags/')
+@bp.route('/tags/<path:tag_name>')
+def tag_filter(tag_name):
+    tag_name = unquote(tag_name)  # URL 디코딩
+
+    top_filter = request.args.get('top', '최신순')  
+    feed_filter = request.args.get('feed', '전체')  
+
+    conn = get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+    # 1. 해당 태그가 달린 게시글 번호만 가져오기
+    cursor.execute("""
+        SELECT DISTINCT b.board_no
+        FROM board b
+        JOIN tag_board tb ON b.board_no = tb.board_no
+        JOIN tag t ON tb.tag_no = t.tag_no
+        WHERE b.board_deleted = 0 AND t.tag_name = %s
+    """, (tag_name,))
+    board_nos = [row['board_no'] for row in cursor.fetchall()]
+
+    if not board_nos:
+        boardList = []
+    else:
+        # 2. 해당 게시글들 전체 정보를 가져오기 (모든 태그 포함)
+        format_strings = ','.join(['%s'] * len(board_nos))
+        sql = f"""
+            SELECT 
+                board.*, 
+                comment_answer.*, 
+                user.nick AS writer_nick,
+                user.id AS writer_id,
+                comment_user.nick AS commenter_nick,
+                comment_user.id AS commenter_id,
+                file.*,
+                tag.tag_name
+            FROM board
+            LEFT JOIN user ON board.id = user.id
+            LEFT JOIN file ON board.board_no = file.board_no
+            LEFT JOIN tag_board ON tag_board.board_no = board.board_no
+            LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
+            LEFT JOIN comment_answer ON board.board_no = comment_answer.board_no
+            LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
+            WHERE board.board_no IN ({format_strings})
+        """
+        cursor.execute(sql, board_nos)
+        rows = cursor.fetchall()
+
+        # board_map 생성 (기존 home() 방식과 동일)
+        board_map = {}
+        for row in rows:
+            boardNo = row["board_no"]
+            if boardNo not in board_map:
+                board_map[boardNo] = {
+                    "boardNo": row["board_no"],
+                    "id": row["writer_id"],
+                    "nick": row["writer_nick"],
+                    "boardTitle": row["board_title"],
+                    "boardContent": row["board_content"],
+                    "boardCategory": row["board_category"],
+                    "hit": row["hit"],
+                    "boardLike": row["board_like"],
+                    "boardDislike": row["board_dislike"],
+                    "boardCreatedAt": row["board_created_at"],
+                    "boardUpdatedAt": row["board_updated_at"],
+                    "board_deleted": row["board_deleted"],
+                    "comments": [],
+                    "files": [],
+                    "tags": []
+                }
+            post = board_map[boardNo]
+            if row["file_no"] is not None and not any(f["fileNo"] == row["file_no"] for f in post["files"]):
+                post["files"].append({
+                    "fileNo": row["file_no"],
+                    "logicalFileName": row["logical_file_name"],
+                    "physicalFileName": row["physical_file_name"],
+                    "fileSize": row["file_size"],
+                    "fileExt": row["file_ext"]
+                })
+            if row["tag_name"] is not None and not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
+                post["tags"].append({"tagName": row["tag_name"]})
+            if row["comment_answer_no"] is not None:
+                if not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
+                    post["comments"].append({
+                        "commentAnswerNo": row["comment_answer_no"],
+                        "boardNo": row["board_no"],
+                        "commenterId": row["commenter_id"],
+                        "commenterNick": row["commenter_nick"],
+                        "commentAnswerContent": row["comment_answer_content"],
+                        "commentLikeCount": row["comment_like_count"],
+                        "commentDislikeCount": row["comment_dislike_count"],
+                        "commentAnswerAt": row["comment_answer_at"],
+                        "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
+                        "commentAnswerType": row["comment_answer_type"],
+                        "answerAccepted": row["answer_accepted"]
+                    })
+        boardList = list(board_map.values())
+
+    cursor.close()
+    conn.close()
+
+    notice_buttons = {
+        "top_buttons": ["최신순", "조회순", "추천순", "팔로우순", "검색순"],
+        "feed_buttons": ["전체", "자유", "코딩테스트", "Q&A"]
+    }
+
+    login_user_id = session.get("user", {}).get("id")
+
+    return render_template(
+        'home.html',
+        boardList=boardList,
+        show_writeBtn=True,
+        show_notice_buttons=True,
+        notice_buttons=notice_buttons,
+        active="chat",
+        sidebar=SIDEBAR_CONFIG["default"],
+        top_filter=top_filter,
+        feed_filter=feed_filter,
+        login_user_id=login_user_id,
+        tag_name=tag_name
+    )
 

@@ -203,6 +203,75 @@ document.addEventListener("DOMContentLoaded", () => {
         li.classList.add("selected");
     });
 
+// ===========================
+// 5. 실시간 채팅
+// ===========================
+    const socket = io(); // 서버와 연결
+
+    // DOM 요소
+    const userCountEl = document.getElementById('user-count');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    // ----------------------------------------
+    // 접속자 수 업데이트
+    // ----------------------------------------
+    socket.on('update_user_count', count => {
+        userCountEl.textContent = count;
+    });
+
+    // ----------------------------------------
+    // 직전 5개 메시지 로드
+    // ----------------------------------------
+    socket.on('load_recent_messages', messages => {
+        chatMessages.innerHTML = ''; // 초기화
+        messages.forEach(msg => {
+            const msgDiv = document.createElement('div');
+            msgDiv.textContent = `${msg.id} : ${msg.chat_content}   ${formatDate(msg.chat_created_at)}`;
+            chatMessages.appendChild(msgDiv);
+        });
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+
+    // ----------------------------------------
+    // 새로운 메시지 수신
+    // ----------------------------------------
+    socket.on('receive_message', msg => {
+        const msgDiv = document.createElement('div');
+        msgDiv.textContent = `${msg.id} : ${msg.chat_content}   ${msg.chat_created_at}`;
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // 메시지 5개 유지
+        while (chatMessages.children.length > 5) {
+            chatMessages.removeChild(chatMessages.firstChild);
+        }
+    });
+
+    // ----------------------------------------
+    // 메시지 전송
+    // ----------------------------------------
+    const sendMessage = () => {
+        const message = chatInput.value.trim();
+        if (!message) return;
+        socket.emit('send_message', { message });
+        chatInput.value = '';
+    };
+
+    sendBtn.addEventListener('click', sendMessage);
+
+    chatInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    // ----------------------------------------
+    // 날짜 포맷 함수
+    // ----------------------------------------
+    function formatDate(datetimeStr) {
+        // DB에서 받은 문자열이 'YYYY-MM-DD HH:MM:SS' 형태라고 가정
+        return datetimeStr;
+    }
 
 
 

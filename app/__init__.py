@@ -1,8 +1,10 @@
 # app/__init__.py
 from flask import Flask
+from flask_socketio import SocketIO
 import pymysql
 import os
 
+socketio = SocketIO(cors_allowed_origins="*", manage_session=True)
 
 def create_app():
     app = Flask(__name__)
@@ -30,6 +32,7 @@ def create_app():
 
     # Flask app 에 등록
     app.get_db_connection = get_db_connection
+    socketio.init_app(app)
 
     # -------------------------------------
     # 블루프린트 등록
@@ -42,5 +45,8 @@ def create_app():
 
     from app.mypage.routes import bp as mypage_bp
     app.register_blueprint(mypage_bp)
+
+    # 웹소켓 이벤트 등록
+    from app.home import events
 
     return app
