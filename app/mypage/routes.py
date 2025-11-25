@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify, session, redirect
 from config import SIDEBAR_CONFIG
 from app.account.routes import get_db_connection
-
+from datetime import datetime
 
 # DAO
 from app.mypage.dao.user_dao import UserDao
@@ -41,6 +41,13 @@ def get_logged_user():
         return None
     return user
 
+def require_login_js():
+    return """
+        <script>
+            alert("로그인이 필요합니다.");
+            window.location.href = "/";
+        </script>
+    """
 
 # ============================================================
 # 마이페이지 - 내 글
@@ -49,7 +56,9 @@ def get_logged_user():
 def mypage_posts():
     user = get_logged_user()
     if not user:
-        return redirect("/")       # GET 허용 URL
+        #로그인이 필요합니다 알림을 띄우고 메인으로 이동
+        
+        return require_login_js()
 
     user_id = user["id"]
 
@@ -183,7 +192,7 @@ def api_post_dislike():
 def mypage_interest():
     user = get_logged_user()
     if not user:
-        return redirect("/")
+        return require_login_js()
 
     return render_template(
         'mypage-interest.html',
@@ -201,7 +210,7 @@ def mypage_interest():
 def mypage_item():
     user = get_logged_user()
     if not user:
-        return redirect("/")
+        return require_login_js()
 
     items = [
         {"id": 1, "name": "고양이 아이콘", "desc": "프로필 아이콘",
@@ -222,7 +231,7 @@ def mypage_item():
 def mypage_info():
     user = get_logged_user()
     if not user:
-        return redirect("/login")
+        return require_login_js()
 
     user_id = user["id"]
 
@@ -304,13 +313,14 @@ def api_update_profile():
         session.modified = True
 
     return jsonify({"success": True, "msg": "회원 정보가 수정되었습니다."})
+    
 
 
 @bp.route('/mypage-following')
 def mypage_following():
     user = get_logged_user()
     if not user:
-        return redirect("/")
+        return require_login_js()
 
     user_id = user["id"]
     following = follow_dao.get_following_list(user_id)
@@ -331,7 +341,7 @@ def mypage_following():
 def mypage_follower():
     user = get_logged_user()
     if not user:
-        return redirect("/")
+        return require_login_js()
 
     user_id = user["id"]
     followers = follow_dao.get_follower_list(user_id)
@@ -348,53 +358,237 @@ def mypage_follower():
     )
 
 
+@bp.route("/api/follow-toggle", methods=["POST"])
+def api_follow_toggle():
+    user = get_logged_user()
+    if not user:
+        return jsonify({"success": False, "msg": "로그인 필요"}), 403
+
+    user_id = user["id"]
+    data = request.get_json() or {}
+
+    target_id = data.get("target_id")
+    do_follow = data.get("follow")
+
+    if not target_id:
+        return jsonify({"success": False, "msg": "대상 유저가 없습니다."}), 400
+
+    # follow = true → 팔로우 / follow = false → 언팔로우
+    if do_follow:
+        ok = follow_dao.follow(user_id, target_id)
+        return jsonify({"success": ok})
+    else:
+        ok = follow_dao.unfollow(user_id, target_id)
+        return jsonify({"success": ok})
+
+
 @bp.route('/mypage-message')
 def mypage_message():
     user = get_logged_user()
     if not user:
-        return redirect("/")
+        return require_login_js()
+
+    user_id = user["id"]
+
+    # 대화방 목록 가져오기
+    rooms = message_dao.get_rooms_for_user(user_id)
+    total_unread = sum(r["unread_count"] for r in rooms) if rooms else 0
 
     return render_template(
         'mypage-message.html',
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        current_bg="backgrounds/m.png"
+        current_bg="backgrounds/m.png",
+        rooms=rooms,
+        user_id=user_id,
+        total_unread=total_unread
     )
+
+# ============================================
+# API: 특정 대화방의 메시지 목록
+# GET /api/mypage/messages/room/<room_no>
+# ============================================
+@bp.route("/api/mypage/messages/room/<int:room_no>")
+def api_get_room_messages(room_no):
+    user = get_logged_user()
+    if not user:
+        return jsonify({"success": False, "msg": "로그인 필요"}), 403
+
+    user_id = user["id"]
+
+    rows = message_dao.get_room_messages(room_no, user_id)
+    # 읽음 처리
+    message_dao.mark_room_as_read(room_no, user_id)
+
+    messages = []
+    for row in rows:
+        messages.append({
+            "message_no": row["message_no"],
+            "room_no": row["room_no"],
+            "sender_id": row["sender_id"],
+            "receiver_id": row["receiver_id"],
+            "is_me": (row["sender_id"] == user_id),
+            "content": row["message_content"],
+            "sent_at": row["message_sent_at"].strftime("%Y-%m-%d %H:%M"),
+        })
+
+    return jsonify({"success": True, "messages": messages})
+
+
+# ============================================
+# API: 메시지 전송
+# POST /api/mypage/messages/send
+# body: { room_no?, receiver_id, content }
+# ============================================
+@bp.route("/api/mypage/messages/send", methods=["POST"])
+def api_send_message():
+    user = get_logged_user()
+    if not user:
+        return jsonify({"success": False, "msg": "로그인 필요"}), 403
+
+    user_id = user["id"]
+    data = request.get_json() or {}
+
+    content = (data.get("content") or "").strip()
+    receiver_id = (data.get("receiver_id") or "").strip()
+    room_no = data.get("room_no")  # 숫자 또는 None
+    
+    if not receiver_id:
+        return jsonify({"success": False, "msg": "받는 사람 ID가 없습니다."}), 400
+
+    if not content:
+        return jsonify({"success": False, "msg": "메시지 내용을 입력해주세요."}), 400
+
+    # room_no 없으면(새 대화방) 생성/찾기
+    if not room_no:
+        room_no = message_dao.create_or_get_room(user_id, receiver_id)
+
+    msg_no = message_dao.send_message(room_no, user_id, receiver_id, content)
+    receiver_info = user_dao.get_user_by_id(receiver_id)
+    return jsonify({
+        "success": True,
+        "room_no": room_no,
+        "message_no": msg_no,
+        "sender_id": user_id,
+        "receiver_id": receiver_id,
+        "receiver_nick": receiver_info["nick"],
+        "content": content,
+        "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+    })
+
+
+# ============================================
+# API: 대화방 삭제 (여러 개 한 번에)
+# POST /api/mypage/messages/delete-room
+# body: { room_nos: [1,2,3] } 또는 { room_no: 1 }
+# ============================================
+@bp.route("/api/mypage/messages/delete-room", methods=["POST"])
+def api_delete_room():
+    user = get_logged_user()
+    if not user:
+        return jsonify({"success": False, "msg": "로그인 필요"}), 403
+
+    user_id = user["id"]
+    data = request.get_json() or {}
+
+    room_nos = data.get("room_nos") or []
+    if not room_nos and data.get("room_no"):
+        room_nos = [data.get("room_no")]
+
+    if not room_nos:
+        return jsonify({"success": False, "msg": "삭제할 대화방이 없습니다."}), 400
+
+    for rn in room_nos:
+        try:
+            rn_int = int(rn)
+        except (TypeError, ValueError):
+            continue
+        message_dao.delete_room_for_user(rn_int, user_id)
+
+    return jsonify({"success": True})
+
 
 
 @bp.route('/mypage-point')
 def mypage_point():
     user = get_logged_user()
     if not user:
-        return redirect("/")
+        return require_login_js()
+
+    user_id = user["id"]
+
+    # GET 파라미터로 정렬 받기
+    order = request.args.get("order", "latest")
+
+    # DB에서 가져온 포인트 데이터 (정렬: 최신순 기본)
+    point_list = point_dao.get_point_history(user_id, order=order)
+
+    
+    # 누적포인트 계산
+    total_point = point_dao.get_total_point(user_id)
 
     return render_template(
         'mypage-point.html',
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        current_bg="backgrounds/m.png"
+        current_bg="backgrounds/m.png",
+
+        # 템플릿에서 사용
+        point_list=point_list,
+        total_point=total_point
     )
+
 
 
 @bp.route('/mypage-alert')
 def mypage_alert():
     user = get_logged_user()
     if not user:
-        return redirect("/")
+        return require_login_js()
+
+    user_id = user["id"]
+    alerts = alert_dao.get_alert_list(user_id)
 
     return render_template(
         'mypage-alert.html',
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
+        alerts=alerts,
         current_bg="backgrounds/m.png"
     )
+
+
+# 개별 삭제
+@bp.route("/api/alert/delete", methods=["POST"])
+def api_alert_delete():
+    user = get_logged_user()
+    if not user:
+        return jsonify({"success": False, "msg": "로그인 필요"}), 403
+
+    data = request.get_json()
+    alert_no = data.get("alert_no")
+
+    alert_dao.delete_alert(alert_no, user["id"])
+    return jsonify({"success": True})
+
+
+# 전체 삭제
+@bp.route("/api/alert/delete-all", methods=["POST"])
+def api_alert_delete_all():
+    user = get_logged_user()
+    if not user:
+        return jsonify({"success": False, "msg": "로그인 필요"}), 403
+
+    alert_dao.delete_all_alerts(user["id"])
+    return jsonify({"success": True})
+
 
 
 @bp.route('/mypage-withdraw')
 def mypage_withdraw():
     user = get_logged_user()
     if not user:
-        return redirect("/")
+        return require_login_js()
 
     return render_template(
         'mypage-withdraw.html',

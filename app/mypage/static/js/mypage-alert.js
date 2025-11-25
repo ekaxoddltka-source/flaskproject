@@ -1,108 +1,41 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-    const tbody = document.getElementById("alert-tbody");
-    const selectAll = document.getElementById("select-all-notifications");
-    const deleteSelectedBtn = document.querySelector(".btn-delete-selected");
+    // 개별 삭제
+    document.querySelectorAll(".btn-delete").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const item = btn.closest(".alert-item");
+            const no = item.dataset.no;
 
-    /* -----------------------------------------------------
-       0) 더미 데이터 (백엔드 연결 전 테스트용)
-       ----------------------------------------------------- */
-    const dummyAlerts = [
-        {
-            id: 1,
-            date: "2025-02-01 13:24",
-            msg: "누군가 내 게시글에 댓글을 남겼습니다",
-            type: "댓글",
-            link: "#"
-        },
-        {
-            id: 2,
-            date: "2025-02-01 09:10",
-            msg: "내 댓글에 답글이 달렸습니다",
-            type: "답글",
-            link: "#"
-        },
-        {
-            id: 3,
-            date: "2025-01-31 22:50",
-            msg: "게시글이 추천을 받았습니다",
-            type: "추천",
-            link: "#"
-        }
-    ];
+            if (!confirm("이 알림을 삭제하시겠습니까?")) return;
 
-    /* -----------------------------------------------------
-       1) 알림 내역 렌더링
-       ----------------------------------------------------- */
-    function loadAlerts() {
-        tbody.innerHTML = "";
-
-        dummyAlerts.forEach(alert => {
-            const tr = document.createElement("tr");
-            tr.dataset.id = alert.id;
-
-            tr.innerHTML = `
-                <td><input type="checkbox" class="alert-check"></td>
-                <td>${alert.date}</td>
-                <td>${alert.msg}</td>
-                <td>${alert.type}</td>
-                <td><a href="${alert.link}">바로가기</a></td>
-                <td><button class="btn-delete-row" style="color:red;">삭제</button></td>
-            `;
-
-            tbody.appendChild(tr);
-        });
-
-        attachRowEvents();
-    }
-
-    loadAlerts();
-
-
-    /* -----------------------------------------------------
-       2) 개별 삭제 버튼
-       ----------------------------------------------------- */
-    function attachRowEvents() {
-        document.querySelectorAll(".btn-delete-row").forEach(btn => {
-            btn.addEventListener("click", function () {
-                const row = this.closest("tr");
-                row.remove();
+            const res = await fetch("/api/alert/delete", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ alert_no: no })
             });
+
+            const data = await res.json();
+            if (data.success) {
+                item.remove();
+            }
         });
-    }
-
-
-    /* -----------------------------------------------------
-       3) 전체 선택 / 해제
-       ----------------------------------------------------- */
-    if (selectAll) {
-        selectAll.addEventListener("change", () => {
-            const checked = selectAll.checked;
-
-            document.querySelectorAll(".alert-check").forEach(chk => {
-                chk.checked = checked;
-            });
-        });
-    }
-
-
-    /* -----------------------------------------------------
-       4) 선택 삭제
-       ----------------------------------------------------- */
-    deleteSelectedBtn.addEventListener("click", () => {
-        const checks = document.querySelectorAll(".alert-check:checked");
-
-        if (checks.length === 0) {
-            alert("삭제할 알림을 선택하세요.");
-            return;
-        }
-
-        checks.forEach(chk => {
-            chk.closest("tr").remove();
-        });
-
-        // 전체 선택 체크박스 초기화
-        selectAll.checked = false;
     });
+
+    // 전체 삭제
+    const deleteAllBtn = document.querySelector(".btn-delete-all");
+    if (deleteAllBtn) {
+        deleteAllBtn.addEventListener("click", async () => {
+            if (!confirm("전체 알림을 삭제하시겠습니까?")) return;
+
+            const res = await fetch("/api/alert/delete-all", {
+                method: "POST"
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                document.querySelectorAll(".alert-item").forEach(i => i.remove());
+            }
+        });
+    }
 
 });

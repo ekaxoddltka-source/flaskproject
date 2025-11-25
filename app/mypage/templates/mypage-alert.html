@@ -1,64 +1,106 @@
 {% extends 'base.html' %}
 
-<!-- 개별 css 불러오는 영역-->
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage-alert.css') }}">
 <link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage.css') }}">
 
 <style>
-
 body::before {
     background-image: url("{{ url_for('mypage.static', filename=current_bg) }}");
 }
 </style>
-<script src="{{ url_for('mypage.static', filename='js/mypage-alert.js') }}"></script>
 {% endblock %}
 
-<!-- 컨텐츠 넣는 영역 -->
 {% block content %}
 <div class="posts">
-<!--------------------- 알림 패널 --------------------->
-<div id="alerts-panel" class="content-panel hidden">
-  <div class="panel-wrapper">
 
-    <!-- 상단 바 -->
-    <div class="point-top-bar">
-      <div class="point-tabs">
-        <button id="btn-alert-history" class="tab-btn active">알림 내역</button>
-      </div>
-      <div class="point-filters">
-        <button class="btn-delete-selected" style="background-color: #ff6b6b; color: white;">선택 삭제</button>
-      </div>
+    <!-- 알림 패널 -->
+    <div id="alert-panel" class="content-panel">
+        <div class="panel-wrapper">
+
+            <h2>🔔 알림</h2>
+
+            <!-- 알림 상단 제어 바 : 전체삭제 + 선택삭제 같은 줄 -->
+<div class="alert-top-controls" 
+     style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+
+    
+
+    <button class="btn-delete-selected" id="btn-delete-selected">선택 삭제</button>
+    <button class="btn-delete-all" id="btn-delete-all">전체 삭제</button>
+</div>
+
+
+            <!-- 알림 테이블 -->
+            <table class="notification-table">
+                <thead>
+                <tr>
+                    <th><input type="checkbox" id="select-all-alert"></th>
+                    <th>알림 내용</th>
+                    <th>유형</th>
+                    <th>일자</th>
+                    <th>링크</th>
+                    <th>삭제</th>
+                </tr>
+                </thead>
+
+                <tbody id="alert-table-body">
+                {% for a in alerts %}
+                <tr class="alert-item">
+                    <td>
+                        <input type="checkbox" class="alert-check" data-alert-no="{{ a.alert_no }}">
+                    </td>
+
+                    <!-- 알림 내용 -->
+                    <td>{{ a.alert_content }}</td>
+
+                    <!-- alert_type 숫자를 문자열로 표현 -->
+                    <td>
+                        {% if a.alert_type == 1 %}
+                            댓글
+                        {% elif a.alert_type == 2 %}
+                            좋아요
+                        {% elif a.alert_type == 3 %}
+                            팔로우
+                        {% else %}
+                            기타
+                        {% endif %}
+                    </td>
+
+                    <!-- 날짜 -->
+                    <td>{{ a.alerted_at }}</td>
+
+                    <!-- 관련 게시물 또는 댓글 링크 -->
+                    <td>
+                        {% if a.target_board_no %}
+                            <a class="alert-link"
+                               href="/board/{{ a.target_board_no }}">바로가기</a>
+                        {% elif a.target_comment_answer_no %}
+                            <a class="alert-link"
+                               href="/comment/{{ a.target_comment_answer_no }}">바로가기</a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+
+                    <!-- 개별 삭제 버튼 -->
+                    <td>
+                        <button class="btn-delete"
+                                data-alert-no="{{ a.alert_no }}">삭제</button>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- 선택 삭제 버튼 -->
+            
+
+        </div>
     </div>
 
-    <!-- 알림 테이블 -->
-    <div id="alert-history-section">
-      <table class="point-table">
-        <thead>
-          <tr>
-            <th><input type="checkbox" id="select-all-notifications"></th>
-            <th>알림일시</th>
-            <th>내용</th>
-            <th>타입</th>
-            <th>관련 게시글</th>
-            <th>삭제</th>
-          </tr>
-        </thead>
-        <tbody id="alert-tbody">
-          <tr>
-            <td colspan="6" style="text-align:center; color:gray;">알림 내역을 불러오는 중...</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+</div>
+</div>
 
-  </div>
-</div>
-</div>
-</div>
-	
-	
-	
-	
-
+<script src="{{ url_for('mypage.static', filename='js/mypage-alert.js') }}"></script>
 {% endblock %}

@@ -60,18 +60,49 @@ body::before {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td><input type="checkbox" class="point-check"></td>
-                <td>2025-09-26</td>
-                <td>출석 체크</td>
-                <td>+10</td>
-                <td>120</td>
-                <td><a href="#">바로가기</a></td>
-                <td>적립완료</td>
-                
-              </tr>
-              <!-- 추가 행들 -->
-            </tbody>
+    {% for row in point_list %}
+    <tr>
+        <td><input type="checkbox" class="point-check"></td>
+
+        <!-- 날짜 -->
+        <td>{{ row.point_created_at.strftime('%Y-%m-%d') }}</td>
+
+        <!-- 상세내역 -->
+        <td>{{ row.point_reason }}</td>
+
+        <!-- 포인트 -->
+        <td>
+            {% if row.point_amount > 0 %}
+                +{{ row.point_amount }}
+            {% else %}
+                {{ row.point_amount }}
+            {% endif %}
+        </td>
+
+        <!-- 누적 포인트는 DB에 없으므로 JS에서 계산됨 -->
+        <td class="total-point-cell"></td>
+
+        <!-- 활동 링크 -->
+        <td>
+            {% if row.board_no %}
+                <a href="/board/{{ row.board_no }}">바로가기</a>
+            {% else %}
+                -
+            {% endif %}
+        </td>
+
+        <!-- 포인트 상태 -->
+        <td>
+            {% if row.point_type == 2 %}
+                적립
+            {% else %}
+                사용
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
+
           </table>
         </div>
         </div>

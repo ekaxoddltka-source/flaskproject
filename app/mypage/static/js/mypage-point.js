@@ -1,50 +1,42 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-    const sortBtns = document.querySelectorAll(".filter-btn");
-    const tableBody = document.querySelector(".point-table tbody");
+    /* =====================================================
+       1) 누적 포인트 계산 (테이블에서 직접 계산)
+    ===================================================== */
+    const rows = document.querySelectorAll(".point-table tbody tr");
+    let total = 0;
 
-    // 정렬 버튼 클릭 처리
-    sortBtns.forEach(btn => {
-        btn.addEventListener("click", () => {
+    rows.forEach(tr => {
+        const amountText = tr.children[3].innerText;
+        const amount = parseInt(amountText.replace("+", ""), 10);
 
-            // 버튼 active 스타일 조정
-            sortBtns.forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
+        total += amount;
 
-            const sortType = btn.dataset.sort;
-            sortTable(sortType);
-        });
+        tr.querySelector(".total-point-cell").innerText = total;
     });
 
-    // 정렬 함수 구현
-    function sortTable(type) {
-        const rows = Array.from(tableBody.querySelectorAll("tr"));
 
-        rows.sort((a, b) => {
-            const dateA = new Date(a.children[1].textContent.trim());
-            const dateB = new Date(b.children[1].textContent.trim());
+    /* =====================================================
+       2) 정렬 버튼 → 서버에 요청하여 갱신
+    ===================================================== */
+    document.querySelectorAll(".filter-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
 
-            const pointA = parseInt(a.children[3].textContent.replace("+","").replace("-",""));
-            const pointB = parseInt(b.children[3].textContent.replace("+","").replace("-",""));
+            const sort = btn.dataset.sort;
 
-            switch(type) {
+            // sort 이름을 서버에서 사용하는 정렬키로 맞추기
+            const map = {
+                newest: "latest",
+                oldest: "oldest",
+                high: "high",
+                low: "low"
+            };
 
-                case "newest":
-                    return dateB - dateA; // 최근 날짜 우선
+            const order = map[sort] || "latest";
 
-                case "oldest":
-                    return dateA - dateB; // 오래된 날짜 우선
-
-                case "high":
-                    return pointB - pointA; // 포인트 큰 값 우선
-
-                case "low":
-                    return pointA - pointB; // 포인트 작은 값 우선
-            }
+            // 요청 보내기
+            window.location.href = `/mypage-point?order=${order}`;
         });
-
-        // 정렬된 줄 다시 넣기
-        rows.forEach(r => tableBody.appendChild(r));
-    }
+    });
 
 });

@@ -16,10 +16,10 @@ class UserDao:
         sql = """
             SELECT 
                 id,
-                pw,
+                password,
                 nick,
                 email,
-                profile_icon,
+                icon,
                 background_img,
                 created_at
             FROM user
@@ -36,12 +36,12 @@ class UserDao:
     # -----------------------------------------------------
     # 2) 로그인 시 비밀번호 확인용
     # -----------------------------------------------------
-    def check_login(self, user_id, pw):
+    def check_login(self, user_id, password):
         conn = self.db_conn_func()
         cur = conn.cursor()
 
         sql = """
-            SELECT id, pw, nick
+            SELECT id, password, nick
             FROM user
             WHERE id = %s
         """

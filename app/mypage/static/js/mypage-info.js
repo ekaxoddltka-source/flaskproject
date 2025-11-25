@@ -131,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         alert("회원 정보가 수정되었습니다.");
-        location.reload();
+        window.location.href = "/mypage-posts";
     });
 
 });

@@ -74,7 +74,7 @@ class UserInfoDao:
 
         sql = """
             UPDATE user
-            SET pw = %s
+            SET password = %s
             WHERE id = %s
         """
 
