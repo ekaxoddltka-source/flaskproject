@@ -206,52 +206,72 @@ document.addEventListener("DOMContentLoaded", () => {
 // ===========================
 // 5. 실시간 채팅
 // ===========================
-    const socket = io(); // 서버와 연결
+    const socket = io();
 
-    // DOM 요소
     const userCountEl = document.getElementById('user-count');
     const chatMessages = document.getElementById('chatMessages');
     const chatInput = document.getElementById('chatInput');
     const sendBtn = document.getElementById('sendBtn');
+    const currentUserId = window.currentUserId || ''; 
 
-    // ----------------------------------------
-    // 접속자 수 업데이트
-    // ----------------------------------------
+    // ID 기반 색상 생성 함수
+    function getColorFromId(id) {
+        const colors = ["#3DADFF","#FF7F50","#32CD32","#FFB6C1","#9370DB","#FFA500","#00CED1"];
+        let hash = 0;
+        for (let i = 0; i < id.length; i++) {
+            hash = id.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const index = Math.abs(hash) % colors.length;
+        return colors[index];
+    }
+
+    // 메시지 div 생성 함수
+    function appendMessage(msg) {
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('chat-message');
+
+        // 내 메시지 / 타인 메시지 구분
+        if (msg.id === currentUserId) {
+            msgDiv.classList.add('my-message');
+        } else {
+            msgDiv.classList.add('other-message');
+        }
+
+        msgDiv.innerHTML = `
+            <span class="chat-id" style="color:${getColorFromId(msg.id)}">${msg.id} :</span>
+            <span class="chat-content">${msg.chat_content}</span>
+            <span class="timestamp">${msg.chat_created_at}</span>
+        `;
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // 메시지 20개 이상이면 제거
+        while (chatMessages.children.length > 30) {
+            chatMessages.removeChild(chatMessages.firstChild);
+        }
+    }
+    
+    socket.on('load_recent_messages', data => {
+        const messages = data.messages;
+        const canChat = data.canChat;
+
+        chatMessages.innerHTML = '';
+        messages.forEach(msg => appendMessage(msg));
+
+        if (!canChat) {
+            chatInput.disabled = true;
+            sendBtn.disabled = true;
+            chatInput.placeholder = "로그인 후 채팅 가능합니다.";
+        }
+    });
+
     socket.on('update_user_count', count => {
         userCountEl.textContent = count;
     });
 
-    // ----------------------------------------
-    // 직전 5개 메시지 로드
-    // ----------------------------------------
-    socket.on('load_recent_messages', messages => {
-        chatMessages.innerHTML = ''; // 초기화
-        messages.forEach(msg => {
-            const msgDiv = document.createElement('div');
-            msgDiv.textContent = `${msg.id} : ${msg.chat_content}   ${formatDate(msg.chat_created_at)}`;
-            chatMessages.appendChild(msgDiv);
-        });
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    });
+    socket.on('receive_message', msg => appendMessage(msg));
 
-    // ----------------------------------------
-    // 새로운 메시지 수신
-    // ----------------------------------------
-    socket.on('receive_message', msg => {
-        const msgDiv = document.createElement('div');
-        msgDiv.textContent = `${msg.id} : ${msg.chat_content}   ${msg.chat_created_at}`;
-        chatMessages.appendChild(msgDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-
-        // 메시지 5개 유지
-        while (chatMessages.children.length > 5) {
-            chatMessages.removeChild(chatMessages.firstChild);
-        }
-    });
-
-    // ----------------------------------------
     // 메시지 전송
-    // ----------------------------------------
     const sendMessage = () => {
         const message = chatInput.value.trim();
         if (!message) return;
@@ -260,18 +280,9 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     sendBtn.addEventListener('click', sendMessage);
-
     chatInput.addEventListener('keydown', e => {
         if (e.key === 'Enter') sendMessage();
     });
-
-    // ----------------------------------------
-    // 날짜 포맷 함수
-    // ----------------------------------------
-    function formatDate(datetimeStr) {
-        // DB에서 받은 문자열이 'YYYY-MM-DD HH:MM:SS' 형태라고 가정
-        return datetimeStr;
-    }
 
 
 

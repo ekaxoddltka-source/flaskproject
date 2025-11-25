@@ -526,7 +526,52 @@ header {
     font-weight: 600;
     color: #000;
 }
+#panel-chat .chat-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 6px;
+    padding: 6px 10px;
+    border-radius: 12px;
+    max-width: 100%;
+    word-break: break-word;
+}
 
+#panel-chat .chat-message:hover {
+    background: #e1e8f5; /* hover 시 강조 */
+}
+
+#panel-chat .chat-id {
+    font-weight: 600;
+    color: #3DADFF; /* 강조 색 */
+    flex-shrink: 0;
+}
+
+#panel-chat .chat-content {
+    flex: 1 1 auto;
+    color: #333;
+}
+
+#panel-chat .timestamp {
+    font-size: 0.75rem;
+    color: gray;
+    flex-shrink: 0;
+}
+/* 내 메시지 */
+.tab-panel .chat-message.my-message {
+    background: #3DADFF;
+    color: white;
+    align-self: flex-end;
+    text-align: right;
+}
+
+/* 타인 메시지 */
+.tab-panel .chat-message.other-message {
+    background: #f4f6fb;
+    color: #333;
+    align-self: flex-start;
+    text-align: left;
+}
 /* ====================================
  * 6. 푸터 (Footer)
  * ==================================== */

@@ -34,6 +34,10 @@ def create_app():
     app.get_db_connection = get_db_connection
     socketio.init_app(app)
 
+    @app.route('/.well-known/appspecific/com.chrome.devtools.json')
+    def devtools_json():
+        return '', 204  # 204 No Content
+
     # -------------------------------------
     # 블루프린트 등록
     # -------------------------------------

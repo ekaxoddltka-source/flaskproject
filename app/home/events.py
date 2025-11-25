@@ -7,47 +7,52 @@ from datetime import datetime
 user_count = 0
 
 @socketio.on('connect')
-def handle_connect(*args, **kwargs):  # *args, **kwargs로 모든 인자 수용
+def handle_connect(auth=None):
     global user_count
     user = session.get('user')
-    if not user:
-        return False
 
-    user_count += 1
-    emit('update_user_count', user_count, broadcast=True)
-
-    # 직전 5개 메시지 DB에서 불러오기
     conn = current_app.get_db_connection()
     try:
         with conn.cursor(pymysql.cursors.DictCursor) as cursor:
-            sql = """
-            SELECT id, chat_content, chat_created_at
-            FROM chat
-            ORDER BY chat_no DESC
-            LIMIT 5
-            """
-            cursor.execute(sql)
+            cursor.execute("""
+                SELECT id, chat_content, chat_created_at
+                FROM chat
+                ORDER BY chat_no DESC
+                LIMIT 30
+            """)
             recent_msgs = cursor.fetchall()
     finally:
         conn.close()
 
-    recent_msgs.reverse()
-    emit('load_recent_messages', recent_msgs)
+    safe_msgs = []
+    for msg in recent_msgs:
+        safe_msgs.append({
+            "id": msg["id"],
+            "chat_content": msg["chat_content"],
+            "chat_created_at": (
+                msg["chat_created_at"].strftime('%Y-%m-%d %H:%M')
+                if isinstance(msg["chat_created_at"], datetime)
+                else str(msg["chat_created_at"])
+            )
+        })
+    safe_msgs.reverse()
 
-@socketio.on('disconnect')
-def handle_disconnect(*args, **kwargs):
-    global user_count
-    user = session.get('user')
-    if not user:
-        return
+    # 로그인 여부를 클라이언트로 함께 전달
+    emit('load_recent_messages', {
+        'messages': safe_msgs,
+        'canChat': bool(user)
+    })
 
-    user_count -= 1
-    emit('update_user_count', user_count, broadcast=True)
+    if user:
+        global user_count
+        user_count += 1
+        emit('update_user_count', user_count, broadcast=True)
 
 @socketio.on('send_message')
 def handle_message(data):
     user = session.get('user')
     if not user:
+        # 로그인 안 됐으면 무시
         return
 
     message = data.get('message')
@@ -60,8 +65,10 @@ def handle_message(data):
     conn = current_app.get_db_connection()
     try:
         with conn.cursor() as cursor:
-            sql = "INSERT INTO chat (id, chat_content, chat_created_at) VALUES (%s, %s, %s)"
-            cursor.execute(sql, (user_id, message, now))
+            cursor.execute(
+                "INSERT INTO chat (id, chat_content, chat_created_at) VALUES (%s, %s, %s)",
+                (user_id, message, now)
+            )
             conn.commit()
     finally:
         conn.close()
@@ -69,5 +76,15 @@ def handle_message(data):
     emit('receive_message', {
         'id': user_id,
         'chat_content': message,
-        'chat_created_at': now.strftime('%Y-%m-%d %H:%M:%S')
+        'chat_created_at': now.strftime('%Y-%m-%d %H:%M')
     }, broadcast=True)
+
+@socketio.on('disconnect')
+def handle_disconnect(*args, **kwargs):
+    user = session.get('user')
+    if not user:
+        return
+
+    global user_count
+    user_count -= 1
+    emit('update_user_count', user_count, broadcast=True)
