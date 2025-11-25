@@ -33,31 +33,39 @@ def login():
         id = request.form["username"]
         password = request.form["password"]
 
-        #user 테이블에서 검색
+        # withdraw 조건 없이 먼저 조회
         sql = "SELECT * FROM user WHERE id=%s AND password=%s"
         cursor.execute(sql, (id, password))
         user = cursor.fetchone()
 
-        if user:
-            #비밀번호는 세션에 저장하면 안됨
-            if 'password' in user:
-                user.pop('password')
+        # 아이디 또는 비밀번호 틀림
+        if not user:
+            return """
+            <script>
+                alert('아이디 또는 비밀번호가 틀렸습니다.');
+                history.back();
+            </script>
+            """
 
-            #유저 정보 전체를 세션에 저장
-            session["user"] = user
+        # 탈퇴한 회원
+        if user.get("withdraw") == 1:
+            return """
+            <script>
+                alert('탈퇴한 회원입니다.');
+                history.back();
+            </script>
+            """
 
-            #로그인 시간 업데이트
-            update_sql = "UPDATE user SET last_login_at=%s WHERE id=%s"
-            cursor.execute(update_sql, (datetime.now(), user["id"]))
-            conn.commit()
+        # 정상 로그인 (성공 alert 없음)
+        user.pop('password', None)
+        session["user"] = user
 
-            flash("로그인 성공")
-            return redirect("/")
-        
-        else:
-            flash("로그인 실패: 아이디 또는 비밀번호가 틀렸습니다.")
-            return redirect("/")
-        
+        update_sql = "UPDATE user SET last_login_at=%s WHERE id=%s"
+        cursor.execute(update_sql, (datetime.now(), user["id"]))
+        conn.commit()
+
+        return redirect("/")
+
     finally:
         cursor.close()
         conn.close()
