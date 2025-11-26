@@ -163,12 +163,19 @@ document.addEventListener("DOMContentLoaded", () => {
             chatBox.innerHTML = "";
 
             data.messages.forEach(msg => {
-                const bubble = document.createElement("div");
-                bubble.classList.add("chat-bubble");
-                if (msg.is_me) bubble.classList.add("sent");
-                bubble.textContent = msg.content;
-                chatBox.appendChild(bubble);
-            });
+    const bubble = document.createElement("div");
+    bubble.classList.add("chat-bubble");
+
+    if (msg.is_me) {
+        bubble.classList.add("sent");     // 내가 보낸 메시지
+    } else {
+        bubble.classList.add("received"); // 상대방 메시지
+    }
+
+    bubble.textContent = msg.content;
+    chatBox.appendChild(bubble);
+});
+
 
             chatBox.scrollTop = chatBox.scrollHeight;
 
@@ -287,4 +294,19 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    const socket = io();
+socket.emit("join_dm");
+
+socket.on("dm_receive", msg => {
+    if (msg.room_no == currentRoomNo) {
+        const bubble = document.createElement("div");
+        bubble.classList.add("chat-bubble", "received");
+        bubble.textContent = msg.content;
+        chatBox.appendChild(bubble);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+    updateRoomPreview();
 });
+    
+});
+

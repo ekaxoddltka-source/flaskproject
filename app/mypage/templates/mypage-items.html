@@ -5,11 +5,23 @@
 <link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage.css') }}">
 
 <style>
+:root {
+    --dynamic-bg: {% if current_bg %}
+                      url("{{ url_for('mypage.static', filename=current_bg) }}")
+                  {% else %}
+                      none
+                  {% endif %};
+}
+
 body::before {
     content: "";
-    background-image: var(--dynamic-bg, url("{{ url_for('mypage.static', filename=current_bg) }}"));
+    background-image: var(--dynamic-bg);
+    background-size: cover;
+    background-position: center;
+    background-color: #fff;   /* 배경 없으면 흰 화면 */
 }
 </style>
+
 {% endblock %}
 
 {% block content %}
@@ -37,7 +49,7 @@ body::before {
 <div class="item-card" data-type="{{ item.item_type }}">
 
     <div class="item-img">
-      <img src="{{ url_for('mypage.static', filename='/' ~ item.item_img) }}">
+      <img src="{{ url_for('mypage.static', filename=item.item_img) }}">
     </div>
 
     <div class="item-info">

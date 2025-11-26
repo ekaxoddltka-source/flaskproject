@@ -60,20 +60,29 @@ document.addEventListener("DOMContentLoaded", () => {
             // 버튼 텍스트 변경
             moreBtn.textContent = expanded ? "접기" : "더보기";
 
-            // === 조회수 증가 ===
-            if (expanded) {  // 처음 확장할 때만 조회수 증가
+            
+            if (expanded) {  // 처음 확장할 때만 실행
                 const postId = post.dataset.id;  // dataset.id → board_no
                 const hitEl = post.querySelector('.hit');
 
+                // 조회수 증가
                 fetch(`/post/hit/${postId}`, { method: "POST" })
                     .then(res => res.json())
                     .then(data => {
                         if (data.success && hitEl) {
-                            hitEl.textContent = `조회수: ${data.hit}`; // UI 바로 갱신
+                            hitEl.textContent = `조회수: ${data.hit}`; // UI 갱신
                         }
                     })
                     .catch(err => console.error(err));
+
+            // 🔥 조회 로그 저장 (관심도 분석용)
+            fetch("/api/log/view", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ board_no: postId })
+            }).catch(err => console.error("log error:", err));
             }
+
         });
     });
 

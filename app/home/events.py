@@ -30,7 +30,7 @@ def handle_connect(auth=None):
             "id": msg["id"],
             "chat_content": msg["chat_content"],
             "chat_created_at": (
-                msg["chat_created_at"].strftime('%Y-%m-%d %H:%M')
+                msg["chat_created_at"].strftime('%H:%M')
                 if isinstance(msg["chat_created_at"], datetime)
                 else str(msg["chat_created_at"])
             )
@@ -76,7 +76,7 @@ def handle_message(data):
     emit('receive_message', {
         'id': user_id,
         'chat_content': message,
-        'chat_created_at': now.strftime('%Y-%m-%d %H:%M')
+        'chat_created_at': now.strftime('%H:%M')
     }, broadcast=True)
 
 @socketio.on('disconnect')

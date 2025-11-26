@@ -234,7 +234,7 @@
 
 .chat-bubble.received {
   align-self: flex-start;
-  background: #eee;
+  background: #eeeeeea3;
   color: #333;
 }
 
@@ -272,6 +272,15 @@
       max-height: 300px;
       overflow-y: auto;
     }
+    .chat-bubble {
+  display: inline-block;   /* 전체 라인 차지 방지 */
+  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+}
 
     .chat-bubble {
       max-width: 70%;

@@ -31,115 +31,183 @@ def latest_notice():
 
 @bp.route('/')
 def home():
-    # GET 파라미터 읽기
     top_filter = request.args.get('top', '최신순')  
-    feed_filter = request.args.get('feed', '전체')  
+    feed_filter = request.args.get('feed', '전체')
+    search_type = request.args.get('search_type')
+    search_keyword = request.args.get('keyword', '').strip()
 
-    # DB 연결
     conn = get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
-    # 기본 SQL
-    sql = """
-        SELECT 
-            board.*, 
-            comment_answer.*, 
-            user.nick AS writer_nick,
-            user.id AS writer_id,
-            comment_user.nick AS commenter_nick,
-            comment_user.id AS commenter_id,
-            file.*,
-            tag.tag_name
-        FROM board
-        LEFT JOIN user ON board.id = user.id
-        LEFT JOIN file ON board.board_no = file.board_no
-        LEFT JOIN tag_board ON tag_board.board_no = board.board_no
-        LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
-        LEFT JOIN comment_answer ON board.board_no = comment_answer.board_no
-        LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
-        WHERE board.board_deleted = 0
-    """
+    # 1. 검색용 게시글 번호 필터링 (서브쿼리 방식)
+    board_filter_sql = "SELECT board_no FROM board WHERE board_deleted = 0"
+    params_filter = []
 
     # feed 필터링
     category_map = {"자유": 1, "Q&A": 2, "코딩테스트": 3, "공지사항": 4, "이용약관": 5, "개인정보처리방침": 6}
     if feed_filter != "전체" and feed_filter in category_map:
-        sql += f" AND board_category = {category_map[feed_filter]}"
+        board_filter_sql += f" AND board_category = {category_map[feed_filter]}"
+    
+    login_user_id = session.get("user", {}).get("id")
+    if top_filter == "팔로우순" and login_user_id:
+        board_filter_sql += """
+        AND id IN (
+            SELECT following_id
+            FROM follow
+            WHERE followed_id = %s
+        )
+        """
+        params_filter.append(login_user_id)
+
+    # 검색 타입에 따른 조건
+    if search_type and search_keyword:
+        if search_type == "board_title":
+            board_filter_sql += " AND board_title LIKE %s"
+            params_filter.append(f"%{search_keyword}%")
+
+        elif search_type == "board_content":
+            board_filter_sql += " AND board_content LIKE %s"
+            params_filter.append(f"%{search_keyword}%")
+
+        elif search_type == "id":
+            board_filter_sql += """
+            AND id IN (
+                SELECT id FROM user WHERE nick LIKE %s
+            )
+            """
+            params_filter.append(f"%{search_keyword}%")
+
+        elif search_type == "tag":
+            board_filter_sql += """
+            AND board_no IN (
+                SELECT tb.board_no
+                FROM tag_board tb
+                JOIN tag t ON tb.tag_no = t.tag_no
+                WHERE t.tag_name LIKE %s
+            )
+            """
+            params_filter.append(f"%{search_keyword}%")
+
+    cursor.execute(board_filter_sql, tuple(params_filter))
+    board_nos = [row['board_no'] for row in cursor.fetchall()]
+
+    if not board_nos:
+        boardList = []
+    else:
+        format_strings = ','.join(['%s'] * len(board_nos))
+        sql = f"""
+            SELECT 
+                board.board_no AS board_no,
+                board.id AS writer_id,
+                user.nick AS writer_nick,
+                board.board_title,
+                board.board_content,
+                board.board_category,
+                board.hit,
+                board.board_like,
+                board.board_dislike,
+                board.board_created_at,
+                board.board_updated_at,
+                board.board_deleted,
+                comment_answer.comment_answer_no,
+                comment_answer.comment_answer_content,
+                comment_answer.comment_answer_type,
+                comment_answer.comment_like_count,
+                comment_answer.comment_dislike_count,
+                comment_answer.comment_answer_at,
+                comment_answer.comment_answer_updated_at,
+                comment_answer.answer_accepted,
+                comment_user.id AS commenter_id,
+                comment_user.nick AS commenter_nick,
+                file.file_no,
+                file.logical_file_name,
+                file.physical_file_name,
+                file.file_size,
+                file.file_ext,
+                tag.tag_name
+            FROM board
+            LEFT JOIN user ON board.id = user.id
+            LEFT JOIN file ON board.board_no = file.board_no
+            LEFT JOIN tag_board ON tag_board.board_no = board.board_no
+            LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
+            LEFT JOIN comment_answer ON board.board_no = comment_answer.board_no
+            LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
+            WHERE board.board_no IN ({format_strings})
+        """
+
+        cursor.execute(sql, board_nos)
+        rows = cursor.fetchall()
+
+        board_map = {}
+        for row in rows:
+            boardNo = row["board_no"]
+            if boardNo not in board_map:
+                board_map[boardNo] = {
+                    "boardNo": boardNo,
+                    "id": row["writer_id"],
+                    "nick": row["writer_nick"],
+                    "boardTitle": row["board_title"],
+                    "boardContent": row["board_content"],
+                    "boardCategory": row["board_category"],
+                    "hit": row["hit"],
+                    "boardLike": row["board_like"],
+                    "boardDislike": row["board_dislike"],
+                    "boardCreatedAt": row["board_created_at"],
+                    "boardUpdatedAt": row["board_updated_at"],
+                    "board_deleted": row["board_deleted"],
+                    "comments": [],
+                    "files": [],
+                    "tags": []
+                }
+            post = board_map[boardNo]
+            # 파일 처리
+            if row["file_no"] is not None and not any(f["fileNo"] == row["file_no"] for f in post["files"]):
+                post["files"].append({
+                    "fileNo": row["file_no"],
+                    "logicalFileName": row["logical_file_name"],
+                    "physicalFileName": row["physical_file_name"],
+                    "fileSize": row["file_size"],
+                    "fileExt": row["file_ext"]
+                })
+            # 태그 처리
+            if row["tag_name"] is not None and not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
+                post["tags"].append({"tagName": row["tag_name"]})
+            # 댓글 처리
+            if row["comment_answer_no"] is not None:
+                if not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
+                    post["comments"].append({
+                        "commentAnswerNo": row["comment_answer_no"],
+                        "boardNo": boardNo,
+                        "commenterId": row["commenter_id"],
+                        "commenterNick": row["commenter_nick"],
+                        "commentAnswerContent": row["comment_answer_content"],
+                        "commentLikeCount": row["comment_like_count"],
+                        "commentDislikeCount": row["comment_dislike_count"],
+                        "commentAnswerAt": row["comment_answer_at"],
+                        "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
+                        "commentAnswerType": row["comment_answer_type"],
+                        "answerAccepted": row["answer_accepted"]
+                    })
+
+        boardList = list(board_map.values())
 
     # top 정렬
     if top_filter == "조회순":
-        sql += " ORDER BY board.hit DESC"
+        boardList.sort(key=lambda x: x["hit"], reverse=True)
     elif top_filter == "추천순":
-        sql += " ORDER BY board.board_like DESC"
+        boardList.sort(key=lambda x: x["boardLike"], reverse=True)
     elif top_filter == "팔로우순":
-        sql += " ORDER BY follow_count DESC"  # follow_count 컬럼 필요
-    elif top_filter == "검색순":
-        sql += " ORDER BY search_score DESC"  # search_score 컬럼 필요
+        boardList.sort(key=lambda x: x.get("follow_count", 0), reverse=True)
     else:
-        sql += " ORDER BY board.board_no DESC"  # 최신순 기본
+        boardList.sort(key=lambda x: x["boardNo"], reverse=True)
 
-    cursor.execute(sql)
-    rows = cursor.fetchall()
+    cursor.close()
     conn.close()
 
-    # resultMap 재현
-    board_map = {}
-    for row in rows:
-        boardNo = row["board_no"]
-        if boardNo not in board_map:
-            board_map[boardNo] = {
-                "boardNo": row["board_no"],
-                "id": row["writer_id"],
-                "nick": row["writer_nick"],
-                "boardTitle": row["board_title"],
-                "boardContent": row["board_content"],
-                "boardCategory": row["board_category"],
-                "hit": row["hit"],
-                "boardLike": row["board_like"],
-                "boardDislike": row["board_dislike"],
-                "boardCreatedAt": row["board_created_at"],
-                "boardUpdatedAt": row["board_updated_at"],
-                "board_deleted": row["board_deleted"],
-                "comments": [],
-                "files": [],
-                "tags": []
-            }
-        post = board_map[boardNo]
-        if row["file_no"] is not None and not any(f["fileNo"] == row["file_no"] for f in post["files"]):
-            post["files"].append({
-                "fileNo": row["file_no"],
-                "logicalFileName": row["logical_file_name"],
-                "physicalFileName": row["physical_file_name"],
-                "fileSize": row["file_size"],
-                "fileExt": row["file_ext"]
-            })
-        if row["tag_name"] is not None and not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
-            post["tags"].append({"tagName": row["tag_name"]})
-        if row["comment_answer_no"] is not None:
-            if not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
-                post["comments"].append({
-                    "commentAnswerNo": row["comment_answer_no"],
-                    "boardNo": row["board_no"],
-                    "commenterId": row["commenter_id"],
-                    "commenterNick": row["commenter_nick"],
-                    "commentAnswerContent": row["comment_answer_content"],
-                    "commentLikeCount": row["comment_like_count"],
-                    "commentDislikeCount": row["comment_dislike_count"],
-                    "commentAnswerAt": row["comment_answer_at"],
-                    "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
-                    "commentAnswerType": row["comment_answer_type"],
-                    "answerAccepted": row["answer_accepted"]
-                })
-
-    boardList = list(board_map.values())
-
-    # 버튼 배열
     notice_buttons = {
         "top_buttons": ["최신순", "조회순", "추천순", "팔로우순", "검색순"],
         "feed_buttons": ["전체", "자유", "코딩테스트", "Q&A"]
     }
-
-    top_filter = request.args.get('top', '최신순')
-    feed_filter = request.args.get('feed', '전체')
 
     login_user_id = session.get("user", {}).get("id")
 
@@ -151,9 +219,9 @@ def home():
         notice_buttons=notice_buttons,
         active="chat",
         sidebar=SIDEBAR_CONFIG["default"],
-        top_filter=top_filter,       
+        top_filter=top_filter,
         feed_filter=feed_filter,
-        login_user_id=login_user_id      
+        login_user_id=login_user_id
     )
 
 @bp.route('/write')
@@ -166,106 +234,173 @@ def write():
 
 @bp.route('/terms')
 def terms():
-        # GET 파라미터 읽기
     top_filter = request.args.get('top', '최신순')  
-    feed_filter = request.args.get('feed', '전체')  
+    feed_filter = request.args.get('feed', '전체')
+    search_type = request.args.get('search_type')
+    search_keyword = request.args.get('keyword', '').strip()
 
-    # DB 연결
     conn = get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
-    # 기본 SQL
-    sql = """
-        SELECT 
-            board.*, 
-            comment_answer.*, 
-            user.nick AS writer_nick,
-            user.id AS writer_id,
-            comment_user.nick AS commenter_nick,
-            comment_user.id AS commenter_id,
-            file.*,
-            tag.tag_name
-        FROM board
-        LEFT JOIN user ON board.id = user.id
-        LEFT JOIN file ON board.board_no = file.board_no
-        LEFT JOIN tag_board ON tag_board.board_no = board.board_no
-        LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
-        LEFT JOIN comment_answer ON board.board_no = comment_answer.board_no
-        LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
-        WHERE board.board_deleted = 0 and board.board_category = 5
-    """
+    # 1. 검색용 게시글 번호 필터링 (서브쿼리 방식)
+    board_filter_sql = "SELECT board_no FROM board WHERE board_deleted = 0 AND board_category = 5"
+    params_filter = []
 
     # feed 필터링
     category_map = {"자유": 1, "Q&A": 2, "코딩테스트": 3, "공지사항": 4, "이용약관": 5, "개인정보처리방침": 6}
     if feed_filter != "전체" and feed_filter in category_map:
-        sql += f" AND board_category = {category_map[feed_filter]}"
+        board_filter_sql += f" AND board_category = {category_map[feed_filter]}"
+
+    print("search_type:", search_type)
+    print("search_keyword:", search_keyword)
+
+    # 검색 타입에 따른 조건
+    if search_type and search_keyword:
+        if search_type == "board_title":
+            board_filter_sql += " AND board_title LIKE %s"
+            params_filter.append(f"%{search_keyword}%")
+
+        elif search_type == "board_content":
+            board_filter_sql += " AND board_content LIKE %s"
+            params_filter.append(f"%{search_keyword}%")
+
+        elif search_type == "id":
+            board_filter_sql += """
+            AND id IN (
+                SELECT id FROM user WHERE nick LIKE %s
+            )
+            """
+            params_filter.append(f"%{search_keyword}%")
+
+        elif search_type == "tag":
+            board_filter_sql += """
+            AND board_no IN (
+                SELECT tb.board_no
+                FROM tag_board tb
+                JOIN tag t ON tb.tag_no = t.tag_no
+                WHERE t.tag_name LIKE %s
+            )
+            """
+            params_filter.append(f"%{search_keyword}%")
+
+    print("검색 SQL:", board_filter_sql)
+    print("파라미터:", params_filter)
+
+    cursor.execute(board_filter_sql, tuple(params_filter))
+    board_nos = [row['board_no'] for row in cursor.fetchall()]
+
+    if not board_nos:
+        boardList = []
+    else:
+        format_strings = ','.join(['%s'] * len(board_nos))
+        sql = f"""
+            SELECT 
+                board.board_no AS board_no,
+                board.id AS writer_id,
+                user.nick AS writer_nick,
+                board.board_title,
+                board.board_content,
+                board.board_category,
+                board.hit,
+                board.board_like,
+                board.board_dislike,
+                board.board_created_at,
+                board.board_updated_at,
+                board.board_deleted,
+                comment_answer.comment_answer_no,
+                comment_answer.comment_answer_content,
+                comment_answer.comment_answer_type,
+                comment_answer.comment_like_count,
+                comment_answer.comment_dislike_count,
+                comment_answer.comment_answer_at,
+                comment_answer.comment_answer_updated_at,
+                comment_answer.answer_accepted,
+                comment_user.id AS commenter_id,
+                comment_user.nick AS commenter_nick,
+                file.file_no,
+                file.logical_file_name,
+                file.physical_file_name,
+                file.file_size,
+                file.file_ext,
+                tag.tag_name
+            FROM board
+            LEFT JOIN user ON board.id = user.id
+            LEFT JOIN file ON board.board_no = file.board_no
+            LEFT JOIN tag_board ON tag_board.board_no = board.board_no
+            LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
+            LEFT JOIN comment_answer ON board.board_no = comment_answer.board_no
+            LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
+            WHERE board.board_no IN ({format_strings})
+        """
+
+        cursor.execute(sql, board_nos)
+        rows = cursor.fetchall()
+
+        board_map = {}
+        for row in rows:
+            boardNo = row["board_no"]
+            if boardNo not in board_map:
+                board_map[boardNo] = {
+                    "boardNo": boardNo,
+                    "id": row["writer_id"],
+                    "nick": row["writer_nick"],
+                    "boardTitle": row["board_title"],
+                    "boardContent": row["board_content"],
+                    "boardCategory": row["board_category"],
+                    "hit": row["hit"],
+                    "boardLike": row["board_like"],
+                    "boardDislike": row["board_dislike"],
+                    "boardCreatedAt": row["board_created_at"],
+                    "boardUpdatedAt": row["board_updated_at"],
+                    "board_deleted": row["board_deleted"],
+                    "comments": [],
+                    "files": [],
+                    "tags": []
+                }
+            post = board_map[boardNo]
+            # 파일 처리
+            if row["file_no"] is not None and not any(f["fileNo"] == row["file_no"] for f in post["files"]):
+                post["files"].append({
+                    "fileNo": row["file_no"],
+                    "logicalFileName": row["logical_file_name"],
+                    "physicalFileName": row["physical_file_name"],
+                    "fileSize": row["file_size"],
+                    "fileExt": row["file_ext"]
+                })
+            # 태그 처리
+            if row["tag_name"] is not None and not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
+                post["tags"].append({"tagName": row["tag_name"]})
+            # 댓글 처리
+            if row["comment_answer_no"] is not None:
+                if not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
+                    post["comments"].append({
+                        "commentAnswerNo": row["comment_answer_no"],
+                        "boardNo": boardNo,
+                        "commenterId": row["commenter_id"],
+                        "commenterNick": row["commenter_nick"],
+                        "commentAnswerContent": row["comment_answer_content"],
+                        "commentLikeCount": row["comment_like_count"],
+                        "commentDislikeCount": row["comment_dislike_count"],
+                        "commentAnswerAt": row["comment_answer_at"],
+                        "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
+                        "commentAnswerType": row["comment_answer_type"],
+                        "answerAccepted": row["answer_accepted"]
+                    })
+
+        boardList = list(board_map.values())
 
     # top 정렬
     if top_filter == "조회순":
-        sql += " ORDER BY board.hit DESC"
+        boardList.sort(key=lambda x: x["hit"], reverse=True)
     elif top_filter == "추천순":
-        sql += " ORDER BY board.board_like DESC"
+        boardList.sort(key=lambda x: x["boardLike"], reverse=True)
     elif top_filter == "팔로우순":
-        sql += " ORDER BY follow_count DESC"  # follow_count 컬럼 필요
-    elif top_filter == "검색순":
-        sql += " ORDER BY search_score DESC"  # search_score 컬럼 필요
+        boardList.sort(key=lambda x: x.get("follow_count", 0), reverse=True)
     else:
-        sql += " ORDER BY board.board_no DESC"  # 최신순 기본
+        boardList.sort(key=lambda x: x["boardNo"], reverse=True)
 
-    cursor.execute(sql)
-    rows = cursor.fetchall()
+    cursor.close()
     conn.close()
-
-    # resultMap 재현
-    board_map = {}
-    for row in rows:
-        boardNo = row["board_no"]
-        if boardNo not in board_map:
-            board_map[boardNo] = {
-                "boardNo": row["board_no"],
-                "id": row["writer_id"],
-                "nick": row["writer_nick"],
-                "boardTitle": row["board_title"],
-                "boardContent": row["board_content"],
-                "boardCategory": row["board_category"],
-                "hit": row["hit"],
-                "boardLike": row["board_like"],
-                "boardDislike": row["board_dislike"],
-                "boardCreatedAt": row["board_created_at"],
-                "boardUpdatedAt": row["board_updated_at"],
-                "board_deleted": row["board_deleted"],
-                "comments": [],
-                "files": [],
-                "tags": []
-            }
-        post = board_map[boardNo]
-        if row["file_no"] is not None and not any(f["fileNo"] == row["file_no"] for f in post["files"]):
-            post["files"].append({
-                "fileNo": row["file_no"],
-                "logicalFileName": row["logical_file_name"],
-                "physicalFileName": row["physical_file_name"],
-                "fileSize": row["file_size"],
-                "fileExt": row["file_ext"]
-            })
-        if row["tag_name"] is not None and not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
-            post["tags"].append({"tagName": row["tag_name"]})
-        if row["comment_answer_no"] is not None:
-            if not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
-                post["comments"].append({
-                    "commentAnswerNo": row["comment_answer_no"],
-                    "boardNo": row["board_no"],
-                    "commenterId": row["commenter_id"],
-                    "commenterNick": row["commenter_nick"],
-                    "commentAnswerContent": row["comment_answer_content"],
-                    "commentLikeCount": row["comment_like_count"],
-                    "commentDislikeCount": row["comment_dislike_count"],
-                    "commentAnswerAt": row["comment_answer_at"],
-                    "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
-                    "commentAnswerType": row["comment_answer_type"],
-                    "answerAccepted": row["answer_accepted"]
-                })
-
-    boardList = list(board_map.values())
 
     notice_buttons = {
     "top_buttons": ["최신순", "조회순", "검색순"],
@@ -290,106 +425,173 @@ def terms():
 
 @bp.route('/info')
 def info():
-        # GET 파라미터 읽기
     top_filter = request.args.get('top', '최신순')  
-    feed_filter = request.args.get('feed', '전체')  
+    feed_filter = request.args.get('feed', '전체')
+    search_type = request.args.get('search_type')
+    search_keyword = request.args.get('keyword', '').strip()
 
-    # DB 연결
     conn = get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
-    # 기본 SQL
-    sql = """
-        SELECT 
-            board.*, 
-            comment_answer.*, 
-            user.nick AS writer_nick,
-            user.id AS writer_id,
-            comment_user.nick AS commenter_nick,
-            comment_user.id AS commenter_id,
-            file.*,
-            tag.tag_name
-        FROM board
-        LEFT JOIN user ON board.id = user.id
-        LEFT JOIN file ON board.board_no = file.board_no
-        LEFT JOIN tag_board ON tag_board.board_no = board.board_no
-        LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
-        LEFT JOIN comment_answer ON board.board_no = comment_answer.board_no
-        LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
-        WHERE board.board_deleted = 0 and board.board_category = 4
-    """
+    # 1. 검색용 게시글 번호 필터링 (서브쿼리 방식)
+    board_filter_sql = "SELECT board_no FROM board WHERE board_deleted = 0 AND board_category = 4"
+    params_filter = []
 
     # feed 필터링
     category_map = {"자유": 1, "Q&A": 2, "코딩테스트": 3, "공지사항": 4, "이용약관": 5, "개인정보처리방침": 6}
     if feed_filter != "전체" and feed_filter in category_map:
-        sql += f" AND board_category = {category_map[feed_filter]}"
+        board_filter_sql += f" AND board_category = {category_map[feed_filter]}"
+
+    print("search_type:", search_type)
+    print("search_keyword:", search_keyword)
+
+    # 검색 타입에 따른 조건
+    if search_type and search_keyword:
+        if search_type == "board_title":
+            board_filter_sql += " AND board_title LIKE %s"
+            params_filter.append(f"%{search_keyword}%")
+
+        elif search_type == "board_content":
+            board_filter_sql += " AND board_content LIKE %s"
+            params_filter.append(f"%{search_keyword}%")
+
+        elif search_type == "id":
+            board_filter_sql += """
+            AND id IN (
+                SELECT id FROM user WHERE nick LIKE %s
+            )
+            """
+            params_filter.append(f"%{search_keyword}%")
+
+        elif search_type == "tag":
+            board_filter_sql += """
+            AND board_no IN (
+                SELECT tb.board_no
+                FROM tag_board tb
+                JOIN tag t ON tb.tag_no = t.tag_no
+                WHERE t.tag_name LIKE %s
+            )
+            """
+            params_filter.append(f"%{search_keyword}%")
+
+    print("검색 SQL:", board_filter_sql)
+    print("파라미터:", params_filter)
+
+    cursor.execute(board_filter_sql, tuple(params_filter))
+    board_nos = [row['board_no'] for row in cursor.fetchall()]
+
+    if not board_nos:
+        boardList = []
+    else:
+        format_strings = ','.join(['%s'] * len(board_nos))
+        sql = f"""
+            SELECT 
+                board.board_no AS board_no,
+                board.id AS writer_id,
+                user.nick AS writer_nick,
+                board.board_title,
+                board.board_content,
+                board.board_category,
+                board.hit,
+                board.board_like,
+                board.board_dislike,
+                board.board_created_at,
+                board.board_updated_at,
+                board.board_deleted,
+                comment_answer.comment_answer_no,
+                comment_answer.comment_answer_content,
+                comment_answer.comment_answer_type,
+                comment_answer.comment_like_count,
+                comment_answer.comment_dislike_count,
+                comment_answer.comment_answer_at,
+                comment_answer.comment_answer_updated_at,
+                comment_answer.answer_accepted,
+                comment_user.id AS commenter_id,
+                comment_user.nick AS commenter_nick,
+                file.file_no,
+                file.logical_file_name,
+                file.physical_file_name,
+                file.file_size,
+                file.file_ext,
+                tag.tag_name
+            FROM board
+            LEFT JOIN user ON board.id = user.id
+            LEFT JOIN file ON board.board_no = file.board_no
+            LEFT JOIN tag_board ON tag_board.board_no = board.board_no
+            LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
+            LEFT JOIN comment_answer ON board.board_no = comment_answer.board_no
+            LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
+            WHERE board.board_no IN ({format_strings})
+        """
+
+        cursor.execute(sql, board_nos)
+        rows = cursor.fetchall()
+
+        board_map = {}
+        for row in rows:
+            boardNo = row["board_no"]
+            if boardNo not in board_map:
+                board_map[boardNo] = {
+                    "boardNo": boardNo,
+                    "id": row["writer_id"],
+                    "nick": row["writer_nick"],
+                    "boardTitle": row["board_title"],
+                    "boardContent": row["board_content"],
+                    "boardCategory": row["board_category"],
+                    "hit": row["hit"],
+                    "boardLike": row["board_like"],
+                    "boardDislike": row["board_dislike"],
+                    "boardCreatedAt": row["board_created_at"],
+                    "boardUpdatedAt": row["board_updated_at"],
+                    "board_deleted": row["board_deleted"],
+                    "comments": [],
+                    "files": [],
+                    "tags": []
+                }
+            post = board_map[boardNo]
+            # 파일 처리
+            if row["file_no"] is not None and not any(f["fileNo"] == row["file_no"] for f in post["files"]):
+                post["files"].append({
+                    "fileNo": row["file_no"],
+                    "logicalFileName": row["logical_file_name"],
+                    "physicalFileName": row["physical_file_name"],
+                    "fileSize": row["file_size"],
+                    "fileExt": row["file_ext"]
+                })
+            # 태그 처리
+            if row["tag_name"] is not None and not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
+                post["tags"].append({"tagName": row["tag_name"]})
+            # 댓글 처리
+            if row["comment_answer_no"] is not None:
+                if not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
+                    post["comments"].append({
+                        "commentAnswerNo": row["comment_answer_no"],
+                        "boardNo": boardNo,
+                        "commenterId": row["commenter_id"],
+                        "commenterNick": row["commenter_nick"],
+                        "commentAnswerContent": row["comment_answer_content"],
+                        "commentLikeCount": row["comment_like_count"],
+                        "commentDislikeCount": row["comment_dislike_count"],
+                        "commentAnswerAt": row["comment_answer_at"],
+                        "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
+                        "commentAnswerType": row["comment_answer_type"],
+                        "answerAccepted": row["answer_accepted"]
+                    })
+
+        boardList = list(board_map.values())
 
     # top 정렬
     if top_filter == "조회순":
-        sql += " ORDER BY board.hit DESC"
+        boardList.sort(key=lambda x: x["hit"], reverse=True)
     elif top_filter == "추천순":
-        sql += " ORDER BY board.board_like DESC"
+        boardList.sort(key=lambda x: x["boardLike"], reverse=True)
     elif top_filter == "팔로우순":
-        sql += " ORDER BY follow_count DESC"  # follow_count 컬럼 필요
-    elif top_filter == "검색순":
-        sql += " ORDER BY search_score DESC"  # search_score 컬럼 필요
+        boardList.sort(key=lambda x: x.get("follow_count", 0), reverse=True)
     else:
-        sql += " ORDER BY board.board_no DESC"  # 최신순 기본
+        boardList.sort(key=lambda x: x["boardNo"], reverse=True)
 
-    cursor.execute(sql)
-    rows = cursor.fetchall()
+    cursor.close()
     conn.close()
-
-    # resultMap 재현
-    board_map = {}
-    for row in rows:
-        boardNo = row["board_no"]
-        if boardNo not in board_map:
-            board_map[boardNo] = {
-                "boardNo": row["board_no"],
-                "id": row["writer_id"],
-                "nick": row["writer_nick"],
-                "boardTitle": row["board_title"],
-                "boardContent": row["board_content"],
-                "boardCategory": row["board_category"],
-                "hit": row["hit"],
-                "boardLike": row["board_like"],
-                "boardDislike": row["board_dislike"],
-                "boardCreatedAt": row["board_created_at"],
-                "boardUpdatedAt": row["board_updated_at"],
-                "board_deleted": row["board_deleted"],
-                "comments": [],
-                "files": [],
-                "tags": []
-            }
-        post = board_map[boardNo]
-        if row["file_no"] is not None and not any(f["fileNo"] == row["file_no"] for f in post["files"]):
-            post["files"].append({
-                "fileNo": row["file_no"],
-                "logicalFileName": row["logical_file_name"],
-                "physicalFileName": row["physical_file_name"],
-                "fileSize": row["file_size"],
-                "fileExt": row["file_ext"]
-            })
-        if row["tag_name"] is not None and not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
-            post["tags"].append({"tagName": row["tag_name"]})
-        if row["comment_answer_no"] is not None:
-            if not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
-                post["comments"].append({
-                    "commentAnswerNo": row["comment_answer_no"],
-                    "boardNo": row["board_no"],
-                    "commenterId": row["commenter_id"],
-                    "commenterNick": row["commenter_nick"],
-                    "commentAnswerContent": row["comment_answer_content"],
-                    "commentLikeCount": row["comment_like_count"],
-                    "commentDislikeCount": row["comment_dislike_count"],
-                    "commentAnswerAt": row["comment_answer_at"],
-                    "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
-                    "commentAnswerType": row["comment_answer_type"],
-                    "answerAccepted": row["answer_accepted"]
-                })
-
-    boardList = list(board_map.values())
 
     notice_buttons = {
     "top_buttons": ["최신순", "조회순", "검색순"],
@@ -414,106 +616,173 @@ def info():
 
 @bp.route('/privacy')
 def privacy():
-        # GET 파라미터 읽기
     top_filter = request.args.get('top', '최신순')  
-    feed_filter = request.args.get('feed', '전체')  
+    feed_filter = request.args.get('feed', '전체')
+    search_type = request.args.get('search_type')
+    search_keyword = request.args.get('keyword', '').strip()
 
-    # DB 연결
     conn = get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
-    # 기본 SQL
-    sql = """
-        SELECT 
-            board.*, 
-            comment_answer.*, 
-            user.nick AS writer_nick,
-            user.id AS writer_id,
-            comment_user.nick AS commenter_nick,
-            comment_user.id AS commenter_id,
-            file.*,
-            tag.tag_name
-        FROM board
-        LEFT JOIN user ON board.id = user.id
-        LEFT JOIN file ON board.board_no = file.board_no
-        LEFT JOIN tag_board ON tag_board.board_no = board.board_no
-        LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
-        LEFT JOIN comment_answer ON board.board_no = comment_answer.board_no
-        LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
-        WHERE board.board_deleted = 0 and board.board_category = 6
-    """
+    # 1. 검색용 게시글 번호 필터링 (서브쿼리 방식)
+    board_filter_sql = "SELECT board_no FROM board WHERE board_deleted = 0 AND board_category = 6"
+    params_filter = []
 
     # feed 필터링
     category_map = {"자유": 1, "Q&A": 2, "코딩테스트": 3, "공지사항": 4, "이용약관": 5, "개인정보처리방침": 6}
     if feed_filter != "전체" and feed_filter in category_map:
-        sql += f" AND board_category = {category_map[feed_filter]}"
+        board_filter_sql += f" AND board_category = {category_map[feed_filter]}"
+
+    print("search_type:", search_type)
+    print("search_keyword:", search_keyword)
+
+    # 검색 타입에 따른 조건
+    if search_type and search_keyword:
+        if search_type == "board_title":
+            board_filter_sql += " AND board_title LIKE %s"
+            params_filter.append(f"%{search_keyword}%")
+
+        elif search_type == "board_content":
+            board_filter_sql += " AND board_content LIKE %s"
+            params_filter.append(f"%{search_keyword}%")
+
+        elif search_type == "id":
+            board_filter_sql += """
+            AND id IN (
+                SELECT id FROM user WHERE nick LIKE %s
+            )
+            """
+            params_filter.append(f"%{search_keyword}%")
+
+        elif search_type == "tag":
+            board_filter_sql += """
+            AND board_no IN (
+                SELECT tb.board_no
+                FROM tag_board tb
+                JOIN tag t ON tb.tag_no = t.tag_no
+                WHERE t.tag_name LIKE %s
+            )
+            """
+            params_filter.append(f"%{search_keyword}%")
+
+    print("검색 SQL:", board_filter_sql)
+    print("파라미터:", params_filter)
+
+    cursor.execute(board_filter_sql, tuple(params_filter))
+    board_nos = [row['board_no'] for row in cursor.fetchall()]
+
+    if not board_nos:
+        boardList = []
+    else:
+        format_strings = ','.join(['%s'] * len(board_nos))
+        sql = f"""
+            SELECT 
+                board.board_no AS board_no,
+                board.id AS writer_id,
+                user.nick AS writer_nick,
+                board.board_title,
+                board.board_content,
+                board.board_category,
+                board.hit,
+                board.board_like,
+                board.board_dislike,
+                board.board_created_at,
+                board.board_updated_at,
+                board.board_deleted,
+                comment_answer.comment_answer_no,
+                comment_answer.comment_answer_content,
+                comment_answer.comment_answer_type,
+                comment_answer.comment_like_count,
+                comment_answer.comment_dislike_count,
+                comment_answer.comment_answer_at,
+                comment_answer.comment_answer_updated_at,
+                comment_answer.answer_accepted,
+                comment_user.id AS commenter_id,
+                comment_user.nick AS commenter_nick,
+                file.file_no,
+                file.logical_file_name,
+                file.physical_file_name,
+                file.file_size,
+                file.file_ext,
+                tag.tag_name
+            FROM board
+            LEFT JOIN user ON board.id = user.id
+            LEFT JOIN file ON board.board_no = file.board_no
+            LEFT JOIN tag_board ON tag_board.board_no = board.board_no
+            LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
+            LEFT JOIN comment_answer ON board.board_no = comment_answer.board_no
+            LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
+            WHERE board.board_no IN ({format_strings})
+        """
+
+        cursor.execute(sql, board_nos)
+        rows = cursor.fetchall()
+
+        board_map = {}
+        for row in rows:
+            boardNo = row["board_no"]
+            if boardNo not in board_map:
+                board_map[boardNo] = {
+                    "boardNo": boardNo,
+                    "id": row["writer_id"],
+                    "nick": row["writer_nick"],
+                    "boardTitle": row["board_title"],
+                    "boardContent": row["board_content"],
+                    "boardCategory": row["board_category"],
+                    "hit": row["hit"],
+                    "boardLike": row["board_like"],
+                    "boardDislike": row["board_dislike"],
+                    "boardCreatedAt": row["board_created_at"],
+                    "boardUpdatedAt": row["board_updated_at"],
+                    "board_deleted": row["board_deleted"],
+                    "comments": [],
+                    "files": [],
+                    "tags": []
+                }
+            post = board_map[boardNo]
+            # 파일 처리
+            if row["file_no"] is not None and not any(f["fileNo"] == row["file_no"] for f in post["files"]):
+                post["files"].append({
+                    "fileNo": row["file_no"],
+                    "logicalFileName": row["logical_file_name"],
+                    "physicalFileName": row["physical_file_name"],
+                    "fileSize": row["file_size"],
+                    "fileExt": row["file_ext"]
+                })
+            # 태그 처리
+            if row["tag_name"] is not None and not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
+                post["tags"].append({"tagName": row["tag_name"]})
+            # 댓글 처리
+            if row["comment_answer_no"] is not None:
+                if not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
+                    post["comments"].append({
+                        "commentAnswerNo": row["comment_answer_no"],
+                        "boardNo": boardNo,
+                        "commenterId": row["commenter_id"],
+                        "commenterNick": row["commenter_nick"],
+                        "commentAnswerContent": row["comment_answer_content"],
+                        "commentLikeCount": row["comment_like_count"],
+                        "commentDislikeCount": row["comment_dislike_count"],
+                        "commentAnswerAt": row["comment_answer_at"],
+                        "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
+                        "commentAnswerType": row["comment_answer_type"],
+                        "answerAccepted": row["answer_accepted"]
+                    })
+
+        boardList = list(board_map.values())
 
     # top 정렬
     if top_filter == "조회순":
-        sql += " ORDER BY board.hit DESC"
+        boardList.sort(key=lambda x: x["hit"], reverse=True)
     elif top_filter == "추천순":
-        sql += " ORDER BY board.board_like DESC"
+        boardList.sort(key=lambda x: x["boardLike"], reverse=True)
     elif top_filter == "팔로우순":
-        sql += " ORDER BY follow_count DESC"  # follow_count 컬럼 필요
-    elif top_filter == "검색순":
-        sql += " ORDER BY search_score DESC"  # search_score 컬럼 필요
+        boardList.sort(key=lambda x: x.get("follow_count", 0), reverse=True)
     else:
-        sql += " ORDER BY board.board_no DESC"  # 최신순 기본
+        boardList.sort(key=lambda x: x["boardNo"], reverse=True)
 
-    cursor.execute(sql)
-    rows = cursor.fetchall()
+    cursor.close()
     conn.close()
-
-    # resultMap 재현
-    board_map = {}
-    for row in rows:
-        boardNo = row["board_no"]
-        if boardNo not in board_map:
-            board_map[boardNo] = {
-                "boardNo": row["board_no"],
-                "id": row["writer_id"],
-                "nick": row["writer_nick"],
-                "boardTitle": row["board_title"],
-                "boardContent": row["board_content"],
-                "boardCategory": row["board_category"],
-                "hit": row["hit"],
-                "boardLike": row["board_like"],
-                "boardDislike": row["board_dislike"],
-                "boardCreatedAt": row["board_created_at"],
-                "boardUpdatedAt": row["board_updated_at"],
-                "board_deleted": row["board_deleted"],
-                "comments": [],
-                "files": [],
-                "tags": []
-            }
-        post = board_map[boardNo]
-        if row["file_no"] is not None and not any(f["fileNo"] == row["file_no"] for f in post["files"]):
-            post["files"].append({
-                "fileNo": row["file_no"],
-                "logicalFileName": row["logical_file_name"],
-                "physicalFileName": row["physical_file_name"],
-                "fileSize": row["file_size"],
-                "fileExt": row["file_ext"]
-            })
-        if row["tag_name"] is not None and not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
-            post["tags"].append({"tagName": row["tag_name"]})
-        if row["comment_answer_no"] is not None:
-            if not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
-                post["comments"].append({
-                    "commentAnswerNo": row["comment_answer_no"],
-                    "boardNo": row["board_no"],
-                    "commenterId": row["commenter_id"],
-                    "commenterNick": row["commenter_nick"],
-                    "commentAnswerContent": row["comment_answer_content"],
-                    "commentLikeCount": row["comment_like_count"],
-                    "commentDislikeCount": row["comment_dislike_count"],
-                    "commentAnswerAt": row["comment_answer_at"],
-                    "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
-                    "commentAnswerType": row["comment_answer_type"],
-                    "answerAccepted": row["answer_accepted"]
-                })
-
-    boardList = list(board_map.values())
 
     notice_buttons = {
     "top_buttons": ["최신순", "조회순", "검색순"],
