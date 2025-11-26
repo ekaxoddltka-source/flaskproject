@@ -5,7 +5,7 @@ from config import SIDEBAR_CONFIG
 import pymysql
 import os
 from urllib.parse import unquote
-from app.account.routes import get_db_connection
+from app.database import get_db_connection
 
 bp = Blueprint(
     'home',
