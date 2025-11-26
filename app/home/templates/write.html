@@ -1,89 +1,110 @@
 {% extends 'base.html' %}
 
-<!-- 개별 css 불러오는 영역-->
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('home.static', filename='css/write.css') }}">
 {% endblock %}
 
-<!-- 컨텐츠 넣는 영역 -->
+{% block extra_js %}
+<script src="{{ url_for('home.static', filename='js/write.js') }}"></script>
+{% endblock %}
+
 {% block content %}
-<!------ 글작성 폼 영역 ------>
-<h2 class="form-title">글 작성</h2>
-<form class="write-form" action="${pageContext.request.contextPath}/write" method="post" enctype="multipart/form-data">
-<c:if test="${not empty post}">
-<input type="hidden" name="boardNo" value="${post.boardNo}">
-</c:if>
+<h2 class="form-title">
+  {% if post %}글 수정{% else %}글 작성{% endif %}
+</h2>
+
+<form class="write-form"
+      action="{% if post %}{{ url_for('home.update_post', board_no=post.boardNo) }}{% else %}{{ url_for('home.write') }}{% endif %}"
+      method="post"
+      enctype="multipart/form-data">
+
+  {% if post %}
+  <input type="hidden" name="boardNo" value="{{ post.boardNo }}">
+  {% endif %}
+
   <!-- 1. 카테고리 -->
   <div class="category-row">
     <label for="category">카테고리</label>
     <select id="category" name="boardCategory">
-      <option value="1" ${post.boardCategory == 1 ? 'selected' : ''}>자유</option>
-      <option value="2" ${post.boardCategory == 2 ? 'selected' : ''}>코딩테스트</option>
-      <option value="3" ${post.boardCategory == 3 ? 'selected' : ''}>Q&A</option>
-      <option value="4" ${post.boardCategory == 4 ? 'selected' : ''}>공지사항</option>
-      <option value="5" ${post.boardCategory == 5 ? 'selected' : ''}>이용약관</option>
-      <option value="6" ${post.boardCategory == 6 ? 'selected' : ''}>개인정보처리방침</option>
-      <option value="7" ${post.boardCategory == 7 ? 'selected' : ''}>상품응모</option>
-      <option value="8" ${post.boardCategory == 8 ? 'selected' : ''}>당첨자발표</option>
-      <option value="9" ${post.boardCategory == 9 ? 'selected' : ''}>아이콘</option>
-      <option value="11" ${post.boardCategory == 10 ? 'selected' : ''}>배경이미지</option>
+      <option value="1" {% if post and post.boardCategory == 1 %}selected{% endif %}>자유</option>
+      <option value="2" {% if post and post.boardCategory == 2 %}selected{% endif %}>코딩테스트</option>
+      <option value="3" {% if post and post.boardCategory == 3 %}selected{% endif %}>Q&A</option>
+      <option value="4" {% if post and post.boardCategory == 4 %}selected{% endif %}>공지사항</option>
+      <option value="5" {% if post and post.boardCategory == 5 %}selected{% endif %}>이용약관</option>
+      <option value="6" {% if post and post.boardCategory == 6 %}selected{% endif %}>개인정보처리방침</option>
+      <option value="7" {% if post and post.boardCategory == 7 %}selected{% endif %}>상품응모</option>
+      <option value="8" {% if post and post.boardCategory == 8 %}selected{% endif %}>당첨자발표</option>
+      <option value="9" {% if post and post.boardCategory == 9 %}selected{% endif %}>아이콘</option>
+      <option value="10" {% if post and post.boardCategory == 10 %}selected{% endif %}>배경이미지</option>
     </select>
-
     <div id="extraCategory" class="extra-category"></div>
   </div>
 
   <!-- 2. 제목 -->
   <div>
     <label for="title">제목</label>
-    <input type="text" id="title" name="boardTitle"
-    value="${post.boardTitle != null ? post.boardTitle : ''}"
-    placeholder="제목을 입력하세요">
+    <input type="text"
+           id="title"
+           name="boardTitle"
+           value="{{ post.boardTitle if post else '' }}"
+           placeholder="제목을 입력하세요">
   </div>
 
   <!-- 3. 내용 -->
   <div>
     <label for="content">내용</label>
-    <textarea id="content" name="boardContent" placeholder="내용을 입력하세요">${post.boardContent != null ? post.boardContent : ''}</textarea>
+    <textarea id="content"
+              name="boardContent"
+              placeholder="내용을 입력하세요">{{ post.boardContent if post else '' }}</textarea>
   </div>
 
   <!-- 4. 해시태그 -->
   <div>
     <label for="hashtags">해시태그</label>
-    <input type="text" id="hashtags" name="tagName"
-    value="${not empty tagString ? tagString : ''}" 
-    placeholder="태그를 입력하세요 (쉼표로 구분)">
-  <!-- 4-1. 자동 추천 태그 -->
+    <input type="text"
+           id="hashtags"
+           name="tagName"
+           value="{{ tagString if tagString else '' }}"
+           placeholder="태그를 입력하세요 (쉼표로 구분)">
+
     <div class="recommended-tags-box">
       <label>추천태그</label>
       <div id="recommendedTags" class="recommended-tags"></div>
-    </div>  
+    </div>
   </div>
 
-  <!-- 5. 파일 업로드 + 버튼 한 줄 -->
+  <!-- 5. 파일 업로드 -->
   <div class="form-bottom">
     <div class="file-upload-wrapper">
       <label for="fileUpload" class="file-upload-label">파일 선택</label>
       <input type="file" id="fileUpload" name="attach">
       <span class="file-name">선택된 파일 없음</span>
     </div>
-    <c:if test="${not empty post.files}">
-      <div class="existing-files">
-        <label>기존 첨부 파일:</label>
-        <ul>
-          <c:forEach var="file" items="${post.files}">
-            <li>
-              <a href="${pageContext.request.contextPath}/download?no=${file.fileNo}" target="_blank">
-                ${file.logicalFileName}
-              </a>
-            </li>
-          </c:forEach>
-        </ul>
-      </div>
-    </c:if>
+
+    {% if post and post.files %}
+    <div class="existing-files">
+      <label>기존 첨부 파일:</label>
+      <ul>
+        {% for file in post.files %}
+        <li>
+          <a href="{{ url_for('home.download', file_no=file.fileNo) }}" target="_blank">
+            {{ file.logicalFileName }}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
 
     <div class="form-actions">
-      <button type="submit" class="btn-submit">등록</button>
-      <button type="button" class="btn-cancel" onclick="window.location.href='${pageContext.request.contextPath}/home'">취소</button>
+      <button type="submit" class="btn-submit">
+        {% if post %}수정{% else %}등록{% endif %}
+      </button>
+      <button type="button"
+              class="btn-cancel"
+              onclick="window.location.href='/'">
+        취소
+      </button>
     </div>
   </div>
 </form>

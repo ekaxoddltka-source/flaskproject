@@ -49,7 +49,7 @@ def home():
         board_filter_sql += f" AND board_category = {category_map[feed_filter]}"
     
     login_user_id = session.get("user", {}).get("id")
-    if top_filter == "팔로우순" and login_user_id:
+    if top_filter == "팔로우순" and login_user_id and not search_keyword:
         board_filter_sql += """
         AND id IN (
             SELECT following_id
@@ -197,7 +197,7 @@ def home():
     elif top_filter == "추천순":
         boardList.sort(key=lambda x: x["boardLike"], reverse=True)
     elif top_filter == "팔로우순":
-        boardList.sort(key=lambda x: x.get("follow_count", 0), reverse=True)
+        boardList.sort(key=lambda x: x["boardCreatedAt"], reverse=True)
     else:
         boardList.sort(key=lambda x: x["boardNo"], reverse=True)
 
@@ -395,7 +395,7 @@ def terms():
     elif top_filter == "추천순":
         boardList.sort(key=lambda x: x["boardLike"], reverse=True)
     elif top_filter == "팔로우순":
-        boardList.sort(key=lambda x: x.get("follow_count", 0), reverse=True)
+        boardList.sort(key=lambda x: x["boardCreatedAt"], reverse=True)
     else:
         boardList.sort(key=lambda x: x["boardNo"], reverse=True)
 
@@ -586,7 +586,7 @@ def info():
     elif top_filter == "추천순":
         boardList.sort(key=lambda x: x["boardLike"], reverse=True)
     elif top_filter == "팔로우순":
-        boardList.sort(key=lambda x: x.get("follow_count", 0), reverse=True)
+        boardList.sort(key=lambda x: x["boardCreatedAt"], reverse=True)
     else:
         boardList.sort(key=lambda x: x["boardNo"], reverse=True)
 
@@ -777,7 +777,7 @@ def privacy():
     elif top_filter == "추천순":
         boardList.sort(key=lambda x: x["boardLike"], reverse=True)
     elif top_filter == "팔로우순":
-        boardList.sort(key=lambda x: x.get("follow_count", 0), reverse=True)
+        boardList.sort(key=lambda x: x["boardCreatedAt"], reverse=True)
     else:
         boardList.sort(key=lambda x: x["boardNo"], reverse=True)
 
