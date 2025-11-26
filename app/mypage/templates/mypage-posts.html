@@ -4,11 +4,32 @@
 <link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage-posts.css') }}">
 <link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage.css') }}">
 
+{% if current_bg and current_bg != 'None' %}
+    {% set bg_url = url_for('mypage.static', filename=current_bg) %}
+{% else %}
+    {% set bg_url = '' %}
+{% endif %}
+
+{% if current_bg and current_bg != 'None' %}
+    {% set bg_url = url_for('mypage.static', filename=current_bg) %}
+{% else %}
+    {% set bg_url = '' %}
+{% endif %}
+
 <style>
+:root {
+    --dynamic-bg: url("{{ bg_url }}");
+}
+
 body::before {
-    background-image: url("{{ url_for('mypage.static', filename=current_bg) }}");
+    content: "";
+    background-image: var(--dynamic-bg);
+    background-size: cover;
+    background-repeat: no-repeat;
 }
 </style>
+
+
 <script src="{{ url_for('mypage.static', filename='js/mypage-posts.js') }}"></script>
 {% endblock %}
 
@@ -38,7 +59,7 @@ body::before {
             <span class="title">{{ post.board_title }}</span>
 
             <span class="nick dropdown">
-                작성자: {{ post.writer_id }}
+                작성자: {{ post.writer_nick }}
                 <ul class="dropdown-menu">
                     <li><a href="#">프로필 보기</a></li>
                     <li><a href="#">팔로우 하기</a></li>

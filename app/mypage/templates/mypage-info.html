@@ -4,11 +4,25 @@
 <link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage-info.css') }}">
 <link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage.css') }}">
 
+{% if current_bg and current_bg != 'None' %}
+    {% set bg_url = url_for('mypage.static', filename=current_bg) %}
+{% else %}
+    {% set bg_url = '' %}
+{% endif %}
+
 <style>
+:root {
+    --dynamic-bg: url("{{ bg_url }}");
+}
+
 body::before {
-    background-image: url("{{ url_for('mypage.static', filename=current_bg) }}");
+    content: "";
+    background-image: var(--dynamic-bg);
+    background-size: cover;
+    background-repeat: no-repeat;
 }
 </style>
+
 {% endblock %}
 
 {% block content %}

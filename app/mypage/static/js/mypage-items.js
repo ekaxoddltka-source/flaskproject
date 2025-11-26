@@ -50,11 +50,9 @@ document.addEventListener("DOMContentLoaded", () => {
             const ok = await equipItem(itemNo);
             if (!ok) return;
 
-            // 같은 타입 전체 해제
             document.querySelectorAll(`.item-card[data-type="${itemType}"]`)
                 .forEach(c => updateUI_Unequip(c));
 
-            // 장착
             updateUI_Equip(card);
         };
     });
@@ -64,6 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
     /* --------------------------------------------------- */
     /* 3) UI 업데이트 */
     /* --------------------------------------------------- */
+
     function updateUI_Equip(card) {
         const equipBtn = card.querySelector(".equip");
         equipBtn.classList.add("active");
@@ -95,6 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
     /* --------------------------------------------------- */
     /* 4) API */
     /* --------------------------------------------------- */
+
     async function equipItem(item_no) {
         try {
             const res = await fetch("/api/mypage/item/equip", {
@@ -106,14 +106,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await res.json();
             if (!data.success) return false;
 
-            // 배경 즉시 적용
-            if (data.item_type === "background") {
+            // 배경 아이템이라면 즉시 반영
+            if (data.item_type === "background" && data.item_img) {
                 document.body.style.setProperty(
                     "--dynamic-bg",
                     `url('/mypage/static/${data.item_img}')`
                 );
             }
-            
 
             return true;
 
@@ -122,28 +121,27 @@ document.addEventListener("DOMContentLoaded", () => {
             return false;
         }
     }
+async function unequipItem(item_no) {
+    try {
+        const res = await fetch("/api/mypage/item/unequip", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ item_no })
+        });
 
-    async function unequipItem(item_no) {
-        try {
-            const res = await fetch("/api/mypage/item/unequip", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ item_no })
-            });
+        const data = await res.json();
+        if (!data.success) return false;
 
-            const data = await res.json();
-            if (!data.success) return false;
-
-            if (data.item_type === "background") {
-                document.body.style.removeProperty("--dynamic-bg");
-            }
-
-            return true;
-
-        } catch (err) {
-            console.error(err);
-            return false;
+        // 배경이면 스타일 제거
+        if (data.item_type === "background") {
+            document.body.style.removeProperty("--dynamic-bg");
         }
-    }
 
+        return true;
+
+    } catch (err) {
+        console.error(err);
+        return false;
+    }
+}
 });

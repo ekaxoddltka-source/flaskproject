@@ -3,11 +3,25 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage-follow.css') }}">
 <link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage.css') }}">
+{% if current_bg and current_bg != 'None' %}
+    {% set bg_url = url_for('mypage.static', filename=current_bg) %}
+{% else %}
+    {% set bg_url = '' %}
+{% endif %}
+
 <style>
+:root {
+    --dynamic-bg: url("{{ bg_url }}");
+}
+
 body::before {
-    background-image: url("{{ url_for('mypage.static', filename=current_bg) }}");
+    content: "";
+    background-image: var(--dynamic-bg);
+    background-size: cover;
+    background-repeat: no-repeat;
 }
 </style>
+
 <script src="{{ url_for('mypage.static', filename='js/mypage-follow.js') }}"></script>
 {% endblock %}
 
@@ -17,8 +31,8 @@ body::before {
     <section id="panel-follow" class="content-panel">
 
         <div class="follow-tabs">
-            <a href="/mypage-following" class="active">팔로우</a>
-            <a href="/mypage-follower">팔로워</a>
+            <a href="/mypage-following" class="active">팔로워</a>
+            <a href="/mypage-follower">팔로우</a>
         </div>
 
         {% for user in following_list %}

@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, session, redirec
 from config import SIDEBAR_CONFIG
 from app.account.routes import get_db_connection
 from datetime import datetime
+from app.mypage.events import send_dm_message
 
 # DAO
 from app.mypage.dao.user_dao import UserDao
@@ -14,7 +15,8 @@ from app.mypage.dao.user_info_dao import UserInfoDao
 from app.mypage.dao.withdraw_dao import WithdrawDao
 from app.mypage.dao.item_dao import ItemDao
 from app.mypage.dao.user_item_dao import UserItemDao
-
+from app.mypage.dao.view_log_dao import ViewLogDao  
+from app.mypage.dao.interest_dao import InterestDao
 # DAO 객체
 user_dao = UserDao(get_db_connection)
 alert_dao = AlertDao(get_db_connection)
@@ -26,6 +28,10 @@ user_info_dao = UserInfoDao(get_db_connection)
 withdraw_dao = WithdrawDao(get_db_connection)
 item_dao = ItemDao(get_db_connection)
 user_item_dao = UserItemDao(get_db_connection)
+view_log_dao = ViewLogDao(get_db_connection)
+interest_dao = InterestDao(get_db_connection)
+import re
+from collections import Counter
 
 bp = Blueprint(
     "mypage",
@@ -78,13 +84,13 @@ def mypage_posts():
         posts=posts,
         show_notice_buttons=True,
         notice_buttons={
-            "top_buttons": ["최신순", "조회순", "추천순", "팔로우순", "검색순"],
+            "top_buttons": ["최신순", "조회순", "추천순"],
             "feed_buttons": ["전체", "자유", "코딩테스트", "Q&A"]
         },
         show_writeBtn=True,
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        current_bg="backgrounds/m.png",
+        current_bg=session["user"].get("background_img") or None,
         top_filter=sort
     )
 
@@ -100,25 +106,150 @@ def api_mypage_post_detail(board_no):
         "comments": posts_dao.get_comments_by_board(board_no)
     }
 
+@bp.route("/api/log/view", methods=["POST"])
+def api_log_view():
+    user = session.get("user")
+    if not user:
+        return jsonify({"success": False}), 403
+
+    data = request.get_json()
+    board_no = data.get("board_no")
+
+    if not board_no:
+        return jsonify({"success": False, "msg": "board_no 없음"}), 400
+
+    view_log_dao.insert_view_log(user["id"], board_no)
+
+    return jsonify({"success": True})
+
 # ------------------------------------------------------------
 # 3. 관심사 페이지
 # ------------------------------------------------------------
+
+
+# ------------------------------------------------------------
+# 기술 키워드 사전
+# ------------------------------------------------------------
+TECH_KEYWORDS = {
+    "python", "java", "c", "c++", "javascript", "typescript",
+    "react", "vue", "svelte", "nextjs",
+    "spring", "django", "flask", "fastapi", "node",
+    "sql", "mysql", "oracle", "postgres", "mongodb",
+    "ai", "ml", "deeplearning", "pytorch", "tensorflow",
+    "docker", "k8s", "kubernetes", "aws", "gcp", "azure"
+}
+
+# ------------------------------------------------------------
+# 분야별 매핑 (Radar Chart용)
+# ------------------------------------------------------------
+TECH_CATEGORY = {
+    "Frontend": ["react", "vue", "svelte", "javascript", "typescript", "nextjs"],
+    "Backend": ["python", "java", "spring", "django", "fastapi", "flask", "node"],
+    "Database": ["sql", "mysql", "oracle", "postgres", "mongodb"],
+    "AI/ML": ["ai", "ml", "deeplearning", "pytorch", "tensorflow"],
+    "DevOps": ["docker", "k8s", "kubernetes", "aws", "gcp", "azure"]
+}
+
+# ------------------------------------------------------------
+# 키워드 추출 함수
+# ------------------------------------------------------------
+def extract_keywords(text):
+    if not text:
+        return []
+    text = text.lower()
+    found = []
+    for kw in TECH_KEYWORDS:
+        pattern = rf"\b{re.escape(kw)}\b"
+        if re.search(pattern, text):
+            found.append(kw)
+    return found
+
+
+# ------------------------------------------------------------
+# 관심도 분석 라우트
+# ------------------------------------------------------------
 @bp.route("/mypage-interest")
 def mypage_interest():
-    user = get_logged_user()
+    user = session.get("user")
     if not user:
-        return require_login_js()
+        return """
+            <script>
+                alert('로그인이 필요합니다.');
+                window.location.href='/';
+            </script>
+        """
 
+    user_id = user["id"]
+
+    # 1. 태그 기반 데이터 ---------------------------------------
+    tag_data = interest_dao.get_all_tags(user_id)
+    written_tags = tag_data["written_tags"]
+    viewed_tags = tag_data["viewed_tags"]
+
+    # 태그는 기술명과 1:1 대응되므로 그대로 키워드로 사용
+    tag_keywords = written_tags + viewed_tags
+
+    # 2. 텍스트 기반 데이터 -------------------------------------
+    text_sources = interest_dao.get_all_text_sources(user_id)
+
+    written_posts = text_sources["written_posts"]
+    viewed_posts = text_sources["viewed_posts"]
+    written_comments = text_sources["written_comments"]
+    viewed_comments = text_sources["viewed_comments"]
+
+    text_keywords = []
+
+    # (1) 게시글 제목/내용
+    for p in written_posts + viewed_posts:
+        text_keywords += extract_keywords(p["board_title"])
+        text_keywords += extract_keywords(p["board_content"])
+
+    # (2) 댓글/답변 내용
+    for c in written_comments + viewed_comments:
+        text_keywords += extract_keywords(c["comment_answer_content"])
+
+    # 3. 전체 키워드 통합 ---------------------------------------
+    all_keywords = tag_keywords + text_keywords
+
+    counter = Counter(all_keywords)
+
+    # 4. TOP5 기술 (Bar Chart)
+    top5 = counter.most_common(5)
+    top5_labels = [x[0] for x in top5]
+    top5_values = [x[1] for x in top5]
+
+    # 만약 데이터가 없을 경우 예외 처리
+    if len(top5_labels) == 0:
+        top5_labels = ["데이터 없음"]
+        top5_values = [0]
+
+    # 5. Radar Chart (기술 분야별)
+    radar_map = {cat: 0 for cat in TECH_CATEGORY}
+
+    for kw in all_keywords:
+        for cat, lst in TECH_CATEGORY.items():
+            if kw in lst:
+                radar_map[cat] += 1
+
+    radar_labels = list(radar_map.keys())
+    radar_values = list(radar_map.values())
+
+    # ------------------------------------------------------------
+    # 템플릿 렌더링
+    # ------------------------------------------------------------
     return render_template(
         "mypage-interest.html",
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        top5_labels=["Python", "React", "AI", "SQL", "Docker"],
-        top5_values=[55, 40, 30, 22, 15],
-        radar_labels=["Frontend", "Backend", "AI/ML", "DevOps", "CS 기본"],
-        radar_values=[65, 45, 88, 40, 55],
-        current_bg="backgrounds/m.png"
+
+        top5_labels=top5_labels,
+        top5_values=top5_values,
+        radar_labels=radar_labels,
+        radar_values=radar_values,
+
+        current_bg = session["user"].get("background_img") or None
     )
+
 
 # ------------------------------------------------------------
 # 4. 아이템 관리 페이지 (DB 기반)
@@ -148,7 +279,8 @@ def mypage_items():
         'mypage-items.html',
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        current_bg=user.get("background_img") or "backgrounds/m.png",
+        current_bg = session["user"].get("background_img") or None,
+
         items=items
     )
 
@@ -263,7 +395,8 @@ def mypage_info():
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
         user=user_info,
-        current_bg="backgrounds/m.png"
+        current_bg = session["user"].get("background_img") or None
+
     )
 
 # ------------------------------------------------------------
@@ -340,7 +473,8 @@ def mypage_following():
         following_list=following,
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        current_bg="backgrounds/m.png"
+        current_bg = session["user"].get("background_img") or None
+
     )
 
 @bp.route("/mypage-follower")
@@ -360,7 +494,7 @@ def mypage_follower():
         follower_list=followers,
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        current_bg="backgrounds/m.png"
+        current_bg = session["user"].get("background_img") or None
     )
 
 # ------------------------------------------------------------
@@ -385,6 +519,9 @@ def api_follow_toggle():
 # ------------------------------------------------------------
 # 9. 메시지 기능
 # ------------------------------------------------------------
+
+
+
 @bp.route("/mypage-message")
 def mypage_message():
     user = get_logged_user()
@@ -399,11 +536,12 @@ def mypage_message():
         "mypage-message.html",
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        current_bg="backgrounds/m.png",
+        current_bg=session["user"].get("background_img") or None,
         rooms=rooms,
         user_id=user_id,
         total_unread=total_unread
     )
+
 
 @bp.route("/api/mypage/messages/room/<int:room_no>")
 def api_get_room_messages(room_no):
@@ -427,6 +565,7 @@ def api_get_room_messages(room_no):
 
     return jsonify({"success": True, "messages": messages})
 
+
 @bp.route("/api/mypage/messages/send", methods=["POST"])
 def api_send_message():
     user = get_logged_user()
@@ -443,11 +582,25 @@ def api_send_message():
     if not receiver_id or not content:
         return jsonify({"success": False, "msg": "잘못된 요청"}), 400
 
+    # 방 생성 or 기존 방 불러오기
     if not room_no:
         room_no = message_dao.create_or_get_room(user_id, receiver_id)
 
+    # DB 저장
     msg_no = message_dao.send_message(room_no, user_id, receiver_id, content)
     receiver_info = user_dao.get_user_by_id(receiver_id)
+
+    # 🔥 WebSocket 실시간 메시지 전송
+    send_dm_message(
+        receiver_id,
+        {
+            "room_no": room_no,
+            "sender_id": user_id,
+            "receiver_id": receiver_id,
+            "content": content,
+            "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M")
+        }
+    )
 
     return jsonify({
         "success": True,
@@ -458,6 +611,7 @@ def api_send_message():
         "content": content,
         "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M")
     })
+
 
 @bp.route("/api/mypage/messages/delete-room", methods=["POST"])
 def api_delete_room():
@@ -493,7 +647,7 @@ def mypage_point():
         "mypage-point.html",
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        current_bg="backgrounds/m.png",
+        current_bg = session["user"].get("background_img") or None,
         point_list=point_list,
         total_point=total_point
     )
@@ -513,7 +667,7 @@ def mypage_alert():
         "mypage-alert.html",
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        current_bg="backgrounds/m.png",
+        current_bg = session["user"].get("background_img") or None,
         alerts=alerts
     )
 
@@ -549,8 +703,35 @@ def mypage_withdraw():
         "mypage-withdraw.html",
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        current_bg="backgrounds/m.png"
+        current_bg = session["user"].get("background_img") or None
     )
+
+@bp.route("/api/mypage/withdraw", methods=["POST"])
+def api_withdraw():
+    user = get_logged_user()
+    if not user:
+        return jsonify({"success": False, "msg": "로그인 필요"}), 403
+
+    data = request.get_json() or {}
+    user_id = data.get("id")
+    password = data.get("pw")
+
+    if not user_id or not password:
+        return jsonify({"success": False, "msg": "아이디/비밀번호 필요"}), 400
+
+    # 1) 유저 정보 확인
+    user_row = user_dao.check_login(user_id, password)
+    if not user_row:
+        return jsonify({"success": False, "msg": "아이디 또는 비밀번호 불일치"}), 400
+
+    # 2) 탈퇴 처리
+    withdraw_dao.withdraw_user(user_id)
+
+    # 3) 세션 삭제
+    session.pop("user", None)
+
+    return jsonify({"success": True})
+
 
 # ------------------------------------------------------------
 # 13. 기타

@@ -7,65 +7,76 @@ function drawCharts() {
     const radarLabels = data.radar_labels || [];
     const radarValues = data.radar_values || [];
 
-    // BAR
+    // -----------------------------
+    // BAR CHART (TOP 5)
+    // -----------------------------
+
+    // 자동 max 계산
+    const barMax = Math.max(...top5Values, 5);  // 최소 5 보장
+
     const ctxBar = document.getElementById("top5TechChart");
     new Chart(ctxBar, {
-    type: "bar",
-    data: {
-        labels: top5Labels,
-        datasets: [{
-            data: top5Values,
-            backgroundColor: "rgba(99,102,241,0.65)",
-            borderColor: "rgba(99,102,241,1)",
-            borderWidth: 2,
-            borderRadius: 8
-        }]
-    },
-    options: {
-        indexAxis: "y",
-        responsive: false,
-        scales: {
-            x: {
-                type: 'linear',
-        		min: 0,
-        		max: 100,
-       			suggestedMax: 100
+        type: "bar",
+        data: {
+            labels: top5Labels,
+            datasets: [{
+                data: top5Values,
+                backgroundColor: "rgba(99,102,241,0.65)",
+                borderColor: "rgba(99,102,241,1)",
+                borderWidth: 2,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            indexAxis: "y",
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'linear',
+                    min: 0,
+                    suggestedMax: barMax
+                }
             }
         }
-    }
-});
+    });
 
 
-    // RADAR
+    // -----------------------------
+    // RADAR CHART
+    // -----------------------------
+
+    // Radar도 자동 max 계산
+    const radarMax = Math.max(...radarValues, 5);
+
     const ctxRadar = document.getElementById("radarTechChart");
     new Chart(ctxRadar, {
-    type: "radar",
-    data: {
-        labels: radarLabels,
-        datasets: [{
-            data: radarValues,
-            borderColor: "rgba(16,185,129,1)",
-            backgroundColor: "rgba(16,185,129,0.2)",
-            pointBackgroundColor: "rgba(16,185,129,1)"
-        }]
-    },
-    options: {
-        responsive: false,
-        scales: {
-            r: {
-                min: 0,
-        max: 100,
-        suggestedMax: 100,
-        beginAtZero: true
-                
+        type: "radar",
+        data: {
+            labels: radarLabels,
+            datasets: [{
+                data: radarValues,
+                borderColor: "rgba(16,185,129,1)",
+                backgroundColor: "rgba(16,185,129,0.2)",
+                pointBackgroundColor: "rgba(16,185,129,1)"
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    min: 0,
+                    suggestedMax: radarMax,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
             }
         }
-    }
-});
-
-	
+    });
 }
+
 document.addEventListener("DOMContentLoaded", function () {
     drawCharts();
 });
-
