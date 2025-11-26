@@ -284,6 +284,91 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.key === 'Enter') sendMessage();
     });
 
+// ===========================
+// 6. 인라인 검색창
+// ===========================
+    let searchBox = null;
+    const topButtons = document.querySelectorAll(".top-buttons button");
+
+    function setActive(buttons, clicked) {
+        buttons.forEach(btn => btn.classList.remove("active"));
+        clicked.classList.add("active");
+    }
+
+    const searchBtn = Array.from(topButtons).find(btn => btn.textContent.includes("검색순"));
+
+    if (searchBtn) {
+        searchBtn.parentElement.style.position = "relative";
+
+        searchBtn.addEventListener("click", () => {
+            setActive(topButtons, searchBtn);
+
+            // 검색창 이미 존재하면 포커스
+            if (searchBox) {
+                searchBox.querySelector("#inlineSearchInput").focus();
+                return;
+            }
+
+            // 검색창 생성
+            searchBox = document.createElement("div");
+            searchBox.className = "inline-search-box";
+            searchBox.innerHTML = `
+                <select id="inlineSearchType">
+                    <option value="board_title">제목</option>
+                    <option value="board_content">내용</option>
+                    <option value="id">작성자</option>
+                    <option value="tag">해시태그</option>
+                </select>
+                <input type="text" placeholder="검색어 입력..." id="inlineSearchInput">
+                <div style="display:flex; gap:6px; margin-top:4px;">
+                    <button type="button" id="inlineSearchSubmit">검색</button>
+                    <button type="button" id="inlineSearchClose">닫기</button>
+                </div>
+            `;
+            searchBtn.parentElement.appendChild(searchBox);
+
+            const typeSelect = searchBox.querySelector("#inlineSearchType");
+            const input = searchBox.querySelector("#inlineSearchInput");
+            const submit = searchBox.querySelector("#inlineSearchSubmit");
+            const close = searchBox.querySelector("#inlineSearchClose");
+
+            input.focus();
+
+            function doSearch() {
+                const keyword = input.value.trim();
+                const type = typeSelect.value;
+
+                if (!keyword) {
+                    alert("검색어를 입력하세요.");
+                    input.focus();
+                    return;
+                }
+
+                // 현재 페이지에 GET 요청 보내기
+                const params = new URLSearchParams(window.location.search);
+                params.set("search_type", type);
+                params.set("keyword", keyword);
+                window.location.href = `${window.location.pathname}?${params.toString()}`;
+            }
+
+            submit.addEventListener("click", (e) => {
+                e.preventDefault();
+                doSearch();
+            });
+
+            // Enter 키로 검색
+            input.addEventListener("keydown", e => {
+                if (e.key === "Enter") doSearch();
+            });
+
+            close.addEventListener("click", (e) => {
+                e.preventDefault();
+                searchBox.remove();
+                searchBox = null;
+            });
+        });
+    }
+
 
 
 

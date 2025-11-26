@@ -545,11 +545,13 @@ header {
     font-weight: 600;
     color: #3DADFF; /* 강조 색 */
     flex-shrink: 0;
+    font-size: 0.75rem; /* 기존보다 작게 */
 }
 
 #panel-chat .chat-content {
     flex: 1 1 auto;
     color: #333;
+    font-size: 0.75rem; /* 기존보다 작게 */
 }
 
 #panel-chat .timestamp {
