@@ -294,8 +294,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-});
-const socket = io();
+    const socket = io();
 socket.emit("join_dm");
 
 socket.on("dm_receive", msg => {
@@ -307,5 +306,7 @@ socket.on("dm_receive", msg => {
         chatBox.scrollTop = chatBox.scrollHeight;
     }
     updateRoomPreview();
+});
+    
 });
 
