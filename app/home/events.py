@@ -63,6 +63,7 @@ def handle_message(data):
     now = datetime.now()
 
     conn = current_app.get_db_connection()
+    print("@@@@@@@@@@@@@@@@@@@@@@",user_id, message, now)
     try:
         with conn.cursor() as cursor:
             cursor.execute(

@@ -14,8 +14,8 @@ def create_app():
     # -------------------------------------
     # 🔥 MySQL 기본 설정 (pymysql 사용)
     # -------------------------------------
-    app.config["MYSQL_HOST"] = "localhost"
-    app.config["MYSQL_USER"] = "root"
+    app.config["MYSQL_HOST"] = "192.168.60.187"
+    app.config["MYSQL_USER"] = "jwh"
     app.config["MYSQL_PASSWORD"] = "ezen"
     app.config["MYSQL_DB"] = "aezen"
     app.config["MYSQL_CURSORCLASS"] = "DictCursor"
