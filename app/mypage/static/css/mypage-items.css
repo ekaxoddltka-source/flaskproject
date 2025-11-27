@@ -88,3 +88,13 @@
     border-radius: 12px;   /* 선택 */
 }
 
+#btn-point-shop {
+    margin-left: 20px;
+    padding: 8px 14px;
+    border: 1px solid #ddd;
+    background: #58b3e7;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    margin-left: auto;
+}

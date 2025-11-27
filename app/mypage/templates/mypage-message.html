@@ -11,10 +11,7 @@
 {% endif %}
 
 <style>
-:root {
-    --dynamic-bg: url("{{ bg_url }}");
-}
-
+:root { --dynamic-bg: url("{{ bg_url }}"); }
 body::before {
     content: "";
     background-image: var(--dynamic-bg);
@@ -24,129 +21,87 @@ body::before {
 </style>
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-
-
 <script src="{{ url_for('mypage.static', filename='js/mypage-message.js') }}"></script>
 {% endblock %}
 
 {% block content %}
 <div class="posts">
 
-  <!----------------- 메세지 리스트 패널 ------------------------->
-  <div id="messages-panel" class="content-panel">
-    <div class="panel-wrapper">
+    <div class="content-panel">
+        <div class="panel-wrapper">
 
-      <div class="message-header-bar">
-        <div class="message-title">
-          <h2>
-            <span class="title-text">📨 메세지함</span>
-            {% if total_unread and total_unread > 0 %}
-              <span class="unread-badge" id="message-unread-badge">🔴 {{ total_unread }}</span>
-            {% endif %}
-          </h2>
-        </div>
-
-        <!-- 선택 기능 영역 -->
-        <div class="message-controls">
-          <div class="left-controls">
-            <label><input type="checkbox" id="select-all"> 전체 선택</label>
-          </div>
-          <div class="right-controls">
-            <button class="btn-delete-selected-message"
-                    style="padding: 6px 12px;
-                           font-size: 13px;
-                           background: #ff4d4d;
-                           color: #fff;
-                           border: none;
-                           border-radius: 6px;
-                           cursor: pointer;
-                           transition: background 0.2s ease;">
-              선택 삭제
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 메시지 리스트 영역 -->
-      <div class="message-list">
-        {% if rooms %}
-          {% for room in rooms %}
-            <div class="message-item
-                        {% if room.unread_count and room.unread_count > 0 %}unread{% endif %}"
-                 data-room-no="{{ room.room_no }}"
-                 data-partner-id="{{ room.partner_id }}"
-                 data-partner-nick="{{ room.partner_nick }}">
-              <input type="checkbox"
-                     class="message-check"
-                     data-room-no="{{ room.room_no }}">
-
-              <div class="message-left">
-                {% if room.unread_count and room.unread_count > 0 %}
-                  <div class="unread-mark"></div>
-                {% else %}
-                  <div class="unread-mark read"></div>
+            <!-- 헤더 -->
+            <h2 class="message-title">
+                📨 메세지함
+                {% if total_unread > 0 %}
+                <span class="unread-badge">🔴 {{ total_unread }}</span>
                 {% endif %}
+            </h2>
 
-                <div class="nickname-group">
-                  <span class="nickname">{{ room.partner_nick }}</span>
-                  <span class="direction">
-                    {% if room.last_sender_id == user_id %}
-                      [보냄]
-                    {% else %}
-                      [받음]
-                    {% endif %}
-                  </span>
-                </div>
+            <!-- 전체 선택 / 삭제 -->
+            <div class="message-controls">
+                <label><input type="checkbox" id="select-all"> 전체 선택</label>
 
-                <span class="content">
-                  {{ room.last_message_content or '대화 내역이 없습니다.' }}
-                </span>
-              </div>
-
-              <div class="message-actions">
-                <button class="btn-more" type="button">더보기</button>
-                <button class="btn-delete" type="button">삭제</button>
-              </div>
+                <button class="btn-delete-selected-message">
+                    선택 삭제
+                </button>
             </div>
-          {% endfor %}
-        {% else %}
-          <div class="message-empty">
-            아직 대화방이 없습니다.
-          </div>
-        {% endif %}
-      </div>
 
+            <!-- 메시지 리스트 -->
+            <div class="message-list">
+                {% if rooms %}
+                    {% for room in rooms %}
+                    <div class="message-item"
+                        data-room-no="{{ room.room_no }}"
+                        data-partner-id="{{ room.partner_id }}"
+                        data-partner-nick="{{ room.partner_nick }}">
+                        
+                        <input type="checkbox" class="message-check" data-room-no="{{ room.room_no }}">
+
+                        <div class="message-left">
+                            {% if room.unread_count > 0 %}
+                                <div class="unread-mark"></div>
+                            {% else %}
+                                <div class="unread-mark read"></div>
+                            {% endif %}
+
+                            <div class="nickname-group">
+                                <span class="nickname">{{ room.partner_nick }}</span>
+                                <span class="direction">
+                                    {% if room.last_sender_id == user_id %}[보냄]{% else %}[받음]{% endif %}
+                                </span>
+                            </div>
+
+                            <span class="content">{{ room.last_message_content or "대화 내역이 없습니다." }}</span>
+                        </div>
+
+                        <div class="message-actions">
+                            <button class="btn-more"
+                                    onclick="location.href='/mypage-message/room/{{ room.room_no }}'">
+                                더보기
+                            </button>
+                            <button class="btn-delete">삭제</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="message-empty">아직 대화방이 없습니다.</div>
+                {% endif %}
+            </div>
+
+        </div>
     </div>
-  </div>
 
-  <!----------------- 채팅 패널 ------------------------->
-  <div id="chat-panel" class="content-panel hidden">
-    <div class="panel-wrapper">
-      <h2>
-        💬 대화창
-        <span id="chat-partner-name" style="font-size: 14px; margin-left: 8px; color:#666;"></span>
-      </h2>
-
-      <div class="chat-box" id="chat-box"></div>
-
-      <div class="chat-input">
-        <textarea id="reply-input" placeholder="메세지를 입력하세요..."></textarea>
-        <button type="button" onclick="sendReply()">전송</button>
-        <button type="button" onclick="goBackToList()">뒤로가기</button>
-      </div>
+    <!-- 삭제 모달 -->
+    <div id="delete-confirm-modal" class="modal hidden">
+        <div class="modal-content">
+            <p>이 대화방을 삭제하시겠습니까?</p>
+            <div class="modal-actions">
+                <button id="modal-confirm-btn">확인</button>
+                <button id="modal-cancel-btn">취소</button>
+            </div>
+        </div>
     </div>
-  </div>
-
-  <!-- 메시지 삭제 확인 모달 -->
-  <div id="delete-confirm-modal" class="modal hidden">
-    <div class="modal-content">
-      <p>이 대화방을 삭제하시겠습니까?</p>
-      <div class="modal-actions">
-        <button id="modal-confirm-btn">확인</button>
-        <button id="modal-cancel-btn">취소</button>
-      </div>
-    </div>
-  </div>
 
 </div>
 </div>

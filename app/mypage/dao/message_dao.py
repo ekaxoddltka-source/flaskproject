@@ -223,3 +223,36 @@ class MessageDao:
         cur.close()
         conn.close()
         return row["cnt"]
+
+        # ============================================
+    # 8) 특정 room_no의 상대방 정보 가져오기
+    #    - 현재 로그인 유저(user_id)를 기준으로 상대방 결정
+    # ============================================
+    def get_room_info(self, room_no, user_id):
+        conn = self.db_conn_func()
+        cur = conn.cursor()
+
+        sql = """
+        SELECT 
+            r.room_no,
+            CASE
+                WHEN r.user_id_a = %s THEN r.user_id_b
+                ELSE r.user_id_a
+            END AS partner_id,
+            u.nick AS partner_nick
+        FROM message_room r
+        JOIN user u
+            ON u.id = CASE
+                        WHEN r.user_id_a = %s THEN r.user_id_b
+                        ELSE r.user_id_a
+                     END
+        WHERE r.room_no = %s
+          AND (r.user_id_a = %s OR r.user_id_b = %s)
+        """
+
+        cur.execute(sql, (user_id, user_id, room_no, user_id, user_id))
+        row = cur.fetchone()
+
+        cur.close()
+        conn.close()
+        return row

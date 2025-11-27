@@ -30,16 +30,17 @@ body::before {
 <section class="content-panel item-panel">
 
   <h2 class="panel-title">아이템 관리</h2>
-  <p class="panel-sub">
-    보유 중인 프로필 아이템을 관리하세요.
-  </p>
+
 
   <!-- 필터 버튼 -->
   <div class="item-filter">
     <button class="filter-btn active" data-type="all">전체</button>
     <button class="filter-btn" data-type="icon">아이콘</button>
     <button class="filter-btn" data-type="background">배경이미지</button>
-    <button class="filter-btn" data-type="insignia">휘장</button>
+     <a href="{{ url_for('mypage.pointshop') }}">
+              <button id="btn-point-shop" class="tab-btn">아이템 구매</button>
+          </a>
+    
   </div>
 
   <!-- 아이템 그리드 -->

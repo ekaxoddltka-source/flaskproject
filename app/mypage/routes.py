@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, session, redirect
 from config import SIDEBAR_CONFIG
-from app.account.routes import get_db_connection
+from flask import current_app 
 from datetime import datetime
 from app.mypage.events import send_dm_message
 
@@ -18,18 +18,18 @@ from app.mypage.dao.user_item_dao import UserItemDao
 from app.mypage.dao.view_log_dao import ViewLogDao  
 from app.mypage.dao.interest_dao import InterestDao
 # DAO 객체
-user_dao = UserDao(get_db_connection)
-alert_dao = AlertDao(get_db_connection)
-follow_dao = FollowDao(get_db_connection)
-message_dao = MessageDao(get_db_connection)
-posts_dao = MyPagePostsDao(get_db_connection)
-point_dao = PointDao(get_db_connection)
-user_info_dao = UserInfoDao(get_db_connection)
-withdraw_dao = WithdrawDao(get_db_connection)
-item_dao = ItemDao(get_db_connection)
-user_item_dao = UserItemDao(get_db_connection)
-view_log_dao = ViewLogDao(get_db_connection)
-interest_dao = InterestDao(get_db_connection)
+user_dao = UserDao(lambda: current_app.get_db_connection())
+alert_dao = AlertDao(lambda: current_app.get_db_connection())
+follow_dao = FollowDao(lambda: current_app.get_db_connection())
+message_dao = MessageDao(lambda: current_app.get_db_connection())
+posts_dao = MyPagePostsDao(lambda: current_app.get_db_connection())
+point_dao = PointDao(lambda:current_app.get_db_connection())
+user_info_dao = UserInfoDao(lambda: current_app.get_db_connection())
+withdraw_dao = WithdrawDao(lambda: current_app.get_db_connection())
+item_dao = ItemDao(lambda: current_app.get_db_connection())
+user_item_dao = UserItemDao(lambda: current_app.get_db_connection())
+view_log_dao = ViewLogDao(lambda: current_app.get_db_connection())
+interest_dao = InterestDao(lambda: current_app.get_db_connection())
 import re
 from collections import Counter
 
@@ -55,9 +55,6 @@ def require_login_js():
         </script>
     """
 
-# ------------------------------------------------------------
-# 1. 마이페이지 - 게시글 목록
-# ------------------------------------------------------------
 @bp.route("/mypage-posts")
 def mypage_posts():
     user = get_logged_user()
@@ -66,12 +63,26 @@ def mypage_posts():
 
     user_id = user["id"]
     sort = request.args.get("top", "최신순")
+    feed = request.args.get("feed", "전체")   # ← 추가
 
     posts = posts_dao.get_my_posts_full(user_id)
 
-    if sort == "팔로우순":
-        posts = follow_dao.get_following_posts(user_id)
+    # -------------------------------------------------
+    # ① 카테고리 필터 적용
+    # -------------------------------------------------
+    category_map = {
+        "자유": 1,
+        "Q&A": 2,
+        "코딩테스트": 3
+    }
 
+    if feed in category_map:
+        posts = [p for p in posts if p["board_category"] == category_map[feed]]
+    # feed=전체 일 경우는 그대로 둠
+
+    # -------------------------------------------------
+    # ② 정렬
+    # -------------------------------------------------
     if sort == "최신순":
         posts.sort(key=lambda x: x["board_no"], reverse=True)
     elif sort == "조회순":
@@ -91,7 +102,8 @@ def mypage_posts():
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
         current_bg=session["user"].get("background_img") or None,
-        top_filter=sort
+        top_filter=sort,
+        feed_filter=feed        # ← 추가 (HTML에서 active 표시용)
     )
 
 # ------------------------------------------------------------
@@ -121,6 +133,49 @@ def api_log_view():
     view_log_dao.insert_view_log(user["id"], board_no)
 
     return jsonify({"success": True})
+
+@bp.route("/board/<int:board_no>")
+def mypage_board_detail(board_no):
+    # 게시글 데이터 가져오기
+    post = posts_dao.get_post_detail(board_no)
+    files = posts_dao.get_files_by_board(board_no)
+    tags = posts_dao.get_tags_by_board(board_no)
+    comments = posts_dao.get_comments_by_board(board_no)
+
+    if not post:
+        return "<script>alert('게시글을 찾을 수 없습니다.'); history.back();</script>"
+
+    # boardList 형식 그대로 맞추기
+    boardList = [{
+        "boardNo": post["board_no"],
+        "id": post["id"],
+        "nick": post["writer_nick"],
+        "boardTitle": post["board_title"],
+        "boardContent": post["board_content"],
+        "boardCategory": post["board_category"],
+        "hit": post["hit"],
+        "boardLike": post["board_like"],
+        "boardDislike": post["board_dislike"],
+        "boardCreatedAt": post["board_created_at"],
+        "boardUpdatedAt": post["board_updated_at"],
+        "board_deleted": post["board_deleted"],
+        "files": files,
+        "tags": tags,
+        "comments": comments
+    }]
+
+    login_user_id = session.get("user", {}).get("id")
+
+    return render_template(
+        "home.html",
+        boardList=boardList,        # 하나만 넣어서 렌더링
+        show_writeBtn=False,        # 상세 페이지에서는 글쓰기 버튼 숨기는 게 자연스럽다
+        show_notice_buttons=False,  # 필요하면 유지해도 됨
+        sidebar=SIDEBAR_CONFIG["default"],
+        active="chat",
+        login_user_id=login_user_id
+    )
+
 
 # ------------------------------------------------------------
 # 3. 관심사 페이지
@@ -542,6 +597,30 @@ def mypage_message():
         total_unread=total_unread
     )
 
+@bp.route("/mypage-message/room/<int:room_no>")
+def mypage_message_room(room_no):
+    user = get_logged_user()
+    if not user:
+        return require_login_js()
+
+    user_id = user["id"]
+
+    # 방 정보 불러오기
+    room = message_dao.get_room_info(room_no, user_id)
+    if not room:
+        return require_login_js()
+
+    return render_template(
+        "mypage-room.html",
+        room_no=room_no,
+        partner_id=room["partner_id"],
+        partner_nick=room["partner_nick"],
+        user_id=user_id,
+        sidebar=SIDEBAR_CONFIG["default"],
+        active="mypage",
+        current_bg=session["user"].get("background_img") or None
+    )
+
 
 @bp.route("/api/mypage/messages/room/<int:room_no>")
 def api_get_room_messages(room_no):
@@ -756,14 +835,49 @@ def pointstore():
 
 @bp.route("/pointshop")
 def pointshop():
+    user = get_logged_user()
+    if not user:
+        return require_login_js()
+
+    products = item_dao.get_all_items()
+
     return render_template(
         "pointshop.html",
-        show_notice_buttons=True,
-        notice_buttons={
-            "top_buttons": ["최신순", "구매순", "낮은가격순", "높은가격순"],
-            "feed_buttons": ["전체", "아이콘", "배경이미지"]
-        },
-        show_writeBtn=True,
-        sidebar=SIDEBAR_CONFIG["pointstore"],
-        active="pointstore"
+        sidebar=SIDEBAR_CONFIG["default"],
+        active="mypage",
+        current_bg=session["user"].get("background_img") or None,
+        products=products
     )
+
+
+@bp.route("/api/mypage/item/buy", methods=["POST"])
+def api_item_buy():
+    user = get_logged_user()
+    if not user:
+        return jsonify(success=False, msg="로그인 필요"), 403
+
+    item_no = request.json.get("item_no")
+    user_id = user["id"]
+
+    item = item_dao.get_item(item_no)
+    if not item:
+        return jsonify(success=False, msg="아이템 없음"), 400
+
+    price = item["item_price"]
+
+    # 1) 중복 구매 방지
+    if user_item_dao.has_item(user_id, item_no):
+        return jsonify(success=False, msg="이미 보유한 아이템입니다."), 400
+
+    # 2) 포인트 체크
+    current_point = point_dao.get_total_point(user_id)
+    if current_point < price:
+        return jsonify(success=False, msg="포인트 부족"), 400
+
+    # 3) 포인트 차감
+    point_dao.use_point(user_id, price, f"아이템 구매: {item['item_name']}")
+
+    # 4) 아이템 지급
+    user_item_dao.add_item_to_user(user_id, item_no)
+
+    return jsonify(success=True)

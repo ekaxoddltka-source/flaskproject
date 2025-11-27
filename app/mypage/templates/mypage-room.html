@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage-message.css') }}">
+<link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage.css') }}">
+
+{% if current_bg and current_bg != 'None' %}
+    {% set bg_url = url_for('mypage.static', filename=current_bg) %}
+{% else %}
+    {% set bg_url = '' %}
+{% endif %}
+
+<style>
+:root { --dynamic-bg: url("{{ bg_url }}"); }
+body::before {
+    content: "";
+    background-image: var(--dynamic-bg);
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+</style>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="{{ url_for('mypage.static', filename='js/mypage-room.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+
+<body 
+    data-room-no="{{ room_no }}"
+    data-partner-id="{{ partner_id }}"
+    data-user-id="{{ user_id }}"
+>
+<div class="posts"
+    data-room-no="{{ room_no }}"
+    data-partner-id="{{ partner_id }}"
+    data-user-id="{{ user_id }}"
+>
+
+    <div class="content-panel">
+        <div class="panel-wrapper">
+
+            <h2>💬 {{ partner_nick }} 님과의 대화</h2>
+
+            <!-- 메시지 영역 -->
+            <div id="chat-box" class="chat-box">
+                <div class="chat-info">메시지 불러오는 중...</div>
+            </div>
+
+            <!-- 입력창 -->
+            <div class="chat-input">
+                <textarea id="reply-input" placeholder="메세지를 입력하세요..."
+                          oninput="autoResize(this)"></textarea>
+
+                <button id="send-btn" type="button">전송</button>
+
+                <a href="/mypage-message" class="btn-back">뒤로가기</a>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+</div>
+{% endblock %}

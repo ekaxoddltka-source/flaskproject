@@ -1,0 +1,111 @@
+/* ================================
+   전체 배경
+================================ */
+:root {
+    --dynamic-bg: none;
+}
+
+body::before {
+    content: "";
+    background-image: var(--dynamic-bg);
+    background-size: cover;
+    background-position: center;
+    background-color: #fff;
+}
+
+/* ================================
+   목록 헤더 / 필터
+================================ */
+.item-filter {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-btn {
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    background: #f7f7f7;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.filter-btn.active {
+    background: #3DADFF;
+    color: white;
+    border: 1px solid #3DADFF;
+}
+
+#btn-point-shop {
+    margin-left: auto;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid #3DADFF;
+    background: #eaf4ff;
+    color: #147edb;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+/* ================================
+   상품 카드
+================================ */
+.item-card-shop {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #ddd;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.item-card-shop img {
+    width: 90px;
+    height: 90px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.item-info-shop {
+    flex: 1;
+}
+
+.item-info-shop .name {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.item-info-shop .desc {
+    font-size: 14px;
+    color: #666;
+    margin-top: 4px;
+}
+
+.item-info-shop .price {
+    margin-top: 10px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* ================================
+   구매 버튼
+================================ */
+.buy-btn {
+    padding: 10px 16px;
+    background: #3DADFF;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.buy-btn:hover {
+    background: #1b8ade;
+}
