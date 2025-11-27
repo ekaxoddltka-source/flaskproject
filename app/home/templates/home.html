@@ -12,6 +12,7 @@
 <div class="posts">
 
     {% for post in boardList %}
+    {% if post.boardCategory >= 1 and post.boardCategory <= 6 %}
     <div class="post" data-id="{{ post.boardNo }}" data-author-id="{{ post.id }}"
     data-login-user-id="{{ login_user_id }}">
 
@@ -156,7 +157,7 @@
 
             <div class="post-actions">
                 {% if login_user_id == post.id %}
-                    <a href="write?board_no={{ post.boardNo }}" class="edit-btn">수정</a>
+                    <a href="{{ url_for('home.update_post', board_no=post.boardNo) }}" class="edit-btn">수정</a>
                     <span class="delete-btn" data-type="post" data-id="{{ post.boardNo }}">삭제</span>
                 {% endif %}
             </div>
@@ -199,11 +200,14 @@
         </div>
 
     </div>
+    {% endif %}
     {% endfor %}
 </div>
 
 {% if show_writeBtn %}
+{% if session.user %}
 <a href="{{ url_for('home.write') }}" class="write-btn">✏</a>
+{% endif %}
 {% endif %}
 
 <!-- 신고 모달 -->

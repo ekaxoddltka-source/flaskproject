@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, session, redirect
 from config import SIDEBAR_CONFIG
-from app.account.routes import get_db_connection
+from flask import current_app
 from datetime import datetime
 from app.mypage.events import send_dm_message
 
@@ -18,18 +18,18 @@ from app.mypage.dao.user_item_dao import UserItemDao
 from app.mypage.dao.view_log_dao import ViewLogDao  
 from app.mypage.dao.interest_dao import InterestDao
 # DAO 객체
-user_dao = UserDao(get_db_connection)
-alert_dao = AlertDao(get_db_connection)
-follow_dao = FollowDao(get_db_connection)
-message_dao = MessageDao(get_db_connection)
-posts_dao = MyPagePostsDao(get_db_connection)
-point_dao = PointDao(get_db_connection)
-user_info_dao = UserInfoDao(get_db_connection)
-withdraw_dao = WithdrawDao(get_db_connection)
-item_dao = ItemDao(get_db_connection)
-user_item_dao = UserItemDao(get_db_connection)
-view_log_dao = ViewLogDao(get_db_connection)
-interest_dao = InterestDao(get_db_connection)
+user_dao = UserDao(lambda: current_app.get_db_connection)
+alert_dao = AlertDao(lambda:current_app.get_db_connection)
+follow_dao = FollowDao(lambda:current_app.get_db_connection)
+message_dao = MessageDao(lambda:current_app.get_db_connection)
+posts_dao = MyPagePostsDao(lambda:current_app.get_db_connection)
+point_dao = PointDao(lambda:current_app.get_db_connection)
+user_info_dao = UserInfoDao(lambda:current_app.get_db_connection)
+withdraw_dao = WithdrawDao(lambda:current_app.get_db_connection)
+item_dao = ItemDao(lambda:current_app.get_db_connection)
+user_item_dao = UserItemDao(lambda:current_app.get_db_connection)
+view_log_dao = ViewLogDao(lambda:current_app.get_db_connection)
+interest_dao = InterestDao(lambda:current_app.get_db_connection)
 import re
 from collections import Counter
 

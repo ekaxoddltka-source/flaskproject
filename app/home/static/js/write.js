@@ -1,16 +1,105 @@
-// write.js (수정된 전체 버전)
 document.addEventListener("DOMContentLoaded", () => {
-  // ✅ body에 write-page 클래스가 없으면 실행하지 않음
-  if (!document.body.classList.contains("write-page")) return;
 
-  // 4. 파일 업로드 시 파일명 표시
+  // 파일 업로드 처리 (여러 파일 + 삭제 버튼)
   const fileUpload = document.getElementById("fileUpload");
-  if (fileUpload) {
+  const fileListContainer = document.querySelector(".file-name"); // 기존 span 활용
+  let selectedFiles = []; // 실제로 서버에 전송할 파일 목록
+
+  if (fileUpload && fileListContainer) {
+
     fileUpload.addEventListener("change", function () {
-      const fileName = this.files.length ? this.files[0].name : "선택된 파일 없음";
-      const fileNameSpan = document.querySelector(".file-name");
-      if (fileNameSpan) fileNameSpan.textContent = fileName;
+      selectedFiles = Array.from(this.files);
+      renderFileList();
     });
+
+    // 기존 서버 파일 삭제 처리
+    const existingFileElements = document.querySelectorAll(".existing-files li");
+    existingFileElements.forEach(li => {
+      const fileNo = li.dataset.fileNo; // li에 data-file-no 속성이 있어야 함
+      if (!fileNo) return;
+
+      // 버튼 생성
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "X";
+      btn.className = "delete-file-btn";
+      btn.style.background = "red";
+      btn.style.color = "#fff";
+      btn.style.border = "none";
+      btn.style.borderRadius = "50%";
+      btn.style.width = "18px";
+      btn.style.height = "18px";
+      btn.style.cursor = "pointer";
+      btn.style.fontSize = "12px";
+
+      li.appendChild(btn);
+
+      btn.addEventListener("click", () => {
+        if (!confirm("정말 이 파일을 삭제하시겠습니까?")) return;
+
+        fetch(`/delete_file/${fileNo}`, { method: "POST" })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              li.remove();
+            } else {
+              alert(data.message || "삭제 실패");
+            }
+          });
+      });
+    });
+
+    // 새로 선택한 파일 렌더링
+    function renderFileList() {
+      fileListContainer.innerHTML = "";
+
+      if (selectedFiles.length === 0) {
+        fileListContainer.textContent = "선택된 파일 없음";
+        return;
+      }
+
+      selectedFiles.forEach((file, index) => {
+        const fileItem = document.createElement("div");
+        fileItem.className = "file-item";
+        fileItem.style.display = "inline-flex";
+        fileItem.style.alignItems = "center";
+        fileItem.style.gap = "6px";
+        fileItem.style.marginRight = "8px";
+
+        const fileName = document.createElement("span");
+        fileName.textContent = file.name;
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.textContent = "X";
+        removeBtn.style.background = "red";
+        removeBtn.style.color = "#fff";
+        removeBtn.style.border = "none";
+        removeBtn.style.borderRadius = "50%";
+        removeBtn.style.width = "18px";
+        removeBtn.style.height = "18px";
+        removeBtn.style.cursor = "pointer";
+        removeBtn.style.fontSize = "12px";
+        removeBtn.addEventListener("click", () => {
+          selectedFiles.splice(index, 1);
+          renderFileList();
+        });
+
+        fileItem.appendChild(fileName);
+        fileItem.appendChild(removeBtn);
+        fileListContainer.appendChild(fileItem);
+      });
+    }
+
+    // 폼 제출 시 FormData에 selectedFiles만 포함
+    const form = document.querySelector(".write-form");
+    if (form) {
+      form.addEventListener("submit", function () {
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach(file => dataTransfer.items.add(file));
+        fileUpload.files = dataTransfer.files;
+      });
+    }
   }
 
   // 5. 카테고리 별 추가 필드 처리
@@ -31,7 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <option>파이썬</option>
             <option>C</option>
             <option>C++</option>
-            <option>PHP</option>
+            <option>PHP/JSP</option>
             <option>HTML/CSS/JS</option>
           </select>
 
