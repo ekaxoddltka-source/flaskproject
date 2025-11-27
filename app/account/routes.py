@@ -1,10 +1,9 @@
 # app/account/routes.py
-from flask import Blueprint, render_template, request, redirect, session, flash
+from flask import Blueprint, render_template, request, redirect, session, flash, current_app
 from config import SIDEBAR_CONFIG
 from datetime import datetime
 import pymysql
 from .dao.user_dao import UserDao
-from app.database import get_db_connection
 
 bp = Blueprint(
     'account',
@@ -18,7 +17,7 @@ bp = Blueprint(
 
 @bp.route("/login", methods=["POST"])
 def login():
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
     try:

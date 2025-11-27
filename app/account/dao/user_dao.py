@@ -4,7 +4,7 @@ import pymysql
 from datetime import datetime
 # 중요: get_db_connection 함수는 app/account/routes.py에 정의되어 있으므로 상대 경로로 import 합니다.
 # 실제 프로젝트 구조에 따라 경로는 달라질 수 있습니다.
-from app.database import get_db_connection 
+from flask import current_app
 
 class UserDao:
     """
@@ -22,7 +22,7 @@ class UserDao:
         :param user_id: 사용자가 입력한 아이디 (문자열)
         :return: True (중복), False (사용 가능)
         """
-        conn = get_db_connection()
+        conn = current_app.get_db_connection()
         # count 쿼리이므로 DictCursor 대신 일반 Cursor를 사용하는 것이 효율적일 수 있습니다.
         cursor = conn.cursor() 
         
@@ -52,7 +52,7 @@ class UserDao:
         :param data: 회원가입 정보 딕셔너리. (필수: 'id', 'password', 'email', 'nickname')
         :return: True (삽입 성공), False (삽입 실패)
         """
-        conn = get_db_connection()
+        conn = current_app.get_db_connection()
         cursor = conn.cursor()
         
         # SQL 쿼리 정의 (DB 테이블 컬럼명에 맞춰 작성)

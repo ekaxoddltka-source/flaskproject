@@ -1,11 +1,10 @@
 # app/home/routes.py
-from flask import Blueprint, render_template, jsonify, request, session, send_from_directory, abort
+from flask import Blueprint, render_template, jsonify, request, session, send_from_directory, abort, redirect, flash, current_app
 from datetime import datetime
 from config import SIDEBAR_CONFIG
 import pymysql
 import os
 from urllib.parse import unquote
-from app.database import get_db_connection
 
 bp = Blueprint(
     'home',
@@ -17,7 +16,7 @@ bp = Blueprint(
 
 @bp.route("/api/latest_notice")
 def latest_notice():
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cur = conn.cursor()
 
     sql = "SELECT board_title FROM board where board_category = 4 and board_deleted = 0 ORDER BY board_created_at DESC LIMIT 1"
@@ -29,6 +28,202 @@ def latest_notice():
 
     return jsonify({"title": row["board_title"] if row else ""})
 
+@bp.route('/load_more_posts')
+def load_more_posts():
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 10))
+    top_filter = request.args.get('top', '최신순')  # '최신순' or '오래된순' or '조회순' or '추천순' or '팔로우순'
+    feed_filter = request.args.get('feed', '전체')
+    search_type = request.args.get('search_type')
+    search_keyword = request.args.get('keyword', '').strip()
+    offset = (page - 1) * per_page
+
+    conn = current_app.get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+    try:
+        # base
+        board_filter_sql = "SELECT board_no FROM board WHERE board_deleted = 0"
+        params_filter = []
+
+        category_map = {"자유": 1, "Q&A": 2, "코딩테스트": 3, "공지사항": 4, "이용약관": 5, "개인정보처리방침": 6}
+        if feed_filter != "전체" and feed_filter in category_map:
+            board_filter_sql += " AND board_category = %s"
+            params_filter.append(category_map[feed_filter])
+
+        login_user_id = session.get("user", {}).get("id")
+
+        if top_filter == "팔로우순" and login_user_id and not search_keyword:
+            board_filter_sql += """
+            AND id IN (
+                SELECT following_id
+                FROM follow
+                WHERE followed_id = %s
+            )
+            """
+            params_filter.append(login_user_id)
+
+        # 검색 처리
+        if search_type and search_keyword:
+            if search_type == "board_title":
+                board_filter_sql += " AND board_title LIKE %s"
+                params_filter.append(f"%{search_keyword}%")
+            elif search_type == "board_content":
+                board_filter_sql += " AND board_content LIKE %s"
+                params_filter.append(f"%{search_keyword}%")
+            elif search_type == "id":
+                board_filter_sql += """
+                AND id IN (
+                    SELECT id FROM user WHERE nick LIKE %s
+                )
+                """
+                params_filter.append(f"%{search_keyword}%")
+            elif search_type == "tag":
+                board_filter_sql += """
+                AND board_no IN (
+                    SELECT tb.board_no
+                    FROM tag_board tb
+                    JOIN tag t ON tb.tag_no = t.tag_no
+                    WHERE t.tag_name LIKE %s
+                )
+                """
+                params_filter.append(f"%{search_keyword}%")
+
+        # ----- 정렬 결정 (명확히) -----
+        # top_filter 값에 따라 ORDER BY 확실히 설정
+        if top_filter == "조회순":
+            order_clause = "ORDER BY hit DESC, board_no DESC"
+        elif top_filter == "추천순":
+            order_clause = "ORDER BY board_like DESC, board_no DESC"
+        elif top_filter == "오래된순":
+            order_clause = "ORDER BY board_created_at ASC, board_no ASC"
+        elif top_filter == "팔로우순":
+            order_clause = "ORDER BY board_created_at DESC, board_no DESC"
+        else:  # '최신순' 기본
+            order_clause = "ORDER BY board_created_at DESC, board_no DESC"
+
+        board_filter_sql = f"{board_filter_sql} {order_clause} LIMIT %s OFFSET %s"
+        params_filter.extend([per_page, offset])
+
+        cursor.execute(board_filter_sql, tuple(params_filter))
+        board_rows = cursor.fetchall()
+        board_nos = [r['board_no'] for r in board_rows]
+
+        if not board_nos:
+            return jsonify([])
+
+        # 상세 조회: FIELD로 order 보장
+        format_strings = ','.join(['%s'] * len(board_nos))
+        sql = f"""
+            SELECT
+              board.board_no AS board_no,
+              board.id AS writer_id,
+              user.nick AS writer_nick,
+              board.board_title,
+              board.board_content,
+              board.board_category,
+              board.hit,
+              board.board_like,
+              board.board_dislike,
+              board.board_created_at,
+              board.board_updated_at,
+              board.board_deleted,
+              comment_answer.comment_answer_no,
+              comment_answer.comment_answer_content,
+              comment_answer.comment_answer_type,
+              comment_answer.comment_like_count,
+              comment_answer.comment_dislike_count,
+              comment_answer.comment_answer_at,
+              comment_answer.comment_answer_updated_at,
+              comment_answer.answer_accepted,
+              comment_user.id AS commenter_id,
+              comment_user.nick AS commenter_nick,
+              file.file_no,
+              file.logical_file_name,
+              file.physical_file_name,
+              file.file_size,
+              file.file_ext,
+              tag.tag_name
+            FROM board
+            LEFT JOIN user ON board.id = user.id
+            LEFT JOIN file ON board.board_no = file.board_no
+            LEFT JOIN tag_board ON tag_board.board_no = board.board_no
+            LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
+            LEFT JOIN comment_answer ON board.board_no = comment_answer.board_no
+            LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
+            WHERE board.board_no IN ({format_strings})
+            ORDER BY FIELD(board.board_no, {format_strings})
+        """
+        params_for_detail = tuple(board_nos + board_nos)
+        cursor.execute(sql, params_for_detail)
+        rows = cursor.fetchall()
+
+        # 조립
+        board_map = {}
+        for row in rows:
+            bno = row["board_no"]
+            if bno not in board_map:
+                board_map[bno] = {
+                    "boardNo": bno,
+                    "id": row["writer_id"],
+                    "nick": row["writer_nick"],
+                    "boardTitle": row["board_title"],
+                    "boardContent": row["board_content"],
+                    "boardCategory": row["board_category"],
+                    "hit": row["hit"],
+                    "boardLike": row["board_like"],
+                    "boardDislike": row["board_dislike"],
+                    "boardCreatedAt": row["board_created_at"].strftime("%Y-%m-%d %H:%M") if row["board_created_at"] else None,
+                    "boardUpdatedAt": row["board_updated_at"].strftime("%Y-%m-%d %H:%M") if row["board_updated_at"] else None,
+                    "board_deleted": row["board_deleted"],
+                    "comments": [],
+                    "files": [],
+                    "tags": []
+                }
+            post = board_map[bno]
+            if row.get("file_no") is not None:
+                if not any(f["fileNo"] == row["file_no"] for f in post["files"]):
+                    post["files"].append({
+                        "fileNo": row["file_no"],
+                        "logicalFileName": row["logical_file_name"],
+                        "physicalFileName": row["physical_file_name"],
+                        "fileSize": row["file_size"],
+                        "fileExt": row["file_ext"]
+                    })
+            if row.get("tag_name") is not None:
+                if not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
+                    post["tags"].append({"tagName": row["tag_name"]})
+            if row.get("comment_answer_no") is not None:
+                if not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
+                    post["comments"].append({
+                        "commentAnswerNo": row["comment_answer_no"],
+                        "boardNo": bno,
+                        "commenterId": row["commenter_id"],
+                        "commenterNick": row["commenter_nick"],
+                        "commentAnswerContent": row["comment_answer_content"],
+                        "commentLikeCount": row["comment_like_count"],
+                        "commentDislikeCount": row["comment_dislike_count"],
+                        "commentAnswerAt": row["comment_answer_at"].strftime("%Y-%m-%d %H:%M") if row["comment_answer_at"] else None,
+                        "commentAnswerUpdatedAt": row["comment_answer_updated_at"].strftime("%Y-%m-%d %H:%M") if row["comment_answer_updated_at"] else None,
+                        "commentAnswerType": row["comment_answer_type"],
+                        "answerAccepted": row["answer_accepted"]
+                    })
+
+        # FIELD 순서에 맞춰 리스트 생성
+        boardList = [board_map[b] for b in board_nos if b in board_map]
+        return jsonify(boardList)
+
+    finally:
+        try:
+            cursor.close()
+        except:
+            pass
+        try:
+            conn.close()
+        except:
+            pass
+
+
 @bp.route('/')
 def home():
     top_filter = request.args.get('top', '최신순')  
@@ -36,7 +231,7 @@ def home():
     search_type = request.args.get('search_type')
     search_keyword = request.args.get('keyword', '').strip()
 
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
     # 1. 검색용 게시글 번호 필터링 (서브쿼리 방식)
@@ -94,6 +289,10 @@ def home():
     if not board_nos:
         boardList = []
     else:
+        per_page = 10
+        page = 1
+        board_nos = board_nos[(page-1)*per_page : page*per_page]
+        
         format_strings = ','.join(['%s'] * len(board_nos))
         sql = f"""
             SELECT 
@@ -224,13 +423,221 @@ def home():
         login_user_id=login_user_id
     )
 
-@bp.route('/write')
+@bp.route('/write', methods=['GET', 'POST'])
 def write():
-    return render_template(
-    'write.html',
-    sidebar=SIDEBAR_CONFIG["default"],
-    active="chat"
-)
+    user = session.get("user")
+    if not user:
+        return redirect("/")
+
+    user_type = user.get("user_type")
+
+    if request.method == "GET":
+        return render_template(
+            'write.html',
+            sidebar=SIDEBAR_CONFIG["default"],
+            active="chat",
+            user_type=user_type
+        )
+
+    # POST 요청: 글 저장
+    title = request.form.get("boardTitle", "").strip()
+    content = request.form.get("boardContent", "").strip()
+    category = request.form.get("boardCategory")
+    user_id = user["id"]
+
+    # 파일 업로드 (여러 파일 처리)
+    uploaded_files = request.files.getlist("attach")
+    saved_files_info = []
+
+    import os, uuid
+    UPLOAD_FOLDER = "app/uploads"
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+    for uploaded_file in uploaded_files:
+        if uploaded_file and uploaded_file.filename != "":
+            ext = os.path.splitext(uploaded_file.filename)[1]
+            physical_name = f"{uuid.uuid4().hex}{ext}"
+            filepath = os.path.join(UPLOAD_FOLDER, physical_name)
+            uploaded_file.save(filepath)
+            saved_files_info.append({
+                "logical_name": uploaded_file.filename,
+                "physical_name": physical_name,
+                "size": os.path.getsize(filepath),
+                "ext": ext[1:]
+            })
+
+    # DB 연결
+    conn = current_app.get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+    try:
+        # 1. board 테이블에 글 저장
+        now = datetime.now()
+        sql_board = """
+        INSERT INTO board
+        (id, board_title, board_content, board_category, hit, board_like, board_dislike, board_created_at, board_updated_at, board_deleted)
+        VALUES (%s, %s, %s, %s, 0, 0, 0, %s, %s, 0)
+        """
+        cursor.execute(sql_board, (user_id, title, content, category, now, now))
+        board_no = cursor.lastrowid  # 방금 삽입된 글 번호
+
+        # 2. 파일 정보 저장
+        for file_info in saved_files_info:
+            sql_file = """
+            INSERT INTO file
+            (board_no, logical_file_name, physical_file_name, file_size, file_ext)
+            VALUES (%s, %s, %s, %s, %s)
+            """
+            cursor.execute(sql_file, (
+                board_no,
+                file_info["logical_name"],
+                file_info["physical_name"],
+                file_info["size"],
+                file_info["ext"]
+            ))
+
+        # 3. 해시태그 저장 (기존 단일 태그 로직 그대로 사용)
+        tag_string = request.form.get("tagName", "")
+        tags = [t.strip() for t in tag_string.split(",") if t.strip()]
+        for tag_name in tags:
+            cursor.execute("SELECT tag_no FROM tag WHERE tag_name=%s", (tag_name,))
+            tag_row = cursor.fetchone()
+            if tag_row:
+                tag_no = tag_row["tag_no"]
+            else:
+                cursor.execute("INSERT INTO tag (tag_name) VALUES (%s)", (tag_name,))
+                tag_no = cursor.lastrowid
+            cursor.execute("INSERT INTO tag_board (board_no, tag_no) VALUES (%s, %s)", (board_no, tag_no))
+
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect("/")
+
+@bp.route('/update/<int:board_no>', methods=['GET', 'POST'])
+def update_post(board_no):
+    user = session.get("user")
+    if not user:
+        flash("로그인이 필요한 페이지입니다.", "error")
+        return redirect("/")
+
+    user_id = user.get("id")
+    conn = current_app.get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+    try:
+        # 기존 글 가져오기
+        cursor.execute("SELECT * FROM board WHERE board_no=%s AND board_deleted=0", (board_no,))
+        post = cursor.fetchone()
+        if not post:
+            flash("게시글을 찾을 수 없습니다.", "error")
+            return redirect("/")
+
+        # 작성자 확인
+        if post["id"] != user_id:
+            flash("권한이 없습니다.", "error")
+            return redirect("/")
+
+        if request.method == "GET":
+            # 태그
+            cursor.execute("""
+                SELECT t.tag_name 
+                FROM tag_board tb 
+                JOIN tag t ON tb.tag_no = t.tag_no 
+                WHERE tb.board_no=%s
+            """, (board_no,))
+            tags = [row['tag_name'] for row in cursor.fetchall()]
+            tagString = ",".join(tags)
+
+            # 파일
+            cursor.execute("SELECT * FROM file WHERE board_no=%s", (board_no,))
+            files = cursor.fetchall()
+            files_camel = [{
+                "fileNo": f["file_no"],
+                "logicalFileName": f["logical_file_name"],
+                "physicalFileName": f["physical_file_name"],
+                "fileSize": f["file_size"],
+                "fileExt": f["file_ext"]
+            } for f in files]
+
+            # 게시글 CamelCase 매핑
+            post_camel = {
+                "boardNo": post["board_no"],
+                "boardTitle": post["board_title"],
+                "boardContent": post["board_content"],
+                "boardCategory": post["board_category"],
+                "files": files_camel
+            }
+
+            return render_template(
+                "write.html",
+                post=post_camel,
+                tagString=tagString,
+                user_type=user["user_type"],
+                sidebar=SIDEBAR_CONFIG["default"],
+                active="chat"
+            )
+
+        elif request.method == "POST":
+            # POST: DB 업데이트
+            title = request.form.get("boardTitle", "").strip()
+            content = request.form.get("boardContent", "").strip()
+            category = request.form.get("boardCategory")
+            tagString = request.form.get("tagName", "").strip()
+            files = request.files.getlist("attach")
+
+            if not title or not content:
+                flash("제목과 내용을 모두 입력해야 합니다.", "error")
+                return redirect(request.url)
+
+            now = datetime.now()
+            # 게시글 업데이트
+            cursor.execute("""
+                UPDATE board
+                SET board_title=%s, board_content=%s, board_category=%s, board_updated_at=%s
+                WHERE board_no=%s
+            """, (title, content, category, now, board_no))
+
+            # 태그 업데이트
+            cursor.execute("DELETE FROM tag_board WHERE board_no=%s", (board_no,))
+            if tagString:
+                tag_list = [t.strip() for t in tagString.split(",") if t.strip()]
+                for tag_name in tag_list:
+                    cursor.execute("SELECT tag_no FROM tag WHERE tag_name=%s", (tag_name,))
+                    tag_row = cursor.fetchone()
+                    if tag_row:
+                        tag_no = tag_row['tag_no']
+                    else:
+                        cursor.execute("INSERT INTO tag (tag_name) VALUES (%s)", (tag_name,))
+                        tag_no = cursor.lastrowid
+                    cursor.execute("INSERT INTO tag_board (board_no, tag_no) VALUES (%s, %s)", (board_no, tag_no))
+
+            # 파일 업로드
+            upload_path = "app/uploads"
+            import os, uuid
+            for f in files:
+                if f and f.filename:
+                    ext = os.path.splitext(f.filename)[1]
+                    physical_name = f"{uuid.uuid4().hex}{ext}"
+                    f.save(os.path.join(upload_path, physical_name))
+                    size = os.path.getsize(os.path.join(upload_path, physical_name))
+                    cursor.execute("""
+                        INSERT INTO file 
+                        (board_no, logical_file_name, physical_file_name, file_size, file_ext)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (board_no, f.filename, physical_name, size, ext))
+
+            conn.commit()
+            flash("게시글이 수정되었습니다.", "success")
+            return redirect("/")
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
 
 @bp.route('/terms')
 def terms():
@@ -239,7 +646,7 @@ def terms():
     search_type = request.args.get('search_type')
     search_keyword = request.args.get('keyword', '').strip()
 
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
     # 1. 검색용 게시글 번호 필터링 (서브쿼리 방식)
@@ -430,7 +837,7 @@ def info():
     search_type = request.args.get('search_type')
     search_keyword = request.args.get('keyword', '').strip()
 
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
     # 1. 검색용 게시글 번호 필터링 (서브쿼리 방식)
@@ -621,7 +1028,7 @@ def privacy():
     search_type = request.args.get('search_type')
     search_keyword = request.args.get('keyword', '').strip()
 
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
     # 1. 검색용 게시글 번호 필터링 (서브쿼리 방식)
@@ -817,7 +1224,7 @@ def report_post():
     report_user_id = session["user"]["id"]
     now = datetime.now()
 
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
     try:
@@ -861,7 +1268,7 @@ def delete_post():
     data = request.get_json()
     board_no = data.get("id")
 
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute(
@@ -886,7 +1293,7 @@ def delete_comment():
     if not comment_id:
         return jsonify(success=False, msg="댓글 ID가 없습니다.")
 
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute(
@@ -912,7 +1319,7 @@ def delete_answer():
     if not answer_id:
         return jsonify(success=False, msg="답변 ID가 없습니다.")
 
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute(
@@ -939,7 +1346,7 @@ def update_comment():
     if not comment_id or not content:
         return jsonify(success=False, msg="필수 정보 누락")
 
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute(
@@ -964,7 +1371,7 @@ def update_answer():
     if not answer_id or not content:
         return jsonify(success=False, msg="필수 정보 누락")
 
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute(
@@ -989,7 +1396,7 @@ def add_comment():
     if not board_no or not content:
         return jsonify(success=False, msg="필수 정보 누락")
 
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor()
 
     try:
@@ -1022,7 +1429,7 @@ def add_answer():
     if not board_no or not content:
         return jsonify(success=False, msg="필수 정보 누락")
 
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor()
 
     try:
@@ -1053,7 +1460,7 @@ def accept_answer():
     if not answer_id:
         return jsonify(success=False, msg="답변 ID가 없습니다.")
     
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
     
     try:
@@ -1109,7 +1516,7 @@ def vote():
     if not type_ or not action or not target_id:
         return jsonify(success=False, msg="필수 정보 누락")
 
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
     try:
@@ -1150,7 +1557,7 @@ def vote():
 
 @bp.route("/post/hit/<int:board_no>", methods=["POST"])
 def increment_hit(board_no):
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
     try:
         cursor.execute("UPDATE board SET hit = hit + 1 WHERE board_no = %s", (board_no,))
@@ -1174,7 +1581,7 @@ def download_file():
     if not file_no:
         return abort(400, "파일 번호가 필요합니다.")
 
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
     try:
@@ -1207,6 +1614,43 @@ def download_file():
         cursor.close()
         conn.close()
 
+@bp.route("/delete_file/<int:file_no>", methods=["POST"])
+def delete_file(file_no):
+    user = session.get("user")
+    if not user:
+        return {"success": False, "message": "로그인이 필요합니다."}, 401
+
+    conn = current_app.get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    try:
+        # 1. 파일 정보 가져오기
+        cursor.execute("SELECT * FROM file WHERE file_no=%s", (file_no,))
+        file_row = cursor.fetchone()
+        if not file_row:
+            return {"success": False, "message": "파일이 존재하지 않습니다."}, 404
+
+        # 2. 작성자 확인 (파일이 속한 게시글 확인)
+        cursor.execute("SELECT * FROM board WHERE board_no=%s", (file_row["board_no"],))
+        post = cursor.fetchone()
+        if post["id"] != user["id"]:
+            return {"success": False, "message": "권한이 없습니다."}, 403
+
+        # 3. 실제 파일 삭제
+        import os
+        file_path = os.path.join("app/uploads", file_row["physical_file_name"])
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        # 4. DB에서 삭제
+        cursor.execute("DELETE FROM file WHERE file_no=%s", (file_no,))
+        conn.commit()
+
+        return {"success": True}
+
+    finally:
+        cursor.close()
+        conn.close()
+
 @bp.route('/tags/')
 @bp.route('/tags/<path:tag_name>')
 def tag_filter(tag_name):
@@ -1215,7 +1659,7 @@ def tag_filter(tag_name):
     top_filter = request.args.get('top', '최신순')  
     feed_filter = request.args.get('feed', '전체')  
 
-    conn = get_db_connection()
+    conn = current_app.get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
     # 1. 해당 태그가 달린 게시글 번호만 가져오기
