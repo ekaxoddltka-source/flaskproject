@@ -1,4 +1,186 @@
-document.addEventListener("DOMContentLoaded", () => {
+function formatDate(isoString) {
+    const date = new Date(isoString);
+    const pad = (n) => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function renderPost(post, loginUserId) {
+    // 게시판 이름
+    const categoryMap = {
+        1: "자유게시판",
+        2: "Q&A",
+        3: "코딩테스트",
+        4: "공지사항",
+        5: "이용약관",
+        6: "개인정보처리방침"
+    };
+    const categoryName = categoryMap[post.boardCategory] || "미분류";
+
+    // 파일 HTML
+    let filesHtml = "";
+    if (post.files && post.files.length > 0) {
+        filesHtml = post.files.map(file => 
+            `<a href="/download?no=${file.fileNo}" class="upload">${file.logicalFileName}</a>`
+        ).join("");
+    } else {
+        filesHtml = `<span class="upload">첨부파일 없음</span>`;
+    }
+
+    // 이미지 미리보기
+    let imagesHtml = "";
+    if (post.files && post.files.length > 0) {
+        imagesHtml = post.files.map(file => {
+            const ext = file.fileExt.toLowerCase();
+            if (["jpg", "png", "gif"].includes(ext)) {
+                return `<img src="/download?no=${file.fileNo}" alt="${file.logicalFileName}">`;
+            }
+            return "";
+        }).join("");
+    }
+
+    // 태그 HTML
+    let tagNames = [];
+    let tagsHtml = "";
+    if (post.tags && post.tags.length > 0) {
+        tagsHtml = post.tags.map(tag => {
+            if (!tagNames.includes(tag.tagName)) {
+                tagNames.push(tag.tagName);
+                return `<a href="/tags/${tag.tagName}">#${tag.tagName}</a>`;
+            }
+            return "";
+        }).join("");
+    }
+
+    // 답안 HTML (commentAnswerType == 2)
+    let answersHtml = "";
+    if ((post.boardCategory === 2 || post.boardCategory === 3) && post.comments) {
+        const answerItems = post.comments.filter(a => a.commentAnswerType === 2).map(answer => {
+            return `
+            <div class="answer-item" data-id="${answer.commentAnswerNo}">
+                <div class="a-text">
+                    ${answer.answerAccepted ? '<span class="chosen-label">채택된 답안</span>' : ''}
+                    ${answer.commentAnswerContent}
+                </div>
+                <div class="a-footer">
+                    <span class="author">by ${answer.commenterNick}</span>
+                    ${loginUserId === answer.commenterId ? `
+                    <div class="answer-actions">
+                        <span class="edit-btn">수정</span>
+                        <span class="delete-btn" data-type="answer" data-id="${answer.commentAnswerNo}">삭제</span>
+                    </div>` : ''}
+                    <button class="a-choice ${answer.answerAccepted ? 'disabled' : ''}" ${answer.answerAccepted ? 'disabled' : ''}>
+                        ${answer.answerAccepted ? '채택 완료' : '채택'}
+                    </button>
+                </div>
+            </div>`;
+        }).join("");
+
+        answersHtml = `
+        <div class="answer-toggle">
+            <button class="answer-btn">답안 작성 / 모아보기</button>
+        </div>
+        <div class="answers">
+            <div class="answer-list">${answerItems}</div>
+            <form class="answer-form">
+                <textarea placeholder="답안을 작성해보세요..." required></textarea>
+                <button type="submit">등록</button>
+            </form>
+        </div>`;
+    }
+
+    // 댓글 HTML (commentAnswerType == 1)
+    let commentsHtml = "";
+    if (post.comments && post.comments.length > 0) {
+        commentsHtml = post.comments.filter(c => c.commentAnswerType === 1).map(comment => {
+            return `
+            <div class="comment-item" data-id="${comment.commentAnswerNo}">
+                <span class="c-text">${comment.commentAnswerContent}</span>
+                <div class="c-votes">
+                    <span class="comment-up" data-id="${comment.commentAnswerNo}">${comment.commentLikeCount} 👍</span>
+                    <span class="comment-down" data-id="${comment.commentAnswerNo}">${comment.commentDislikeCount} 👎</span>
+                </div>
+                ${loginUserId === comment.commenterId ? `
+                <div class="comment-actions">
+                    <span class="edit-btn">수정</span>
+                    <span class="delete-btn" data-type="comment" data-id="${comment.commentAnswerNo}">삭제</span>
+                </div>` : ''}
+            </div>`;
+        }).join("");
+    }
+
+    // 최종 HTML
+    const postHtml = `
+    <div class="post" data-id="${post.boardNo}" data-author-id="${post.id}" data-login-user-id="${loginUserId}">
+        <div class="post-header">
+            <span class="kind">[ ${categoryName} ]</span>
+            <span class="title">${post.boardTitle}</span>
+            <span class="nick dropdown">
+                작성자: ${post.nick}
+                <ul class="dropdown-menu">
+                    <li><a href="#">프로필 보기</a></li>
+                    <li><a href="#">팔로우 하기</a></li>
+                    <li><a href="#">메세지 보내기</a></li>
+                    <li><a href="#">차단하기</a></li>
+                </ul>
+            </span>
+            <span class="hit">조회수: ${post.hit.toLocaleString()}</span>
+            <span class="wdate">작성일: ${formatDate(post.boardCreatedAt)}</span>
+            <span class="report" data-post-id="${post.boardNo}">🚨신고하기</span>
+        </div>
+
+        <div class="post-body">
+            ${filesHtml}
+            <div class="bnote">${post.boardContent}</div>
+            <div class="post-images" style="display: none;">${imagesHtml}</div>
+            <br>
+            <div class="tag">${tagsHtml}</div>
+        </div>
+
+        ${answersHtml}
+
+        <div class="post-footer">
+            <span class="comment">댓글 ${post.comments ? post.comments.filter(c => c.commentAnswerType === 1).length : 0}개</span>
+            <div class="votes">
+                <span class="post-up" data-id="${post.boardNo}">추천 ${post.boardLike} 👍</span>
+                <span class="post-down" data-id="${post.boardNo}">비추천 ${post.boardDislike} 👎</span>
+            </div>
+            <div class="post-actions">
+                ${loginUserId === post.id ? `
+                <a href="/update/${post.boardNo}" class="edit-btn">수정</a>
+                <span class="delete-btn" data-type="post" data-id="${post.boardNo}">삭제</span>` : ''}
+            </div>
+            <a href="#" class="more">더보기</a>
+        </div>
+
+        <br>
+
+        <div class="comments">${commentsHtml}</div>
+        <div class="comment-form" style="display: none;">
+            <textarea placeholder="댓글을 입력하세요..."></textarea>
+            <button type="button" class="submit-comment">작성</button>
+        </div>
+    </div>`;
+
+    return postHtml;
+}
+
+let loginUserId = document.querySelector(".post")?.dataset.loginUserId || null;
+
+// ------------------------------------------------- DOM로드 시작 ------------------------------------------------------------------
+
+document.addEventListener("DOMContentLoaded", async() => {
+
+     try {
+        const res = await fetch("/api/me");
+        if (res.ok) {
+            const data = await res.json();
+            if (data.id) { // 값이 있으면 갱신
+                loginUserId = data.id;
+            }
+        }
+    } catch (err) {
+        console.error("loginUserId fetch error:", err);
+    }
 
     function escapeHtml(text) {
         const div = document.createElement('div');
@@ -33,7 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const shortText = needsTruncation
             ? fullText.substring(0, POST_BODY_MAX_LENGTH) + "..."
-            : fullText.padEnd(POST_BODY_MAX_LENGTH, " ");
+            : fullText;
 
         body.textContent = shortText;
 
@@ -262,7 +444,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (isCommentSubmit || isAnswerSubmit) {
             e.preventDefault();
-            const form = target.closest("form");
+
+            // form 찾기
+            let form;
+            if (isCommentSubmit) {
+                // 댓글은 div.comment-form
+                form = target.closest(".comment-form");
+            } else {
+                // 답변은 form.answer-form
+                form = target.closest("form");
+            }
+
             const type = isCommentSubmit ? "comment" : "answer";
             handleSubmit(form, type);
             return;
@@ -520,73 +712,70 @@ document.addEventListener("DOMContentLoaded", () => {
     // 5. 인피니티 스크롤
     // ===========================
     let page = 1;
-const perPage = 10;
-let loading = false;
-let reachedEnd = false; // 더 이상 데이터가 없음을 표시
+    const perPage = 10;
+    let loading = false;
+    let reachedEnd = false; // 더 이상 데이터가 없음을 표시
 
-const container = document.querySelector('.posts-wrapper') || window; // posts-wrapper 우선
-const postsContainer = document.querySelector('.posts'); // 실제 포스트를 append할 곳
+    const container = document.querySelector('.posts-wrapper') || window; // posts-wrapper 우선
+    const postsContainer = document.querySelector('.posts'); // 실제 포스트를 append할 곳
 
-async function loadMorePosts() {
-    if (loading || reachedEnd) return;
-    loading = true;
+    async function loadMorePosts() {
+        if (loading || reachedEnd) return;
+        loading = true;
 
-    try {
-        const res = await fetch(`/load_more_posts?page=${page + 1}&per_page=${perPage}`); // 다음 페이지 요청
-        if (!res.ok) throw new Error('네트워크 응답 실패');
-        const data = await res.json();
+        try {
+            const res = await fetch(`/load_more_posts?page=${page + 1}&per_page=${perPage}`); // 다음 페이지 요청
+            if (!res.ok) throw new Error('네트워크 응답 실패');
+            const data = await res.json();
 
-        // 서버가 []를 반환하면 더 이상 로드할 항목이 없음
-        if (!Array.isArray(data) || data.length === 0) {
-            reachedEnd = true;
-            // (선택) 로더 제거 또는 '더 이상 게시물이 없습니다' UI 표시
+            // 서버가 []를 반환하면 더 이상 로드할 항목이 없음
+            if (!Array.isArray(data) || data.length === 0) {
+                reachedEnd = true;
+                // (선택) 로더 제거 또는 '더 이상 게시물이 없습니다' UI 표시
+                return;
+            }
+
+            // 정상적으로 처리되면 page를 증가 (성공 시에만)
+            page += 1;
+
+            data.forEach(post => {
+                const html = renderPost(post, loginUserId);
+                postsContainer.insertAdjacentHTML('beforeend', html);
+
+                const newPostEl = postsContainer.querySelector(`.post[data-id="${post.boardNo}"]`);
+                if (newPostEl) initPostBody(newPostEl);
+            });
+        } catch (err) {
+            console.error('loadMorePosts error', err);
+        } finally {
+            loading = false;
+        }
+    }
+
+    // 스크롤 핸들러 (posts-wrapper 용)
+    function onContainerScroll(e) {
+        // container가 window인 경우 (fallback)
+        if (container === window) {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+                loadMorePosts();
+            }
             return;
         }
 
-        // 정상적으로 처리되면 page를 증가 (성공 시에만)
-        page += 1;
-
-        data.forEach(post => {
-            const div = document.createElement('div');
-            div.className = 'post';
-            div.dataset.id = post.boardNo;
-            // TODO: 실제 템플릿대로 innerHTML 채우기 (간단히 제목만 예시)
-            div.innerHTML = `<span class="title">${escapeHtml(post.boardTitle || '')}</span>`;
-            postsContainer.appendChild(div);
-            // 초기화(본문 단축 등) 필요하면 initPostBody(div) 호출
-            if (typeof initPostBody === 'function') initPostBody(div);
-        });
-    } catch (err) {
-        console.error('loadMorePosts error', err);
-    } finally {
-        loading = false;
-    }
-}
-
-// 스크롤 핸들러 (posts-wrapper 용)
-function onContainerScroll(e) {
-    // container가 window인 경우 (fallback)
-    if (container === window) {
-        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+        // posts-wrapper (요소 스크롤)인 경우
+        const el = container;
+        // scrollTop + clientHeight >= scrollHeight - threshold
+        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100) {
             loadMorePosts();
         }
-        return;
     }
 
-    // posts-wrapper (요소 스크롤)인 경우
-    const el = container;
-    // scrollTop + clientHeight >= scrollHeight - threshold
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100) {
-        loadMorePosts();
+    // 옵저버(권장): 스크롤 대신 IntersectionObserver로 '마지막 아이템' 관찰하면 더 안정적.
+    // 여기서는 간단히 스크롤 리스너 사용.
+    if (container === window) {
+        window.addEventListener('scroll', onContainerScroll, { passive: true });
+    } else {
+        container.addEventListener('scroll', onContainerScroll, { passive: true });
     }
-}
-
-// 옵저버(권장): 스크롤 대신 IntersectionObserver로 '마지막 아이템' 관찰하면 더 안정적.
-// 여기서는 간단히 스크롤 리스너 사용.
-if (container === window) {
-    window.addEventListener('scroll', onContainerScroll, { passive: true });
-} else {
-    container.addEventListener('scroll', onContainerScroll, { passive: true });
-}
 
 });

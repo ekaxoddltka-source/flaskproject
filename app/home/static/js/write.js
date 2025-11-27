@@ -111,8 +111,8 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderExtra(catValue, targetValue = null) {
       extra.innerHTML = ""; // 초기화
 
-      if (catValue === "2") {
-        // 코딩테스트
+      if (catValue === "3") {
+        // Q&A
         extra.innerHTML = `
           <label for="lang">언어선택</label>
           <select id="lang" name="lang">
@@ -134,8 +134,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      if (catValue === "3") {
-        // 기본 Q&A UI (회원/관리자 선택 가능)
+      if (catValue === "2") {
+        // 코딩테스트
         extra.innerHTML = `
           <label for="tech">관련기술</label>
           <select id="tech" name="tech">
@@ -211,10 +211,10 @@ document.addEventListener("DOMContentLoaded", () => {
         newTarget.addEventListener("change", function () {
           if (this.value === "member") {
             // member 선택 시 Q&A 기본 UI로 복구 (member 기본값 유지)
-            renderExtra("3", "member");
+            renderExtra("2", "member");
             // 그리고 카테고리 select 값도 보장
             const cat = document.getElementById("category");
-            if (cat) cat.value = "3";
+            if (cat) cat.value = "2";
           }
         });
       }
