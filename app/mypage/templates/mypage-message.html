@@ -25,14 +25,6 @@ body::before {
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
-<script>
-const socket = io();
-socket.emit("join_dm");
-
-socket.on("dm_receive", msg => {
-    // DM 수신 처리
-});
-</script>
 
 <script src="{{ url_for('mypage.static', filename='js/mypage-message.js') }}"></script>
 {% endblock %}

@@ -1,4 +1,17 @@
 // app/mypage/static/js/mypage-message.js
+    const socket = io();
+socket.emit("join_dm");
+
+socket.on("dm_receive", msg => {
+    if (msg.room_no == currentRoomNo) {
+        const bubble = document.createElement("div");
+        bubble.classList.add("chat-bubble", "received");
+        bubble.textContent = msg.content;
+        chatBox.appendChild(bubble);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+    updateRoomPreview();
+});
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -294,19 +307,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    const socket = io();
-socket.emit("join_dm");
 
-socket.on("dm_receive", msg => {
-    if (msg.room_no == currentRoomNo) {
-        const bubble = document.createElement("div");
-        bubble.classList.add("chat-bubble", "received");
-        bubble.textContent = msg.content;
-        chatBox.appendChild(bubble);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-    updateRoomPreview();
-});
     
 });
 
