@@ -20,7 +20,6 @@ def create_app():
     app.config["MYSQL_DB"] = "aezen"
     app.config["MYSQL_CURSORCLASS"] = "DictCursor"
 
-    # DB 연결 함수
     def get_db_connection():
         return pymysql.connect(
             host=app.config["MYSQL_HOST"],
@@ -32,9 +31,6 @@ def create_app():
 
     app.get_db_connection = get_db_connection
 
-    # -------------------------------------
-    # SocketIO 초기화
-    # -------------------------------------
     socketio.init_app(app)
 
     # -------------------------------------
@@ -49,15 +45,17 @@ def create_app():
     app.register_blueprint(mypage_bp)
 
     # -------------------------------------
-    # 🔥 소켓 이벤트 등록
+    # 🔥 WebSocket 이벤트 등록
     # -------------------------------------
-    # Global Chat
     from app.home import events as home_events
-
-    # DM Chat (mypage)
     from app.mypage import events as mypage_events
 
+    # ⭐ 홈(Global Chat)
+    socketio.on_event("connect", home_events.handle_connect)
+    socketio.on_event("send_message", home_events.handle_message)
+    socketio.on_event("disconnect", home_events.handle_disconnect)
+
+    # ⭐ DM
     socketio.on_event("join_dm", mypage_events.join_dm)
-    # send_dm_message는 emit 보내기만 하는 함수라 등록 불필요
 
     return app

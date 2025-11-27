@@ -1,20 +1,9 @@
-// app/mypage/static/js/mypage-message.js
-    const socket = io();
-socket.emit("join_dm");
-
-socket.on("dm_receive", msg => {
-    if (msg.room_no == currentRoomNo) {
-        const bubble = document.createElement("div");
-        bubble.classList.add("chat-bubble", "received");
-        bubble.textContent = msg.content;
-        chatBox.appendChild(bubble);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-    updateRoomPreview();
-});
-
 document.addEventListener("DOMContentLoaded", () => {
 
+    
+    /* ------------------------------
+       기존 변수들
+    ------------------------------ */
     const selectAll = document.getElementById("select-all");
     const deleteSelectedBtn = document.querySelector(".btn-delete-selected-message");
     const deleteModal = document.getElementById("delete-confirm-modal");
@@ -31,23 +20,18 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentPartnerId = null;
     let currentPartnerNick = null;
 
-    // 체크박스 최신 목록
+    /* ------------------------------
+       1) 전체 선택 체크
+    ------------------------------ */
     const getMessageChecks = () =>
         Array.from(document.querySelectorAll(".message-check"));
 
-
-    /* ============================================
-       1) 전체 선택 체크박스
-    ============================================ */
     if (selectAll) {
         selectAll.addEventListener("change", () => {
             getMessageChecks().forEach(chk => chk.checked = selectAll.checked);
         });
     }
 
-    /* ============================================
-       2) 개별 체크박스 → 전체선택 자동 해제
-    ============================================ */
     function bindIndividualChecks() {
         getMessageChecks().forEach(chk => {
             chk.addEventListener("change", () => {
@@ -57,10 +41,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     bindIndividualChecks();
 
-
-    /* ============================================
-       3) 모달 열기 헬퍼
-    ============================================ */
+    /* ------------------------------
+       3) 모달
+    ------------------------------ */
     function openDeleteModal(onConfirm) {
         deleteModal.classList.remove("hidden");
 
@@ -74,10 +57,9 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-
-    /* ============================================
-       4) 대화방 삭제 API
-    ============================================ */
+    /* ------------------------------
+       4) 개별 삭제
+    ------------------------------ */
     async function deleteRooms(roomNos) {
         try {
             const res = await fetch("/api/mypage/messages/delete-room", {
@@ -86,36 +68,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify({ room_nos: roomNos })
             });
 
-            if (!res.ok) {
-                alert("삭제 중 오류가 발생했습니다.");
-                return false;
-            }
-
             const data = await res.json();
-            if (!data.success) {
-                alert(data.msg || "삭제 중 오류가 발생했습니다.");
-                return false;
-            }
-
-            return true;
+            return data.success;
 
         } catch (err) {
             console.error(err);
-            alert("삭제 중 오류가 발생했습니다.");
             return false;
         }
     }
 
-
-    /* ============================================
-       5) 개별 삭제 버튼 바인딩
-    ============================================ */
     function bindDeleteButtons() {
         document.querySelectorAll(".btn-delete").forEach(btn => {
             btn.onclick = () => {
                 const item = btn.closest(".message-item");
-                if (!item) return;
-
                 const roomNo = item.dataset.roomNo;
 
                 openDeleteModal(async () => {
@@ -127,15 +92,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     bindDeleteButtons();
 
-
-    /* ============================================
-       6) 선택 삭제 버튼
-    ============================================ */
+    /* ------------------------------
+       6) 선택 삭제
+    ------------------------------ */
     if (deleteSelectedBtn) {
         deleteSelectedBtn.addEventListener("click", () => {
             const selected = getMessageChecks().filter(chk => chk.checked);
 
-            if (selected.length === 0) {
+            if (!selected.length) {
                 alert("삭제할 대화방을 선택해주세요.");
                 return;
             }
@@ -151,137 +115,99 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-
-    /* ============================================
-       7) 대화방 메시지 로드
-    ============================================ */
+    /* ------------------------------
+       7) 메시지 로딩
+    ------------------------------ */
     async function loadRoomMessages(roomNo) {
-
         chatBox.innerHTML = "<div class='chat-info'>메시지를 불러오는 중...</div>";
 
         try {
             const res = await fetch(`/api/mypage/messages/room/${roomNo}`);
-
-            if (!res.ok) {
-                alert("메시지 불러오기 실패");
-                return;
-            }
-
             const data = await res.json();
-            if (!data.success) {
-                alert(data.msg || "메시지 불러오기 실패");
-                return;
-            }
+
+            if (!data.success) return;
 
             chatBox.innerHTML = "";
-
             data.messages.forEach(msg => {
-    const bubble = document.createElement("div");
-    bubble.classList.add("chat-bubble");
-
-    if (msg.is_me) {
-        bubble.classList.add("sent");     // 내가 보낸 메시지
-    } else {
-        bubble.classList.add("received"); // 상대방 메시지
-    }
-
-    bubble.textContent = msg.content;
-    chatBox.appendChild(bubble);
-});
-
+                const bubble = document.createElement("div");
+                bubble.classList.add("chat-bubble");
+                bubble.classList.add(msg.is_me ? "sent" : "received");
+                bubble.textContent = msg.content;
+                chatBox.appendChild(bubble);
+            });
 
             chatBox.scrollTop = chatBox.scrollHeight;
 
         } catch (err) {
             console.error(err);
-            alert("메시지 불러오기 실패");
         }
     }
 
-
-    /* ============================================
-       8) 메시지 패널 → 채팅 패널 이동
-    ============================================ */
+    /* ------------------------------
+       8) 더보기 → 채팅 이동
+    ------------------------------ */
     function bindMoreButtons() {
         document.querySelectorAll(".btn-more").forEach(btn => {
             btn.onclick = async () => {
                 const item = btn.closest(".message-item");
-                const roomNo = item.dataset.roomNo;
-                const partnerId = item.dataset.partnerId;
-                const partnerNick = item.dataset.partnerNick;
 
-                currentRoomNo = roomNo;
-                currentPartnerId = partnerId;
-                currentPartnerNick = partnerNick;
+                currentRoomNo = item.dataset.roomNo;
+                currentPartnerId = item.dataset.partnerId;
+                currentPartnerNick = item.dataset.partnerNick;
 
-                chatPartnerName.textContent = `(${partnerNick})`;
+                chatPartnerName.textContent = `(${currentPartnerNick})`;
 
                 messagePanel.classList.add("hidden");
                 chatPanel.classList.remove("hidden");
 
-                await loadRoomMessages(roomNo);
+                await loadRoomMessages(currentRoomNo);
             };
         });
     }
     bindMoreButtons();
 
-
-    /* ============================================
-       9) 메시지 전송 (전역)
-    ============================================ */
-    window.sendReply = async function () {
+    /* ------------------------------
+       9) 메시지 전송
+    ------------------------------ */
+    window.sendReply = async function() {
         const msg = replyInput.value.trim();
         if (!msg) return;
 
-        try {
-            const res = await fetch("/api/mypage/messages/send", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    room_no: Number(currentRoomNo),
-                    receiver_id: currentPartnerId,
-                    content: msg
-                })
-            });
+        const res = await fetch("/api/mypage/messages/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                room_no: Number(currentRoomNo),
+                receiver_id: currentPartnerId,
+                content: msg
+            })
+        });
 
-            const data = await res.json();
+        const data = await res.json();
+        if (!data.success) return;
 
-            if (!data.success) {
-                alert(data.msg || "전송 오류");
-                return;
-            }
+        const bubble = document.createElement("div");
+        bubble.classList.add("chat-bubble", "sent");
+        bubble.textContent = msg;
+        chatBox.appendChild(bubble);
 
-            // 화면에 추가
-            const bubble = document.createElement("div");
-            bubble.classList.add("chat-bubble", "sent");
-            bubble.textContent = msg;
-            chatBox.appendChild(bubble);
+        replyInput.value = "";
+        chatBox.scrollTop = chatBox.scrollHeight;
 
-            replyInput.value = "";
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            // 리스트 갱신
-            await updateRoomPreview();
-
-        } catch (err) {
-            console.error(err);
-            alert("메시지 전송 중 오류가 발생했습니다.");
-        }
+        updateRoomPreview();
     };
 
-
-    /* ============================================
+    /* ------------------------------
        10) 뒤로가기
-    ============================================ */
+    ------------------------------ */
     window.goBackToList = function () {
         chatPanel.classList.add("hidden");
         messagePanel.classList.remove("hidden");
     };
 
-
-    /* ============================================
-       11) 메시지 리스트 자동 갱신
-    ============================================ */
+    /* ------------------------------
+       11) 리스트 갱신
+    ------------------------------ */
     async function updateRoomPreview() {
         try {
             const res = await fetch("/mypage-message");
@@ -297,17 +223,36 @@ document.addEventListener("DOMContentLoaded", () => {
                 oldList.innerHTML = newList.innerHTML;
             }
 
-            // 갱신 후 다시 이벤트 바인딩
             bindMoreButtons();
             bindDeleteButtons();
             bindIndividualChecks();
 
         } catch (err) {
-            console.error("리스트 갱신 중 오류", err);
+            console.error("리스트 갱신 오류", err);
         }
     }
 
+    /* ------------------------------
+       0) Socket.IO 연결 + DM Join
+    ------------------------------ */
+    const socket = io();
 
-    
+    socket.on("connect", () => {
+        socket.emit("join_dm");
+        console.log("join_dm emitted after connect");
+    });
+
+    socket.on("dm_receive", msg => {
+        if (msg.room_no == currentRoomNo) {
+            const bubble = document.createElement("div");
+            bubble.classList.add("chat-bubble", "received");
+            bubble.textContent = msg.content;
+            chatBox.appendChild(bubble);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        updateRoomPreview();
+    });
+
+
 });
-
