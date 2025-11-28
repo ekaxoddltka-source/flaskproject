@@ -1,109 +1,133 @@
 {% extends 'base.html' %}
 
+<!-- 개별 css 불러오는 영역-->
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('account.static', filename='css/join_info.css') }}">
 {% endblock %}
 
+<!-- 컨텐츠 넣는 영역 -->
 {% block content %}
-<div class="posts">
-  <div class="post">
-    <h2>정보입력</h2>
-    <form action="/join" method="POST">
-      <label for="userid">아이디</label>
-      <input type="text" id="userid" name="userid" required> 
+<!-- 게시글 -->
+        <div class="posts">
 
-      <label for="password">비밀번호</label>
-      <input type="password" id="password" name="password" required>
-      
-      <label for="confirm-password">비밀번호 확인</label>
-      <input type="password" id="confirm-password" name="confirm-password" required>
-      
-      <label for="name">이름</label>
-      <input type="text" id="name" name="name" required>   
+          <div class="post">
+            <h2>정보입력</h2>
+            <form action="/join" method="POST">
+            
+            <label for="userid">아이디</label>
+            <input type="text" id="userid" name="userid" required> 
+            <div class="message" id="userid-message"></div>      
+            
+            <label for="password">비밀번호</label>
+            <input type="password" id="password" name="password" required>
+            
+            <label for="confirm-password">비밀번호 확인</label>
+            <input type="password" id="confirm-password" name="confirm-password" required>
+            
+            <label for="nickname">닉네임</label>
+            <input type="text" id="nickname" name="nickname" required>
+            <div class="message" id="nickname-message"></div>    
 
-      <label for="nickname">닉네임</label>
-      <input type="text" id="nickname" name="nickname" required>   
+            <label for="email">이메일</label>
+            <input type="email" id="email" name="email" required>
+            <button type="button">인증코드 전송</button>
+            <div class="message" id="email-message"></div>
 
-      <label for="email">이메일</label>
-      <input type="email" id="email" name="email" required>
-      
-      <!-- 관심분야 -->
-      <div class="skill-tag-area">
-        <label>관심분야</label>
-        <div class="tag-box" id="interest-tags">
-          <label class="tag">
-            <input type="checkbox" name="interests" value="웹개발"> <span>웹개발</span>
-          </label>
-          <label class="tag">
-            <input type="checkbox" name="interests" value="AI"> <span>AI</span>
-          </label>
-          <label class="tag">
-            <input type="checkbox" name="interests" value="데이터분석"> <span>데이터분석</span>
-          </label>
-          <label class="tag">
-            <input type="checkbox" name="interests" value="머신러닝"> <span>머신러닝</span>
-          </label>
-          <label class="tag">
-            <input type="checkbox" name="interests" value="모바일개발"> <span>모바일개발</span>
-          </label>
-          <label class="tag">
-            <input type="checkbox" name="interests" value="데이터베이스"><span>데이터베이스</span>
-          </label>
-        </div>
+            <label for="email-code">이메일 인증 코드</label>
+            <div class="input-group">
+                <input type="text" id="email-code" name="email-code" placeholder="코드 입력">
+                <button type="button">입력</button>
+            </div>
 
-        <input 
-            type="text" 
-            id="interest-input" 
-            placeholder="직접 입력 후 Enter" 
-            class="tag-input"
-            name="interests_manual"
-        >
+            <label for="birthdate">생년월일</label>
+            <input type="date" id="birthdate" name="birthdate" required>
 
-        <!-- 보유 기술 -->
-        <label>보유 기술</label>
-        <div class="tag-box" id="skill-tags">
-          <label class="tag">
-            <input type="checkbox" name="skills" value="Python"><span>Python</span>
-          </label>
-          <label class="tag">
-            <input type="checkbox" name="skills" value="JavaScript"><span>JavaScript</span>
-          </label>
-          <label class="tag">
-            <input type="checkbox" name="skills" value="Django"><span>Django</span>
-          </label>
-          <label class="tag">
-            <input type="checkbox" name="skills" value="Node.js"><span>Node.js</span>
-          </label>
-          <label class="tag">
-            <input type="checkbox" name="skills" value="C언어"><span>C언어</span>
-          </label>
-          <label class="tag">
-            <input type="checkbox" name="skills" value="HTML/CSS"><span>HTML/CSS</span>
-          </label>
-          <label class="tag">
-            <input type="checkbox" name="skills" value="Kotlin"> <span>Kotlin</span>
-          </label>
-          <label class="tag">
-            <input type="checkbox" name="skills" value="SQL"><span>SQL</span>
-          </label>
-        </div>
+            <label for="address">주소</label>
+            <div class="input-group">
+                <input type="text" id="address" name="address" required>
+                <button type="button">찾기</button>
+            </div>
 
-        <input 
-            type="text" 
-            id="skill-input" 
-            placeholder="직접 입력 후 Enter" 
-            class="tag-input"
-            name="skills_manual"
-        >
-      </div>      
-      <div class="button-group">
-        <button type="submit">등록</button>
-        <button type="reset">취소</button>
-      </div>
-    </form>
-  </div>
-</div>
-</div>
+            <!-- 관심분야 -->
+            <div class="skill-tag-area">
+            <label>관심분야</label>
+            <div class="tag-box" id="interest-tags">
+                <label class="tag">
+                    <input type="checkbox" name="interests" value="웹개발"> <span>웹개발</span>
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="interests" value="AI"> <span>AI</span>
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="interests" value="데이터분석"> <span>데이터분석</span>
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="interests" value="머신러닝"> <span>머신러닝</span>
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="interests" value="모바일개발"> <span>모바일개발</span>
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="interests" value="데이터베이스"><span>데이터베이스</span>
+                </label>
+            </div>
 
-<script src="{{ url_for('account.static', filename='js/join-info.js') }}"></script>
+            <input 
+                type="text" 
+                id="interest-input" 
+                placeholder="직접 입력 후 Enter" 
+                class="tag-input"
+            >
+
+            <!-- 보유 기술 -->
+            <label>보유 기술</label>
+            <div class="tag-box" id="skill-tags">
+                <label class="tag">
+                    <input type="checkbox" name="skills" value="Python"><span>Python</span>
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="skills" value="JavaScript"><span>JavaScript</span>
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="skills" value="Django"><span>Django</span>
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="skills" value="nods"><span>nods</span>
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="skills" value="C언어"><span>C언어</span>
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="skills" value="HTML/CSS"><span>HTML/CSS</span>
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="skills" value="Kotlin"> <span>Kotlin</span>
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="skills" value="Node.js"><span> Node.js</span>
+                </label>
+                <label class="tag">
+                    <input type="checkbox" name="skills" value="SQL"><span>SQL</span>
+                </label>
+            </div>
+
+            <input 
+                type="text" 
+                id="skill-input" 
+                placeholder="직접 입력 후 Enter" 
+                class="tag-input"
+            >
+            </div>
+
+            <div class="button-group">
+                <button type="submit">등록</button>
+                <button type="reset">취소</button>
+            </div>
+            </form>
+          </div>
+
+        </div> 
+
+      </div> <!-- 게시글 래퍼 끝 -->
+      <script src="{{ url_for('account.static', filename='js/join-info.js') }}"></script>
 {% endblock %}

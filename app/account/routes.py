@@ -4,8 +4,6 @@ from config import SIDEBAR_CONFIG
 from datetime import datetime
 import pymysql
 from .dao.user_dao import UserDao
-from werkzeug.security import generate_password_hash, check_password_hash
-
 
 bp = Blueprint(
     'account',
@@ -17,7 +15,7 @@ bp = Blueprint(
 
 # ------------- account 관련 라우트 영역 -------------------------
 
-@bp.route("/", methods=["POST"])
+@bp.route("/login", methods=["POST"])
 def login():
     conn = current_app.get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
@@ -108,54 +106,51 @@ def process_agree():
 
 @bp.route('/join-info')
 def join_info():
-    
+    # ⚠️ 만약 약관 동의 없이 이 페이지에 직접 접근했다면, 약관 페이지로 돌려보내는 로직을 추가해야 합니다.
+    if 'join_agreement' not in session:
+        flash("회원가입 절차를 다시 시작해주세요.", "warning")
+        return redirect('/join-agree')
+        
     return render_template(
     'join_info.html',
     sidebar=SIDEBAR_CONFIG["default"],
     active="chat"
 )
 
+
+
 @bp.route('/join', methods=['POST'])
 def join():
-    userid = request.form.get("userid")
-    password = request.form.get("password")
-    confirm_password = request.form.get("confirm-password")
-    name = request.form.get("name")
-    nickname = request.form.get("nickname")
-    email = request.form.get("email")
+    # 1. 약관 동의 정보 확인
+    agreement_data = session.pop('join_agreement', None)
+    if not agreement_data:
+        flash("약관 동의 정보가 누락되어 회원가입을 완료할 수 없습니다.", "error")
+        return redirect('/join-agree')
 
-    # 체크박스 값
-    interests = request.form.getlist("interests")
-    skills = request.form.getlist("skills")
-
-    # 직접 입력 값
-    interest_manual = request.form.get("interests_manual")
-    skill_manual = request.form.get("skills_manual")
-
-    if interest_manual:
-        interests.append(interest_manual.strip())
-    if skill_manual:
-        skills.append(skill_manual.strip())
-
-    # 비밀번호 확인
-    if password != confirm_password:
-        flash("비밀번호가 일치하지 않습니다.", "error")
-        return redirect("/join-info")
-
-    user_dao = UserDao()
+    # 2. 폼 데이터 수집
     user_data = {
-        "id": userid,
-        "password": password,
-        "name": name,
-        "nick": nickname,
-        "email": email
+        'id': request.form['id'],
+        'password': request.form['password'], # ⚠️ 실제 서비스에서는 비밀번호를 해시(Hash) 처리해야 합니다!
+        'email': request.form['email'],
+        'nickname': request.form.get('nickname'),
+        # ... 추가적인 가입 정보
     }
+    
+    # 3. DAO 객체 생성 및 DB에 삽입
+    user_dao = UserDao()
+    
+    # 💡 ID 중복 검사 (프론트에서도 하지만 서버에서도 다시 검사)
+    if user_dao.check_id_duplicate(user_data['id']):
+        flash("이미 존재하는 아이디입니다.", "warning")
+        # 다시 회원정보 입력 페이지로 돌아가되, 기존 입력값은 유지하도록 처리할 수 있습니다.
+        return redirect('/join-info') 
 
-    # 통합 insert (유저 + 관심분야 + 기술)
-    result = user_dao.insert_user(user_data, interests=interests, skills=skills)
-    if not result:
-        flash("회원가입 중 오류가 발생했습니다.", "error")
-        return redirect("/join-info")
-
-    flash("회원가입이 완료되었습니다!", "success")
-    return redirect("/")
+    # 4. 최종 사용자 정보 삽입
+    # user_data에 agreement_data를 통합하여 DB에 저장해야 할 수도 있습니다 (별도 테이블 또는 컬럼 필요)
+    
+    if user_dao.insert_user(user_data):
+        flash("회원가입이 성공적으로 완료되었습니다!", "success")
+        return redirect('/login') # 로그인 페이지로 이동
+    else:
+        flash("회원가입 중 데이터베이스 오류가 발생했습니다.", "error")
+        return redirect('/join-info')
