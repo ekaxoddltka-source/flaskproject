@@ -3,6 +3,16 @@ from config import SIDEBAR_CONFIG
 from flask import current_app 
 from datetime import datetime
 from app.mypage.events import send_dm_message
+import re
+from collections import Counter
+
+from recommend.aezen_recommender import (
+    build_user_vector, recommend_articles
+)
+
+
+
+
 
 # DAO
 from app.mypage.dao.user_dao import UserDao
@@ -17,6 +27,10 @@ from app.mypage.dao.item_dao import ItemDao
 from app.mypage.dao.user_item_dao import UserItemDao
 from app.mypage.dao.view_log_dao import ViewLogDao  
 from app.mypage.dao.interest_dao import InterestDao
+from app.mypage.dao.interest_vector_dao import InterestVectorDao
+
+
+
 # DAO 객체
 user_dao = UserDao(lambda: current_app.get_db_connection())
 alert_dao = AlertDao(lambda: current_app.get_db_connection())
@@ -30,8 +44,7 @@ item_dao = ItemDao(lambda: current_app.get_db_connection())
 user_item_dao = UserItemDao(lambda: current_app.get_db_connection())
 view_log_dao = ViewLogDao(lambda: current_app.get_db_connection())
 interest_dao = InterestDao(lambda: current_app.get_db_connection())
-import re
-from collections import Counter
+interest_vector_dao = InterestVectorDao(lambda: current_app.get_db_connection())
 
 bp = Blueprint(
     "mypage",
@@ -220,67 +233,59 @@ def extract_keywords(text):
     return found
 
 
+
 # ------------------------------------------------------------
-# 관심도 분석 라우트
+# 관심도 분석 + BERT 추천 라우트 (완성본)
 # ------------------------------------------------------------
 @bp.route("/mypage-interest")
 def mypage_interest():
+
     user = session.get("user")
     if not user:
-        return """
-            <script>
-                alert('로그인이 필요합니다.');
-                window.location.href='/';
-            </script>
-        """
+        return require_login_js()
 
     user_id = user["id"]
 
-    # 1. 태그 기반 데이터 ---------------------------------------
+    # -----------------------------
+    # 1) 태그 / 텍스트 데이터 수집
+    # -----------------------------
     tag_data = interest_dao.get_all_tags(user_id)
     written_tags = tag_data["written_tags"]
     viewed_tags = tag_data["viewed_tags"]
 
-    # 태그는 기술명과 1:1 대응되므로 그대로 키워드로 사용
-    tag_keywords = written_tags + viewed_tags
-
-    # 2. 텍스트 기반 데이터 -------------------------------------
     text_sources = interest_dao.get_all_text_sources(user_id)
-
     written_posts = text_sources["written_posts"]
     viewed_posts = text_sources["viewed_posts"]
     written_comments = text_sources["written_comments"]
     viewed_comments = text_sources["viewed_comments"]
 
+    # -----------------------------
+    # 2) 그래프 키워드 분석
+    # -----------------------------
+    tag_keywords = written_tags + viewed_tags
     text_keywords = []
 
-    # (1) 게시글 제목/내용
     for p in written_posts + viewed_posts:
         text_keywords += extract_keywords(p["board_title"])
         text_keywords += extract_keywords(p["board_content"])
 
-    # (2) 댓글/답변 내용
     for c in written_comments + viewed_comments:
         text_keywords += extract_keywords(c["comment_answer_content"])
 
-    # 3. 전체 키워드 통합 ---------------------------------------
     all_keywords = tag_keywords + text_keywords
-
     counter = Counter(all_keywords)
 
-    # 4. TOP5 기술 (Bar Chart)
+    # TOP5
     top5 = counter.most_common(5)
-    top5_labels = [x[0] for x in top5]
-    top5_values = [x[1] for x in top5]
-
-    # 만약 데이터가 없을 경우 예외 처리
-    if len(top5_labels) == 0:
+    if top5:
+        top5_labels = [x[0] for x in top5]
+        top5_values = [x[1] for x in top5]
+    else:
         top5_labels = ["데이터 없음"]
         top5_values = [0]
 
-    # 5. Radar Chart (기술 분야별)
+    # Radar
     radar_map = {cat: 0 for cat in TECH_CATEGORY}
-
     for kw in all_keywords:
         for cat, lst in TECH_CATEGORY.items():
             if kw in lst:
@@ -289,9 +294,41 @@ def mypage_interest():
     radar_labels = list(radar_map.keys())
     radar_values = list(radar_map.values())
 
-    # ------------------------------------------------------------
-    # 템플릿 렌더링
-    # ------------------------------------------------------------
+    # -----------------------------
+    # 3) 추천 시스템용 텍스트 구성
+    # -----------------------------
+    texts = []
+    for p in written_posts + viewed_posts:
+        texts.append(p["board_title"] or "")
+        texts.append(p["board_content"] or "")
+    for c in written_comments + viewed_comments:
+        texts.append(c["comment_answer_content"] or "")
+
+    texts += written_tags + viewed_tags
+
+    # -----------------------------
+    # 4) 캐시된 벡터 불러오기
+    # -----------------------------
+    user_vector = interest_vector_dao.load_vector(user_id)
+
+    # -----------------------------
+    # 5) 없다면 생성 + DB 저장
+    # -----------------------------
+    if user_vector is None and texts:
+        user_vector = build_user_vector(texts)
+        if user_vector is not None:
+            interest_vector_dao.save_vector(user_id, user_vector)
+
+    # -----------------------------
+    # 6) 추천 계산
+    # -----------------------------
+    recommended_articles = []
+    if user_vector is not None:
+        recommended_articles = recommend_articles(user_vector, top_n=5)
+
+    # -----------------------------
+    # 7) 렌더링
+    # -----------------------------
     return render_template(
         "mypage-interest.html",
         sidebar=SIDEBAR_CONFIG["default"],
@@ -302,8 +339,12 @@ def mypage_interest():
         radar_labels=radar_labels,
         radar_values=radar_values,
 
-        current_bg = session["user"].get("background_img") or None
+        recommended_articles=recommended_articles,
+
+        current_bg=session["user"].get("background_img") or None
     )
+
+
 
 
 # ------------------------------------------------------------
@@ -317,25 +358,19 @@ def mypage_items():
 
     user_id = user["id"]
 
-    # 전체 아이템
-    items = item_dao.get_all_items()
+    # 구매한 아이템만 가져오기 (정답)
+    items = user_item_dao.get_user_items(user_id)
 
-    # 유저가 가진 아이템
-    user_items = user_item_dao.get_user_items(user_id)
-    owned = {u["item_no"]: u for u in user_items}
-
-    # 장착 여부 추가
-    for item in items:
-        item["is_equipped"] = (
-            owned.get(item["item_no"], {}).get("is_equipped") == 1
-        )
+    # 장착 여부는 이미 포함됨 (ui.is_equipped)
+    # items: [
+    #   { item_no, is_equipped, item_name, item_type, item_price, item_img }
+    # ]
 
     return render_template(
         'mypage-items.html',
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        current_bg = session["user"].get("background_img") or None,
-
+        current_bg=session["user"].get("background_img") or None,
         items=items
     )
 
@@ -839,14 +874,24 @@ def pointshop():
     if not user:
         return require_login_js()
 
+    user_items = user_item_dao.get_user_items(user["id"])
+    owned = {item["item_no"] for item in user_items}
+
     products = item_dao.get_all_items()
+
+    for p in products:
+        p["owned"] = (p["item_no"] in owned)
+
+
+    user_point = user["user_current_point"]
 
     return render_template(
         "pointshop.html",
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
         current_bg=session["user"].get("background_img") or None,
-        products=products
+        products=products,
+        user_point=user_point
     )
 
 
@@ -878,6 +923,14 @@ def api_item_buy():
     point_dao.use_point(user_id, price, f"아이템 구매: {item['item_name']}")
 
     # 4) 아이템 지급
-    user_item_dao.add_item_to_user(user_id, item_no)
+    user_item_dao.add_item(user_id, item_no)
 
-    return jsonify(success=True)
+    # 🔥 5) 세션에 최신 포인트 반영
+    session["user"]["user_current_point"] = current_point - price
+    session.modified = True
+
+    # 🔥 6) JS에서 즉시 업데이트할 수 있도록 new_point 반환
+    return jsonify(
+        success=True,
+        new_point=session["user"]["user_current_point"]
+    )

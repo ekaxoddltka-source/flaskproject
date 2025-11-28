@@ -109,3 +109,24 @@ body::before {
 .buy-btn:hover {
     background: #1b8ade;
 }
+
+.my-point-box {
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    background: #f7f7f7;
+    cursor: pointer;
+    font-size: 13px;
+}
+.owned-btn {
+    background: #ccc;
+    cursor: default;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: none;
+    color: #333;
+}
+.filter-btn.active {
+    background: #3DADFF;
+    color: white;
+}

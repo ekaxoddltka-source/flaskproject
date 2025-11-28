@@ -162,3 +162,29 @@ class InterestDao:
             "written_tags": self.get_written_tags(user_id),
             "viewed_tags": self.get_viewed_tags(user_id)
         }
+    
+    # ------------------------------------------------------------
+    # 9. 추천용 후보 게시글 (내가 쓴 글 제외, 삭제 안 된 글)
+    # ------------------------------------------------------------
+    def get_recommend_candidates(self, user_id, limit=100):
+        conn = self.get_conn()
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+
+        sql = """
+            SELECT 
+                b.board_no,
+                b.board_title,
+                b.board_content,
+                b.board_category
+            FROM board b
+            WHERE b.board_deleted = 0
+              AND b.id <> %s      -- 내가 쓴 글은 제외
+            ORDER BY b.board_created_at DESC
+            LIMIT %s
+        """
+        cur.execute(sql, (user_id, limit))
+        rows = cur.fetchall()
+
+        cur.close()
+        conn.close()
+        return list(rows)

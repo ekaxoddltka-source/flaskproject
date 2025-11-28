@@ -92,3 +92,41 @@
     width: 100% !important;
     height: 300px !important;
 }
+.recommend-panel {
+    margin-top: 40px;
+    padding: 20px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 12px;
+}
+
+.recommend-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.recommend-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.recommend-list li {
+    margin-bottom: 8px;
+}
+
+.recommend-link {
+    text-decoration: none;
+    font-size: 16px;
+    color: #3b4bff;
+}
+
+.recommend-link:hover {
+    text-decoration: underline;
+    color: #1a2aff;
+}
+
+.no-recommend {
+    font-size: 14px;
+    color: #666;
+}

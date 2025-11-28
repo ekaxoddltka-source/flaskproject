@@ -56,6 +56,25 @@ body::before {
     </div>
 
 </section>
+<!-- AI 추천 글 -->
+<section class="recommend-panel">
+    <h3 class="recommend-title">AI 추천 글</h3>
+
+    {% if recommended_articles and recommended_articles|length > 0 %}
+        <ul class="recommend-list">
+            {% for art in recommended_articles %}
+            <li>
+                <a href="{{ art.url }}" target="_blank" class="recommend-link">
+                    {{ art.title }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="no-recommend">추천을 위해 데이터가 부족합니다.</p>
+    {% endif %}
+</section>
+
  
 
 </div>

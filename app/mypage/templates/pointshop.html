@@ -18,6 +18,10 @@
     <button class="filter-btn active" data-type="all">전체</button>
     <button class="filter-btn" data-type="icon">아이콘</button>
     <button class="filter-btn" data-type="background">배경이미지</button>
+    <div class="my-point-box">
+    현재 보유 포인트: <strong id="current-point">{{ "{:,}".format(user_point) }}</strong> P
+</div>
+
 
     <a href="{{ url_for('mypage.mypage_items') }}">
         <button id="btn-point-shop" class="tab-btn">내 아이템 관리</button>
@@ -39,9 +43,12 @@
         </div>
 
         <div>
-            <button class="buy-btn" data-id="{{ product.item_no }}">
-                구매
-            </button>
+            {% if product.owned %}
+                <button class="owned-btn" disabled>보유중</button>
+            {% else %}
+                <button class="buy-btn" data-id="{{ product.item_no }}">구매</button>
+            {% endif %}
+
         </div>
 
     </div>
