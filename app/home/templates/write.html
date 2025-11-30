@@ -13,7 +13,7 @@
   {% if post %}글 수정{% else %}글 작성{% endif %}
 </h2>
 
-<form class="write-form"
+<form id="normalWriteForm" class="write-form"
       action="{% if post %}{{ url_for('home.update_post', board_no=post.boardNo) }}{% else %}{{ url_for('home.write') }}{% endif %}"
       method="post"
       enctype="multipart/form-data">
@@ -111,5 +111,9 @@
     </div>
   </div>
 </form>
-</div>
+
+<!-- 동적 폼 -->
+<div id="itemWriteContainer" style="display:none;"></div>
+
+</div> <!--posts-wrapper 끝-->
 {% endblock %}

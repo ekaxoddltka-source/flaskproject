@@ -534,6 +534,64 @@ def write():
 
     return redirect("/")
 
+@bp.route('/add_item', methods=['POST'])
+def add_item():
+    user = session.get("user")
+    if not user:
+        return redirect("/")
+
+    # 폼 데이터
+    item_name = request.form.get("item_name", "").strip()
+    item_price = request.form.get("item_price", "").strip()
+    item_type = request.form.get("item_type")  # icon / background
+
+    file = request.files.get("item_img")
+
+    base_path = current_app.root_path
+
+    # 업로드 경로 분기
+    if item_type == "icon":
+        upload_dir = os.path.join(base_path, "mypage", "static", "icons")
+        db_img_path = "icons/"
+    else:
+        upload_dir = os.path.join(base_path, "mypage", "static", "backgrounds")
+        db_img_path = "backgrounds/"
+
+    # 디렉토리 생성
+    os.makedirs(upload_dir, exist_ok=True)
+
+    # 파일 저장
+    filename = None
+    if file and file.filename:
+        # 원본 파일명 보안 처리
+        filename = file.filename
+
+        save_path = os.path.join(upload_dir, filename)
+        file.save(save_path)
+
+    # DB 저장
+    conn = current_app.get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+    try:
+        sql = """
+        INSERT INTO item
+        (item_name, item_type, item_price, item_img, created_at)
+        VALUES (%s, %s, %s, %s, NOW())
+        """
+        cursor.execute(sql, (
+            item_name,
+            item_type,
+            item_price,
+            db_img_path + filename
+        ))
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect("/pointshop")
+
 @bp.route('/update/<int:board_no>', methods=['GET', 'POST'])
 def update_post(board_no):
     user = session.get("user")
