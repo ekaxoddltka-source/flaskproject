@@ -5,6 +5,7 @@ from datetime import datetime
 from app.mypage.events import send_dm_message
 import re
 from collections import Counter
+import pymysql
 
 from recommend.aezen_recommender import (
     build_user_vector, recommend_articles
@@ -70,53 +71,167 @@ def require_login_js():
 
 @bp.route("/mypage-posts")
 def mypage_posts():
-    user = get_logged_user()
-    if not user:
-        return require_login_js()
+    page = 1
+    per_page = 10
+    top_filter = request.args.get('top', '최신순')
+    feed_filter = request.args.get('feed', '전체')
+    offset = (page - 1) * per_page
 
-    user_id = user["id"]
-    sort = request.args.get("top", "최신순")
-    feed = request.args.get("feed", "전체")   # ← 추가
+    login_user_id = session.get("user", {}).get("id")
+    if not login_user_id:
+        return redirect("/")
 
-    posts = posts_dao.get_my_posts_full(user_id)
+    conn = current_app.get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
 
-    # -------------------------------------------------
-    # ① 카테고리 필터 적용
-    # -------------------------------------------------
-    category_map = {
-        "자유": 1,
-        "Q&A": 2,
-        "코딩테스트": 3
+    try:
+        # 1️⃣ 기본 필터: 로그인한 사용자가 작성한 글
+        board_filter_sql = "SELECT board_no FROM board WHERE board_deleted = 0 AND id = %s"
+        params_filter = [login_user_id]
+
+        # feed 필터 적용
+        category_map = {"자유": 1, "Q&A": 2, "코딩테스트": 3, "공지사항": 4, "이용약관": 5, "개인정보처리방침": 6}
+        if feed_filter != "전체" and feed_filter in category_map:
+            board_filter_sql += " AND board_category = %s"
+            params_filter.append(category_map[feed_filter])
+
+        # 2️⃣ 정렬
+        if top_filter == "조회순":
+            order_clause = "ORDER BY hit DESC, board_created_at DESC, board_no DESC"
+        elif top_filter == "추천순":
+            order_clause = "ORDER BY board_like DESC, board_created_at DESC, board_no DESC"
+        else:  # 최신순 기본
+            order_clause = "ORDER BY board_created_at DESC, board_no DESC"
+
+        # 3️⃣ LIMIT + OFFSET
+        board_filter_sql = f"{board_filter_sql} {order_clause} LIMIT %s OFFSET %s"
+        params_filter.extend([per_page, offset])
+
+        # 게시글 번호 조회
+        cursor.execute(board_filter_sql, tuple(params_filter))
+        board_rows = cursor.fetchall()
+        board_nos = [r['board_no'] for r in board_rows]
+
+        if not board_nos:
+            boardList = []
+        else:
+            # 상세 조회
+            format_strings = ','.join(['%s'] * len(board_nos))
+            sql = f"""
+                SELECT
+                    board.board_no AS board_no,
+                    board.id AS writer_id,
+                    user.nick AS writer_nick,
+                    user.icon AS writer_icon,
+                    board.board_title,
+                    board.board_content,
+                    board.board_category,
+                    board.hit,
+                    board.board_like,
+                    board.board_dislike,
+                    board.board_created_at,
+                    board.board_updated_at,
+                    board.board_deleted,
+                    comment_answer.comment_answer_no,
+                    comment_answer.comment_answer_content,
+                    comment_answer.comment_answer_type,
+                    comment_answer.comment_like_count,
+                    comment_answer.comment_dislike_count,
+                    comment_answer.comment_answer_at,
+                    comment_answer.comment_answer_updated_at,
+                    comment_answer.answer_accepted,
+                    comment_user.id AS commenter_id,
+                    comment_user.nick AS commenter_nick,
+                    file.file_no,
+                    file.logical_file_name,
+                    file.physical_file_name,
+                    file.file_size,
+                    file.file_ext,
+                    tag.tag_name
+                FROM board
+                LEFT JOIN user ON board.id = user.id
+                LEFT JOIN file ON board.board_no = file.board_no
+                LEFT JOIN tag_board ON tag_board.board_no = board.board_no
+                LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
+                LEFT JOIN comment_answer ON board.board_no = comment_answer.board_no
+                LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
+                WHERE board.board_no IN ({format_strings})
+            """
+            cursor.execute(sql, tuple(board_nos))
+            rows = cursor.fetchall()
+
+            # 게시글 조립
+            board_map = {}
+            for row in rows:
+                bno = row["board_no"]
+                if bno not in board_map:
+                    board_map[bno] = {
+                        "boardNo": bno,
+                        "id": row["writer_id"],
+                        "nick": row["writer_nick"],
+                        "icon": row["writer_icon"],
+                        "boardTitle": row["board_title"],
+                        "boardContent": row["board_content"],
+                        "boardCategory": row["board_category"],
+                        "hit": row["hit"],
+                        "boardLike": row["board_like"],
+                        "boardDislike": row["board_dislike"],
+                        "boardCreatedAt": row["board_created_at"],
+                        "boardUpdatedAt": row["board_updated_at"],
+                        "board_deleted": row["board_deleted"],
+                        "comments": [],
+                        "files": [],
+                        "tags": []
+                    }
+                post = board_map[bno]
+                if row.get("file_no") and not any(f["fileNo"] == row["file_no"] for f in post["files"]):
+                    post["files"].append({
+                        "fileNo": row["file_no"],
+                        "logicalFileName": row["logical_file_name"],
+                        "physicalFileName": row["physical_file_name"],
+                        "fileSize": row["file_size"],
+                        "fileExt": row["file_ext"]
+                    })
+                if row.get("tag_name") and not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
+                    post["tags"].append({"tagName": row["tag_name"]})
+                if row.get("comment_answer_no") and not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
+                    post["comments"].append({
+                        "commentAnswerNo": row["comment_answer_no"],
+                        "boardNo": bno,
+                        "commenterId": row["commenter_id"],
+                        "commenterNick": row["commenter_nick"],
+                        "commentAnswerContent": row["comment_answer_content"],
+                        "commentLikeCount": row["comment_like_count"],
+                        "commentDislikeCount": row["comment_dislike_count"],
+                        "commentAnswerAt": row["comment_answer_at"],
+                        "commentAnswerUpdatedAt": row["comment_answer_updated_at"],
+                        "commentAnswerType": row["comment_answer_type"],
+                        "answerAccepted": row["answer_accepted"]
+                    })
+
+            boardList = [board_map[b] for b in board_nos if b in board_map]
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    notice_buttons = {
+        "top_buttons": ["최신순", "조회순", "추천순"],
+        "feed_buttons": ["전체", "자유", "코딩테스트", "Q&A"]
     }
 
-    if feed in category_map:
-        posts = [p for p in posts if p["board_category"] == category_map[feed]]
-    # feed=전체 일 경우는 그대로 둠
-
-    # -------------------------------------------------
-    # ② 정렬
-    # -------------------------------------------------
-    if sort == "최신순":
-        posts.sort(key=lambda x: x["board_no"], reverse=True)
-    elif sort == "조회순":
-        posts.sort(key=lambda x: x.get("hit", 0), reverse=True)
-    elif sort == "추천순":
-        posts.sort(key=lambda x: x.get("board_like", 0), reverse=True)
-
     return render_template(
-        "mypage-posts.html",
-        posts=posts,
-        show_notice_buttons=True,
-        notice_buttons={
-            "top_buttons": ["최신순", "조회순", "추천순"],
-            "feed_buttons": ["전체", "자유", "코딩테스트", "Q&A"]
-        },
+        'mypage-posts.html',
+        boardList=boardList,
         show_writeBtn=True,
-        sidebar=SIDEBAR_CONFIG["default"],
+        show_notice_buttons=True,
+        notice_buttons=notice_buttons,
         active="mypage",
-        current_bg=session["user"].get("background_img") or None,
-        top_filter=sort,
-        feed_filter=feed        # ← 추가 (HTML에서 active 표시용)
+        sidebar=SIDEBAR_CONFIG["default"],
+        top_filter=top_filter,
+        feed_filter=feed_filter,
+        login_user_id=login_user_id,
+        current_bg=session["user"].get("background_img") or None
     )
 
 # ------------------------------------------------------------
