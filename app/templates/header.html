@@ -39,6 +39,13 @@
       </form>
     </div>
     {% else %}
+    <!-- 로그인 후 아이콘 + 환영 메시지 -->
+    <div class="user-welcome">
+        <img src="{{ url_for('mypage.static', filename=session.user.icon if session.user.icon else 'icons/default.png') }}" 
+            alt="아이콘" class="header-user-icon">
+        <span>'{{ session.user.nick }}' 님 환영합니다.</span>
+    </div>
+
     <!-- 아이콘 (초기 숨김) -->
     <div class="icons">
       <button id="btnMyPage" data-tooltip="마이페이지" data-url="{{ url_for('mypage.mypage_posts') }}">👨</button>

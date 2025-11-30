@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="{{ url_for('home.static', filename='css/home.css') }}">
 {% endblock %}
 {% block extra_js %}
-<script src="{{ url_for('home.static', filename='js/home.js') }}"></script>
+<script src="{{ url_for('home.static', filename='js/info.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -31,7 +31,13 @@
             <span class="title">{{ post.boardTitle }}</span>
 
             <span class="nick dropdown">
-                작성자: {{ post.nick }}
+                작성자:  
+                {% if post.icon %}
+                    <img src="{{ url_for('mypage.static', filename=post.icon) }}" alt="아이콘" class="user-icon">
+                {% else %}
+                    <img src="{{ url_for('mypage.static', filename='icons/default.png') }}" alt="기본 아이콘" class="user-icon">
+                {% endif %}
+                {{ post.nick }}
             </span>
 
             <span class="hit">조회수: {{ "{:,}".format(post.hit) }}</span>
@@ -128,8 +134,12 @@
     {% endfor %}
 </div>
 
+<button id="scrollTopBtn" title="맨위로">⬆</button>
+
 {% if show_writeBtn %}
+{% if session.user %}
 <a href="{{ url_for('home.write') }}" class="write-btn">✏</a>
+{% endif %}
 {% endif %}
 
 </div>

@@ -38,56 +38,6 @@ function renderPost(post, loginUserId) {
         }).join("");
     }
 
-    // 태그 HTML
-    let tagNames = [];
-    let tagsHtml = "";
-    if (post.tags && post.tags.length > 0) {
-        tagsHtml = post.tags.map(tag => {
-            if (!tagNames.includes(tag.tagName)) {
-                tagNames.push(tag.tagName);
-                return `<a href="/tags/${tag.tagName}">#${tag.tagName}</a>`;
-            }
-            return "";
-        }).join("");
-    }
-
-    // 답안 HTML (commentAnswerType == 2)
-    let answersHtml = "";
-    if ((post.boardCategory === 2 || post.boardCategory === 3) && post.comments) {
-        const answerItems = post.comments.filter(a => a.commentAnswerType === 2).map(answer => {
-            return `
-            <div class="answer-item" data-id="${answer.commentAnswerNo}">
-                <div class="a-text">
-                    ${answer.answerAccepted ? '<span class="chosen-label">채택된 답안</span>' : ''}
-                    ${answer.commentAnswerContent}
-                </div>
-                <div class="a-footer">
-                    <span class="author">by ${answer.commenterNick}</span>
-                    ${loginUserId === answer.commenterId ? `
-                    <div class="answer-actions">
-                        <span class="edit-btn">수정</span>
-                        <span class="delete-btn" data-type="answer" data-id="${answer.commentAnswerNo}">삭제</span>
-                    </div>` : ''}
-                    <button class="a-choice ${answer.answerAccepted ? 'disabled' : ''}" ${answer.answerAccepted ? 'disabled' : ''}>
-                        ${answer.answerAccepted ? '채택 완료' : '채택'}
-                    </button>
-                </div>
-            </div>`;
-        }).join("");
-
-        answersHtml = `
-        <div class="answer-toggle">
-            <button class="answer-btn">답안 작성 / 모아보기</button>
-        </div>
-        <div class="answers">
-            <div class="answer-list">${answerItems}</div>
-            <form class="answer-form">
-                <textarea placeholder="답안을 작성해보세요..." required></textarea>
-                <button type="submit">등록</button>
-            </form>
-        </div>`;
-    }
-
     // 댓글 HTML (commentAnswerType == 1)
     let commentsHtml = "";
     if (post.comments && post.comments.length > 0) {
@@ -121,16 +71,9 @@ function renderPost(post, loginUserId) {
                     : `<img src="/mypage/static/icons/default.png" alt="기본 아이콘" class="user-icon">`
                 }
                 ${post.nick}
-                <ul class="dropdown-menu">
-                    <li><a href="#">프로필 보기</a></li>
-                    <li><a href="#">팔로우 하기</a></li>
-                    <li><a href="#">메세지 보내기</a></li>
-                    <li><a href="#">차단하기</a></li>
-                </ul>
             </span>
             <span class="hit">조회수: ${post.hit.toLocaleString()}</span>
             <span class="wdate">작성일: ${formatDate(post.boardCreatedAt)}</span>
-            <span class="report" data-post-id="${post.boardNo}">🚨신고하기</span>
         </div>
 
         <div class="post-body">
@@ -138,17 +81,10 @@ function renderPost(post, loginUserId) {
             <div class="bnote">${post.boardContent}</div>
             <div class="post-images" style="display: none;">${imagesHtml}</div>
             <br>
-            <div class="tag">${tagsHtml}</div>
         </div>
-
-        ${answersHtml}
 
         <div class="post-footer">
             <span class="comment">댓글 ${post.comments ? post.comments.filter(c => c.commentAnswerType === 1).length : 0}개</span>
-            <div class="votes">
-                <span class="post-up" data-id="${post.boardNo}">추천 ${post.boardLike} 👍</span>
-                <span class="post-down" data-id="${post.boardNo}">비추천 ${post.boardDislike} 👎</span>
-            </div>
             <div class="post-actions">
                 ${loginUserId === post.id ? `
                 <a href="/update/${post.boardNo}" class="edit-btn">수정</a>
@@ -732,52 +668,69 @@ document.addEventListener("DOMContentLoaded", async() => {
     const postsContainer = document.querySelector('.posts'); // 실제 포스트를 append할 곳
     const scrollTopBtn = document.getElementById("scrollTopBtn"); // 맨위로 버튼
 
-    async function loadMorePosts() {
+   async function loadMorePosts() {
         if (loading || reachedEnd) return;
         loading = true;
 
-        // 항상 최신 값 읽기
         const urlParams = new URLSearchParams(window.location.search);
         const currentTopFilter = urlParams.get('top') || '최신순';
-        const currentFeedFilter = urlParams.get('feed') || '전체';
+        let currentFeedFilter = urlParams.get('feed') || '전체';
         const currentSearchType = urlParams.get('search_type') || '';
         const currentKeyword = urlParams.get('keyword') || '';
 
-        let tagName = null;
-        const pathMatch = window.location.pathname.match(/^\/tags\/(.+)/);
-        if (pathMatch) {
-            tagName = decodeURIComponent(pathMatch[1]);
+        // 현재 페이지 확인하여 feed 제거
+        const pathname = window.location.pathname;
+
+        if (pathname.startsWith('/info') ||
+            pathname.startsWith('/terms') ||
+            pathname.startsWith('/privacy')) {
+            currentFeedFilter = ""; // feed 파라미터 제거!
         }
+
+        // 태그 페이지 체크
+        let tagName = null;
+        const pathMatch = pathname.match(/^\/tags\/(.+)/);
+        if (pathMatch) tagName = decodeURIComponent(pathMatch[1]);
 
         try {
-        let fetchUrl =
-            `/load_more_posts?page=${page + 1}&per_page=${perPage}` +
-            `&top=${encodeURIComponent(currentTopFilter)}` +
-            `&feed=${encodeURIComponent(currentFeedFilter)}` +
-            `&search_type=${encodeURIComponent(currentSearchType)}` +
-            `&keyword=${encodeURIComponent(currentKeyword)}`;
+            // feed는 값이 있을 때만 전송
+            let fetchUrl =
+                `/load_more_posts?page=${page + 1}&per_page=${perPage}` +
+                `&top=${encodeURIComponent(currentTopFilter)}`;
 
-        if (tagName) {
-            fetchUrl += `&tag_name=${encodeURIComponent(tagName)}`;
-        }
+            // info/terms/privacy 페이지에서는 feed 제거
+            const pathname = window.location.pathname;
+            if (pathname.startsWith('/info') || pathname.startsWith('/terms') || pathname.startsWith('/privacy')) {
+                // feed 전송하지 않음
+            } else {
+                if (currentFeedFilter) {
+                    fetchUrl += `&feed=${encodeURIComponent(currentFeedFilter)}`;
+                }
+            }
 
-        const res = await fetch(fetchUrl);
-        if (!res.ok) throw new Error('네트워크 응답 실패');
+            fetchUrl +=
+                `&search_type=${encodeURIComponent(currentSearchType)}` +
+                `&keyword=${encodeURIComponent(currentKeyword)}`;
 
-        const data = await res.json();
-        if (!Array.isArray(data) || data.length === 0) {
-            reachedEnd = true;
-            return;
-        }
+            const res = await fetch(fetchUrl);
+            if (!res.ok) throw new Error('네트워크 응답 실패');
+
+            const data = await res.json();
+            if (!Array.isArray(data) || data.length === 0) {
+                reachedEnd = true;
+                return;
+            }
 
             page += 1;
 
             data.forEach(post => {
                 const html = renderPost(post, loginUserId);
                 postsContainer.insertAdjacentHTML('beforeend', html);
+
                 const newPostEl = postsContainer.querySelector(`.post[data-id="${post.boardNo}"]`);
                 if (newPostEl) initPostBody(newPostEl);
             });
+
         } catch (err) {
             console.error('loadMorePosts error', err);
         } finally {
@@ -826,6 +779,4 @@ document.addEventListener("DOMContentLoaded", async() => {
         });
     }
 
-
-    
 });

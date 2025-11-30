@@ -36,20 +36,4 @@ SIDEBAR_CONFIG = {
         "default_active": "info",
         "default_panel": "panel-info",
     },
-
-    "pointstore": {
-        "tabs": [
-            {"id": "chat", "label": "실시간채팅"},
-            {"id": "pointstore", "label_line1": "포인트상점", "label_line2": "보유포인트 : 54,000P"},
-        ],
-        "lists": {
-            "pointstore": [
-                {"url": "/pointstore", "label": "상품응모 / 당첨자발표"},
-                {"url": "/pointshop", "label": "포인트샵"},
-                {"url": "/minigame", "label": "미니게임"},
-            ]
-        },
-        "default_active": "pointstore",
-        "default_panel": "panel-pointstore",
-    },
 }

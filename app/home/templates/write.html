@@ -33,10 +33,8 @@
       <option value="4" {% if post and post.boardCategory == 4 %}selected{% endif %}>공지사항</option>
       <option value="5" {% if post and post.boardCategory == 5 %}selected{% endif %}>이용약관</option>
       <option value="6" {% if post and post.boardCategory == 6 %}selected{% endif %}>개인정보처리방침</option>
-      <option value="7" {% if post and post.boardCategory == 7 %}selected{% endif %}>상품응모</option>
-      <option value="8" {% if post and post.boardCategory == 8 %}selected{% endif %}>당첨자발표</option>
-      <option value="9" {% if post and post.boardCategory == 9 %}selected{% endif %}>아이콘</option>
-      <option value="10" {% if post and post.boardCategory == 10 %}selected{% endif %}>배경이미지</option>
+      <option value="7" {% if post and post.boardCategory == 7 %}selected{% endif %}>아이콘</option>
+      <option value="8" {% if post and post.boardCategory == 8 %}selected{% endif %}>배경이미지</option>
       {% endif %}
     </select>
     <div id="extraCategory" class="extra-category"></div>
@@ -70,7 +68,7 @@
            name="tagName"
            value="{{ tagString if tagString else '' }}"
            placeholder="태그를 입력하세요 (쉼표로 구분)"
-           required>
+           >
 
     <div class="recommended-tags-box">
       <label>추천태그</label>

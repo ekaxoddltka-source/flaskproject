@@ -95,6 +95,13 @@
 .nick.dropdown.open .dropdown-menu {
     display: block;
 }
+.user-icon {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+}
 
 /* 게시글 바디 */
 .post-body {
@@ -472,6 +479,36 @@
 }
 .write-btn:hover {
     background: #5AD8CC;
+}
+
+/* ====================================
+ * 10. 맨위로 버튼 (Scroll to Top)
+ * ==================================== */
+#scrollTopBtn {
+    position: sticky;
+    bottom: 20px;          /* 글쓰기 버튼과 같은 높이 기준 */
+    margin-left: auto;     /* 오른쪽 끝 정렬 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    background: #3DADFF;  /* 글쓰기 버튼 색과 동일 */
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+    transition: background 0.2s;
+    z-index: 100;
+    text-decoration: none;
+    display: none;         /* 처음엔 숨김 */
+    right: 55px; /* write-btn 왼쪽에 위치 */
+}
+
+#scrollTopBtn:hover {
+    background: #5AD8CC;  /* hover 색상 */
 }
 
 /* ====================================

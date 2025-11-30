@@ -48,6 +48,7 @@ header {
     align-items: center;
     padding: 10px 20px;
     position: relative;
+    flex-wrap: wrap;
 }
 /* 로고 및 제목 영역 */
 .logo{
@@ -190,6 +191,43 @@ header {
 }
 .login-box button:hover {
     background: #0056b3;
+}
+
+.user-welcome {
+    position: absolute;        /* 우측 상단 고정 */
+    top: 50%;                  /* 세로 중앙 */
+    right: 390px;              /* 아이콘 버튼보다 왼쪽 여유 */
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;                  /* 아이콘과 닉네임 사이 간격 */
+    font-weight: bold;
+    font-size: 14px;
+    color: #333;
+}
+
+.user-welcome img.header-user-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+@media (max-width: 1540px) {
+    .user-welcome {
+        position: static;       /* 절대 위치 해제 */
+        transform: none;        /* translate 제거 */
+        display: flex;
+        justify-content: flex-end; /* 오른쪽 정렬 유지 */
+        width: 100%;
+        margin-right: 35px;
+        font-size: 12px;
+    }
+
+    .user-welcome img.header-user-icon {
+        width: 28px;           /* 아이콘 작게 */
+        height: 28px;
+    }
 }
 
 /* 아이콘 전체 박스 (우측 중앙 위치) */

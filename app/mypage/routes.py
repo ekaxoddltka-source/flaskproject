@@ -850,24 +850,6 @@ def api_withdraw():
 # ------------------------------------------------------------
 # 13. 기타
 # ------------------------------------------------------------
-@bp.route("/minigame")
-def minigame():
-    return render_template("minigame.html")
-
-@bp.route("/pointstore")
-def pointstore():
-    return render_template(
-        "pointstore.html",
-        show_notice_buttons=True,
-        notice_buttons={
-            "top_buttons": ["최신순", "조회순", "검색순"],
-            "feed_buttons": ["전체", "상품응모", "당첨자발표"]
-        },
-        show_writeBtn=True,
-        sidebar=SIDEBAR_CONFIG["pointstore"],
-        active="pointstore"
-    )
-
 @bp.route("/pointshop")
 def pointshop():
     user = get_logged_user()
