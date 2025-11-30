@@ -14,7 +14,7 @@ def create_app():
     # -------------------------------------
     # MySQL 설정
     # -------------------------------------
-    app.config["MYSQL_HOST"] = "192.168.60.187"
+    app.config["MYSQL_HOST"] = "192.168.60.136"
     app.config["MYSQL_USER"] = "jwh"
     app.config["MYSQL_PASSWORD"] = "ezen"
     app.config["MYSQL_DB"] = "aezen"

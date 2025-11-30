@@ -750,7 +750,7 @@ document.addEventListener("DOMContentLoaded", async() => {
 
         try {
         let fetchUrl =
-            `/load_more_posts?page=${page + 1}&per_page=${perPage}` +
+            `/mypage-posts/load?page=${page + 1}&per_page=${perPage}` +
             `&top=${encodeURIComponent(currentTopFilter)}` +
             `&feed=${encodeURIComponent(currentFeedFilter)}` +
             `&search_type=${encodeURIComponent(currentSearchType)}` +
