@@ -188,3 +188,53 @@ class InterestDao:
         cur.close()
         conn.close()
         return list(rows)
+
+    # ------------------------------------------------------------
+    # 10. 게시글 1개 + 태그 (피드백용)
+    # ------------------------------------------------------------
+    def get_post_with_tags(self, board_no):
+        """
+        추천/비추천 피드백 시 특정 게시글의
+        - 제목
+        - 내용
+        - 카테고리
+        - 태그 목록
+        을 모두 가져옴.
+        """
+        conn = self.get_conn()
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+
+        # 게시글 본문
+        sql_post = """
+            SELECT 
+                board_no,
+                board_title,
+                board_content,
+                board_category
+            FROM board
+            WHERE board_no = %s
+              AND board_deleted = 0
+        """
+        cur.execute(sql_post, (board_no,))
+        post = cur.fetchone()
+
+        if not post:
+            cur.close()
+            conn.close()
+            return None
+
+        # 게시글 태그
+        sql_tags = """
+            SELECT t.tag_name
+            FROM tag_board tb
+            JOIN tag t ON tb.tag_no = t.tag_no
+            WHERE tb.board_no = %s
+        """
+        cur.execute(sql_tags, (board_no,))
+        tag_rows = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        post["tags"] = [r["tag_name"] for r in tag_rows]
+        return post

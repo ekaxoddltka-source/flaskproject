@@ -40,3 +40,17 @@ class InterestVectorDao:
             return None
         
         return np.array(json.loads(row["vector_json"]))
+    def delete_vector(self, user_id):
+        conn = self.get_conn()
+        cur = conn.cursor()
+
+        sql = """
+            DELETE FROM user_interest_vector
+            WHERE user_id = %s
+        """
+
+        cur.execute(sql, (user_id,))
+        conn.commit()
+
+        cur.close()
+        conn.close()

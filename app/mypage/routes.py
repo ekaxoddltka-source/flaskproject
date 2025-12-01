@@ -7,7 +7,7 @@ import re
 from collections import Counter
 import pymysql
 
-from recommend.aezen_recommender import (
+from posts_data.aezen_recommender import (
     build_user_vector, recommend_articles
 )
 
@@ -29,6 +29,7 @@ from app.mypage.dao.user_item_dao import UserItemDao
 from app.mypage.dao.view_log_dao import ViewLogDao  
 from app.mypage.dao.interest_dao import InterestDao
 from app.mypage.dao.interest_vector_dao import InterestVectorDao
+from app.mypage.dao.interest_keyword_dao import InterestKeywordDao
 
 
 
@@ -46,6 +47,7 @@ user_item_dao = UserItemDao(lambda: current_app.get_db_connection())
 view_log_dao = ViewLogDao(lambda: current_app.get_db_connection())
 interest_dao = InterestDao(lambda: current_app.get_db_connection())
 interest_vector_dao = InterestVectorDao(lambda: current_app.get_db_connection())
+interest_keyword_dao = InterestKeywordDao(lambda: current_app.get_db_connection())
 
 bp = Blueprint(
     "mypage",
@@ -543,7 +545,7 @@ def mypage_interest():
     viewed_comments = text_sources["viewed_comments"]
 
     # -----------------------------
-    # 2) 그래프 키워드 분석
+    # 2) 키워드 분석(로그 기반)
     # -----------------------------
     tag_keywords = written_tags + viewed_tags
     text_keywords = []
@@ -558,7 +560,16 @@ def mypage_interest():
     all_keywords = tag_keywords + text_keywords
     counter = Counter(all_keywords)
 
-    # TOP5
+    # ============================================================
+    # ⭐ 3) 추천/비추천 점수(user_interest_keyword) 반영
+    # ============================================================
+    feedback_scores = interest_keyword_dao.get_scores_map(user_id)
+    for kw, score in feedback_scores.items():
+        counter[kw] += score
+
+    # -----------------------------
+    # 4) TOP5 계산
+    # -----------------------------
     top5 = counter.most_common(5)
     if top5:
         top5_labels = [x[0] for x in top5]
@@ -567,50 +578,57 @@ def mypage_interest():
         top5_labels = ["데이터 없음"]
         top5_values = [0]
 
-    # Radar
+    # -----------------------------
+    # 5) Radar Chart 계산
+    # -----------------------------
     radar_map = {cat: 0 for cat in TECH_CATEGORY}
-    for kw in all_keywords:
+    for kw, cnt in counter.items():
         for cat, lst in TECH_CATEGORY.items():
             if kw in lst:
-                radar_map[cat] += 1
+                radar_map[cat] += cnt
 
     radar_labels = list(radar_map.keys())
     radar_values = list(radar_map.values())
 
     # -----------------------------
-    # 3) 추천 시스템용 텍스트 구성
+    # 6) 추천 시스템용 텍스트 구성
     # -----------------------------
     texts = []
     for p in written_posts + viewed_posts:
         texts.append(p["board_title"] or "")
         texts.append(p["board_content"] or "")
+
     for c in written_comments + viewed_comments:
         texts.append(c["comment_answer_content"] or "")
 
     texts += written_tags + viewed_tags
 
+    # ============================================================
+    # ⭐ 6-1) Positive feedback을 텍스트 강화에 반영
+    # ============================================================
+    for kw, score in feedback_scores.items():
+        if score > 0:
+            texts.extend([kw] * int(score))
+
     # -----------------------------
-    # 4) 캐시된 벡터 불러오기
+    # 7) 유저 벡터 로드 / 생성
     # -----------------------------
     user_vector = interest_vector_dao.load_vector(user_id)
 
-    # -----------------------------
-    # 5) 없다면 생성 + DB 저장
-    # -----------------------------
     if user_vector is None and texts:
         user_vector = build_user_vector(texts)
         if user_vector is not None:
             interest_vector_dao.save_vector(user_id, user_vector)
 
     # -----------------------------
-    # 6) 추천 계산
+    # 8) 추천 계산
     # -----------------------------
     recommended_articles = []
     if user_vector is not None:
         recommended_articles = recommend_articles(user_vector, top_n=5)
 
     # -----------------------------
-    # 7) 렌더링
+    # 9) 렌더링
     # -----------------------------
     return render_template(
         "mypage-interest.html",
@@ -626,6 +644,57 @@ def mypage_interest():
 
         current_bg=session["user"].get("background_img") or None
     )
+@bp.route("/mypage-interest/feedback", methods=["POST"])
+def mypage_interest_feedback():
+    user = session.get("user")
+    if not user:
+        return jsonify({"ok": False, "error": "login_required"}), 401
+
+    user_id = user["id"]
+    data = request.get_json(silent=True) or {}
+
+    board_no = data.get("board_no")
+    action = data.get("action")  # "like" or "dislike"
+
+    if not board_no or action not in ("like", "dislike"):
+        return jsonify({"ok": False, "error": "invalid_params"}), 400
+
+    # ---------------------------------------------
+    # 가중치 (원하면 조절 가능)
+    # ---------------------------------------------
+    delta = 10 if action == "like" else -20
+
+    # ---------------------------------------------
+    # 게시글 본문 + 태그 로딩
+    # ---------------------------------------------
+    post = interest_dao.get_post_with_tags(board_no)
+    if not post:
+        return jsonify({"ok": False, "error": "post_not_found"}), 404
+
+    # 텍스트 구성
+    text_parts = [
+        post.get("board_title") or "",
+        post.get("board_content") or "",
+    ]
+    text_parts += post.get("tags", [])
+
+    full_text = " ".join(text_parts)
+
+    # ---------------------------------------------
+    # 키워드 추출
+    # ---------------------------------------------
+    keywords = extract_keywords(full_text)
+
+    # ---------------------------------------------
+    # 키워드 점수 DB 반영
+    # ---------------------------------------------
+    for kw in set(keywords):  # 중복 제거
+        interest_keyword_dao.add_score(user_id, kw, delta)
+
+    interest_vector_dao.delete_vector(user_id)
+
+
+    return jsonify({"ok": True})
 
 
 
@@ -1037,17 +1106,40 @@ def mypage_point():
     user_id = user["id"]
     order = request.args.get("order", "latest")
 
+    # 모든 거래 내역 (선택된 정렬 순서로 가져옴)
     point_list = point_dao.get_point_history(user_id, order=order)
-    total_point = point_dao.get_total_point(user_id)
+    user_point = user["user_current_point"]
+
+    # =============================================
+    #       ★ remain_point 계산 (최신순 고정)
+    # =============================================
+
+    # 1) 원본 리스트는 order 기준으로 표시용
+    # 2) 최신순으로 정렬된 리스트 생성 (잔액 계산용)
+    sorted_list = point_list.copy()
+    sorted_list.sort(key=lambda r: r["point_created_at"], reverse=True)
+
+    balance_map = {}
+    balance = user_point
+
+    # 최신순 기준 잔액 계산
+    for row in sorted_list:
+        balance_map[row["point_no"]] = balance
+        balance -= row["point_amount"]  # 다음 줄을 위해 조정
+
+    # 3) 화면에 표시되는 정렬(order)대로 remain_point 매핑
+    for row in point_list:
+        row["remain_point"] = balance_map[row["point_no"]]
 
     return render_template(
         "mypage-point.html",
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        current_bg = session["user"].get("background_img") or None,
+        current_bg=session["user"].get("background_img") or None,
         point_list=point_list,
-        total_point=total_point
+        user_point=user_point
     )
+
 
 # ------------------------------------------------------------
 # 11. 알림

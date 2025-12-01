@@ -32,9 +32,9 @@ def load_aezen_embeddings():
     if ARTICLE_EMBEDDINGS is None:
         print("🔥 게시글 임베딩 최초 로딩 중...")
 
-        ARTICLE_EMBEDDINGS = np.load("recommend/aezen_embeddings.npy")
+        ARTICLE_EMBEDDINGS = np.load("posts_data/aezen_embeddings.npy")
 
-        with open("recommend/aezen_articles.json", "r", encoding="utf-8") as f:
+        with open("posts_data/aezen_articles.json", "r", encoding="utf-8") as f:
             ARTICLE_META = json.load(f)
 
     return ARTICLE_EMBEDDINGS, ARTICLE_META

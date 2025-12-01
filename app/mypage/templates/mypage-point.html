@@ -89,8 +89,10 @@ body::before {
             {% endif %}
         </td>
 
-        <!-- 누적 포인트는 DB에 없으므로 JS에서 계산됨 -->
-        <td class="total-point-cell"></td>
+        <!-- 누적 포인트 -->
+        <td class="total-point-cell">
+            {{ "{:,}".format(row.remain_point) }} P
+        </td>
 
         <!-- 활동 링크 -->
         <td>

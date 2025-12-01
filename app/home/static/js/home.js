@@ -497,6 +497,22 @@ document.addEventListener("DOMContentLoaded", async() => {
                 const data = await res.json();
                 if (!data.success) return alert(data.msg || "오류 발생");
 
+                        // -------------------------
+                // 🔥 관심도 시스템 Hook 실행
+                // 게시글 추천/비추천일 때만 실행
+                // -------------------------
+                if (type === "post") {
+                    fetch("/mypage-interest/feedback", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            board_no: id,
+                            action: action   // like 또는 dislike
+                        })
+                    }).catch(err => console.error("feedback error:", err));
+                }
+
+
                 if (type === "post") {
                     const post = voteBtn.closest(".post");
                     const up = post?.querySelector(".post-up");

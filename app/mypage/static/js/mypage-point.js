@@ -1,19 +1,20 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-    /* =====================================================
-       1) 누적 포인트 계산 (테이블에서 직접 계산)
-    ===================================================== */
-    const rows = document.querySelectorAll(".point-table tbody tr");
-    let total = 0;
+    // /* =====================================================
+    //    1) 누적 포인트 계산 (테이블에서 직접 계산)
+    // ===================================================== */
+    
+    // const rows = document.querySelectorAll(".point-table tbody tr");
+    // let total = 0;
 
-    rows.forEach(tr => {
-        const amountText = tr.children[3].innerText;
-        const amount = parseInt(amountText.replace("+", ""), 10);
+    // rows.forEach(tr => {
+    //     const amountText = tr.children[3].innerText;
+    //     const amount = parseInt(amountText.replace("+", ""), 10);
 
-        total += amount;
+    //     total += amount;
 
-        tr.querySelector(".total-point-cell").innerText = total;
-    });
+    //     tr.querySelector(".total-point-cell").innerText = total;
+    // });
 
 
     /* =====================================================
