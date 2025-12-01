@@ -159,3 +159,45 @@ def join():
 
     flash("회원가입이 완료되었습니다!", "success")
     return redirect("/")
+
+
+
+@bp.route("/check-duplicate", methods=["POST"])
+def check_duplicate():
+    field = request.form.get("field")
+    value = request.form.get("value")
+    if not field or not value:
+        return {"status": "error", "message": "값이 없습니다."}
+
+    conn = current_app.get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+    try:
+        sql_map = {
+            "userid": "SELECT id FROM user WHERE id=%s",
+            "nickname": "SELECT nick FROM user WHERE nick=%s",
+            "email": "SELECT email FROM user WHERE email=%s"
+        }
+
+        friendly_names = {
+            "userid": "ID",
+            "nickname": "닉네임",
+            "email": "이메일"
+        }
+
+        sql = sql_map.get(field)
+        if not sql:
+            return {"status": "error", "message": "잘못된 필드입니다."}
+        
+        friendly = friendly_names.get(field, field)
+
+        cursor.execute(sql, (value,))
+        exists = cursor.fetchone()
+        if exists:
+            return {"status": "exists", "message": f"{friendly} 이미 사용중입니다."}
+        else:
+            return {"status": "ok", "message": f"{friendly} 사용 가능"}
+
+    finally:
+        cursor.close()
+        conn.close()

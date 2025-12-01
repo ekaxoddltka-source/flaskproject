@@ -10,7 +10,8 @@
     <h2>정보입력</h2>
     <form action="/join" method="POST">
       <label for="userid">아이디</label>
-      <input type="text" id="userid" name="userid" required> 
+      <input type="text" id="userid" name="userid" required>
+      <div id="userid-msg"></div> 
 
       <label for="password">비밀번호</label>
       <input type="password" id="password" name="password" required>
@@ -22,10 +23,12 @@
       <input type="text" id="name" name="name" required>   
 
       <label for="nickname">닉네임</label>
-      <input type="text" id="nickname" name="nickname" required>   
+      <input type="text" id="nickname" name="nickname" required>
+      <div id="nickname-msg"></div>   
 
       <label for="email">이메일</label>
       <input type="email" id="email" name="email" required>
+      <div id="email-msg"></div>
       
       <!-- 관심분야 -->
       <div class="skill-tag-area">
