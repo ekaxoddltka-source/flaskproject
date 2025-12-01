@@ -1,4 +1,104 @@
+// 디바운싱을 위한 변수
+let typingTimer;
+const doneTypingInterval = 1000; // 1초 후 API 호출
+
+/**
+ * 제목 또는 내용 입력이 멈추면 태그 추천 API를 호출합니다.
+ */
+function handleInputForTagRecommendation() {
+    clearTimeout(typingTimer);
+    
+    // 제목 또는 내용이 모두 비어있으면 호출하지 않습니다.
+    const title = document.getElementById('title').value.trim();
+    const content = document.getElementById('content').value.trim();
+
+    if (title.length === 0 && content.length === 0) {
+        document.getElementById('recommendedTags').innerHTML = ''; // 추천 태그 초기화
+        return;
+    }
+
+    typingTimer = setTimeout(async () => {
+        const recommendedTagsDiv = document.getElementById('recommendedTags');
+        recommendedTagsDiv.innerHTML = '추천 태그를 가져오는 중...'; // 로딩 표시
+
+        try {
+            const response = await fetch('/api/recommend_tags', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    title: title,
+                    content: content
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                displayRecommendedTags(result.tags);
+            } else {
+                console.error("API Error:", result.error);
+                recommendedTagsDiv.innerHTML = '태그 추천 오류 발생';
+            }
+        } catch (error) {
+            console.error("Fetch Error:", error);
+            recommendedTagsDiv.innerHTML = '네트워크 오류 발생';
+        }
+
+    }, doneTypingInterval);
+}
+
+/**
+ * API에서 받은 쉼표 구분 문자열을 HTML 버튼 형태로 변환하여 표시합니다.
+ * @param {string} tagString - 쉼표로 구분된 해시태그 문자열
+ */
+function displayRecommendedTags(tagString) {
+    const recommendedTagsDiv = document.getElementById('recommendedTags');
+    const tags = tagString.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+    
+    recommendedTagsDiv.innerHTML = ''; // 기존 내용 초기화
+
+    tags.forEach(tag => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'tag-btn';
+        button.textContent = '#' + tag;
+        button.dataset.tag = tag; // 실제 태그 값을 저장
+        button.addEventListener('click', addTagToInput);
+        recommendedTagsDiv.appendChild(button);
+    });
+}
+
+/**
+ * 추천 태그 버튼 클릭 시 해시태그 입력 필드에 추가하는 함수
+ * @param {Event} event - 클릭 이벤트 객체
+ */
+function addTagToInput(event) {
+    const tag = event.target.dataset.tag;
+    const hashtagInput = document.getElementById('hashtags');
+    let currentValue = hashtagInput.value.trim();
+
+    // 현재 값에 태그가 포함되어 있지 않을 경우에만 추가
+    if (!currentValue.includes(tag)) {
+        if (currentValue.length > 0) {
+            hashtagInput.value = currentValue + ', ' + tag;
+        } else {
+            hashtagInput.value = tag;
+        }
+    }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+
+  const titleInput = document.getElementById('title');
+    const contentTextarea = document.getElementById('content');
+
+    // 제목과 내용 입력 시 이벤트 리스너 등록
+    if (titleInput && contentTextarea) {
+        titleInput.addEventListener('keyup', handleInputForTagRecommendation);
+        contentTextarea.addEventListener('keyup', handleInputForTagRecommendation);
+    }
 
   // 파일 업로드 처리 (여러 파일 + 삭제 버튼)
   const fileUpload = document.getElementById("fileUpload");
@@ -406,5 +506,7 @@ categorySelect.addEventListener("change", () => {
     }
 });
   
+
+
 
 }); // DOMContentLoaded end

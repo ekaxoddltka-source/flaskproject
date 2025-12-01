@@ -294,3 +294,38 @@
 .existing-files .file-remove:hover {
   color: #333;
 }
+
+.recommended-tags-box label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.recommended-tags {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    min-height: 40px; /* 로딩 메시지나 태그가 없을 때를 위해 최소 높이 설정 */
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.tag-btn {
+    background-color: #e0f7fa; /* 밝은 청록색 */
+    color: #00796b; /* 진한 청록색 */
+    border: 1px solid #b2ebf2;
+    padding: 5px 10px;
+    margin-right: 8px;
+    margin-bottom: 5px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s;
+}
+
+.tag-btn:hover {
+    background-color: #b2ebf2;
+}

@@ -3,8 +3,22 @@ from flask import Flask
 from flask_socketio import SocketIO
 import pymysql
 import os
+from dotenv import load_dotenv
 
 socketio = SocketIO(cors_allowed_origins="*", manage_session=True)
+
+basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+dotenv_path = os.path.join(basedir, 'gemini_API.env')
+
+# 🌟 파일이 존재하는지 확인 후 로드 (디버깅에도 도움)
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path=dotenv_path)
+else:
+    print(f"DEBUG: ERROR! .env file NOT FOUND at: {dotenv_path}")
+
+# load_dotenv() 이후에 키 값 확인 (추가 디버깅)
+print(f"DEBUG: Key Loaded in __init__.py: {os.environ.get('GEMINI_API_KEY', 'MISSING')[:5]}...")
+
 
 def create_app():
     app = Flask(__name__)

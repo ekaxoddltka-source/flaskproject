@@ -5,6 +5,8 @@ from config import SIDEBAR_CONFIG
 import pymysql
 import os
 from urllib.parse import unquote
+from google import genai
+from google.genai import types
 
 bp = Blueprint(
     'home',
@@ -13,6 +15,14 @@ bp = Blueprint(
     static_folder='static',
     static_url_path='/home/static'
 )
+
+# Gemini 클라이언트 초기화
+try:
+    
+    client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+except Exception as e:
+    print(f"Gemini Client 초기화 오류: {e}")
+    client = None
 
 @bp.route("/api/me")
 def api_me():
@@ -254,7 +264,7 @@ def home():
 
     try:
         # 1️⃣ 기본 필터
-        board_filter_sql = "SELECT board_no FROM board WHERE board_deleted = 0"
+        board_filter_sql = "SELECT board_no FROM board WHERE board_deleted = 0 AND board_category IN (1,2,3)"
         params_filter = []
 
         category_map = {"자유": 1, "Q&A": 2, "코딩테스트": 3, "공지사항": 4, "이용약관": 5, "개인정보처리방침": 6}
@@ -1950,3 +1960,50 @@ def tag_filter(tag_name=None):
         login_user_id=login_user_id,
         tag_name=tag_name
     )
+
+@bp.route('/api/recommend_tags', methods=['POST'])
+def recommend_tags():
+    # 1. 요청 데이터 확인
+    data = request.json
+    title = data.get('title', 'No Title')
+    content = data.get('content', 'No Content')
+    print(f"DEBUG_1: Received Title: {title[:10]}..., Content: {content[:10]}...")
+
+    if not client:
+        return jsonify({"error": "API Client not initialized"}), 500
+
+    prompt = f"""
+    아래 제목과 내용을 분석하여, 이 글에 가장 적합한 **한국어 해시태그 5개**를 **다른 설명 없이 쉼표(,)로만 구분하여** 추천해 주세요.
+    
+    예시 출력 형식: **파이썬,플라스크,웹개발,데이터베이스,취미생활**
+    
+    ---
+    
+    제목: "{title}"
+    내용: "{content[:500]}..."
+    """
+
+    try:
+        # 2. 모델 호출 전 확인
+        print("DEBUG_2: Attempting Gemini API call...")
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+            config=types.GenerateContentConfig(temperature=0.7)
+        )
+        
+        # 3. 모델 응답 확인 (가장 중요한 부분)
+        print(f"DEBUG_3: API Success. Response Text: {response.text}")
+        
+        # 4. 응답 처리 및 반환
+        recommended_tags = response.text.strip()
+        
+        # 5. 최종 결과 확인
+        print(f"DEBUG_4: Final Tags: {recommended_tags}")
+        
+        return jsonify({"tags": recommended_tags})
+
+    except Exception as e:
+        print(f"DEBUG_ERROR: Full API/Processing Error: {e}")
+        # 이 부분이 실행되었을 때 500 에러 메시지가 브라우저로 갑니다.
+        return jsonify({"error": "Failed to get recommendations"}), 500
