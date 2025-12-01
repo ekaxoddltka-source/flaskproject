@@ -1,49 +1,57 @@
 @charset "UTF-8";
-/* join_info.css → body 안의 .post 영역에만 적용 */
+
+/* 기본 box-sizing 적용 */
+.post, .post * {
+    box-sizing: border-box;
+}
+
+/* 라벨 스타일 */
 .post label {
   font-weight: bold;
   display: block;
   margin-top: 15px;
 }
 
+/* input 그룹 */
 .post .input-group {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 5px;
 }
 
+/* 입력 필드 */
 .post input[type="text"],
 .post input[type="password"],
 .post input[type="email"],
 .post input[type="date"] {
-  width: 50%;
+  width: calc(50% - 10px); /* gap 반영 */
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 5px;
 }
 
+/* 메시지 영역 */
 .post .message {
   font-size: 0.75em;
   color: #d9534f;
   margin-top: 5px;
-  margin-bottom: 10px; /* 아래 라벨과 간격 확보 */
-  min-height: 18px;     /* 메시지가 없을 때도 공간 확보 */
+  margin-bottom: 10px;
+  min-height: 18px;
 }
 
+/* 버튼 그룹 */
 .post .button-group {
   display: flex;
   justify-content: space-between;
   margin-top: 30px;
-  width: 50%;
+  width: 50%; /* flex 내부에서 100% */
+  gap: 10px;
 }
 
 .post .button-group button {
   flex: 1;
-  margin: 0 5px;
   font-size: 16px;
-}
-
-.post button {
   padding: 10px 15px;
   background-color: #0078D4;
   border: none;
@@ -52,10 +60,11 @@
   color: white;
 }
 
-.post button:hover {
+.post .button-group button:hover {
   background-color: #005a9e;
 }
-/* 보유 기술 태그 전체 영역 */
+
+/* 보유 기술 태그 */
 .skill-tag-area label {
     font-weight: 600;
     margin-top: 10px;
@@ -68,6 +77,8 @@
     flex-wrap: wrap;
     gap: 8px;
     margin: 8px 0 4px;
+    max-width: 100%;       /* 부모 폭 넘어가지 않도록 */
+    overflow-x: auto;      /* 필요 시 가로 스크롤 */
 }
 
 /* 라운드 태그 스타일 */
@@ -94,20 +105,20 @@
     display: none;
 }
 
-/* 체크된 경우, input 바로 뒤에 오는 span의 텍스트 색상을 변경합니다. */
+/* 체크된 경우 색상 변경 */
 .skill-tag-area .tag input:checked + span {
-    color: white; /* 💡 white 색상은 span에만 적용 (텍스트 색상) */
-}
-/* ✅ 해결책: :has() 선택자 (최신 브라우저 권장) */
-.skill-tag-area .tag:has(input:checked) {
-    background: #4a8bff;
-    border-color: #4a8bff;
+    color: white;
 }
 
-/* 직접입력 input */
+.skill-tag-area .tag:has(input:checked) {
+    background: #0078D4;
+    border-color: #0078D4;
+}
+
+/* 직접 입력 input */
 .skill-tag-area .tag-input {
     margin-top: 6px;
-    width: 150px !important;  /* 길이 줄임 */
+    width: 150px;
     padding: 9px 13px;
     font-size: 14px;
     border: 1px dashed #c4c4c4;
@@ -116,6 +127,8 @@
 }
 
 .skill-tag-area .tag-input:focus {
-    border-color: #4a8bff;
+    border-color: #005a9e;
     background: #f7faff;
 }
+
+
