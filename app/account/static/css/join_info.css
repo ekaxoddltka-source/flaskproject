@@ -137,4 +137,18 @@
     background: #f7faff;
 }
 
+/* 선택된 태그 */
+.skill-tag-area .tag.selected {
+    background: #0078D4;
+    border-color: #0078D4;
+    color: white;
+}
+
+/* hover 효과는 유지 */
+.skill-tag-area .tag.selected:hover {
+    background: #005a9e;
+    border-color: #005a9e;
+}
+
+
 

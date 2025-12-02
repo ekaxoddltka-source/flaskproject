@@ -27,20 +27,18 @@ class UserDao:
                 data["nick"],  # nickname은 nick 컬럼에 들어감
                 data["email"]
             )
-
             cursor.execute(sql_user, params_user)
 
-            # 2. 관심분야 insert
-            if interests:
-                sql_interest = "INSERT INTO user_interests (user_id, interest) VALUES (%s, %s)"
-                for item in interests:
-                    cursor.execute(sql_interest, (data["id"], item))
+            # 2. user_attributes insert (관심분야 + 기술)
+            sql_attr = "INSERT INTO user_attributes (user_id, type, value) VALUES (%s, %s, %s)"
 
-            # 3. 기술 insert
+            if interests:
+                for item in interests:
+                    cursor.execute(sql_attr, (data["id"], 'interest', item))
+
             if skills:
-                sql_skill = "INSERT INTO user_skills (user_id, skill) VALUES (%s, %s)"
                 for item in skills:
-                    cursor.execute(sql_skill, (data["id"], item))
+                    cursor.execute(sql_attr, (data["id"], 'skill', item))
 
             conn.commit()
             return True
@@ -51,7 +49,6 @@ class UserDao:
             traceback.print_exc()
             conn.rollback()
             return False
-
 
         finally:
             cursor.close()

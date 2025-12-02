@@ -35,22 +35,22 @@
         <label>관심분야</label>
         <div class="tag-box" id="interest-tags">
           <label class="tag">
-            <input type="checkbox" name="interests" value="웹개발"> <span>웹개발</span>
+            <input type="checkbox" name="interests[]" value="웹개발"> <span>웹개발</span>
           </label>
           <label class="tag">
-            <input type="checkbox" name="interests" value="AI"> <span>AI</span>
+            <input type="checkbox" name="interests[]" value="AI"> <span>AI</span>
           </label>
           <label class="tag">
-            <input type="checkbox" name="interests" value="데이터분석"> <span>데이터분석</span>
+            <input type="checkbox" name="interests[]" value="데이터분석"> <span>데이터분석</span>
           </label>
           <label class="tag">
-            <input type="checkbox" name="interests" value="머신러닝"> <span>머신러닝</span>
+            <input type="checkbox" name="interests[]" value="머신러닝"> <span>머신러닝</span>
           </label>
           <label class="tag">
-            <input type="checkbox" name="interests" value="모바일개발"> <span>모바일개발</span>
+            <input type="checkbox" name="interests[]" value="모바일개발"> <span>모바일개발</span>
           </label>
           <label class="tag">
-            <input type="checkbox" name="interests" value="데이터베이스"><span>데이터베이스</span>
+            <input type="checkbox" name="interests[]" value="데이터베이스"><span>데이터베이스</span>
           </label>
         </div>
 
@@ -59,35 +59,34 @@
             id="interest-input" 
             placeholder="직접 입력 후 Enter" 
             class="tag-input"
-            name="interests_manual"
         >
 
         <!-- 보유 기술 -->
         <label>보유 기술</label>
         <div class="tag-box" id="skill-tags">
           <label class="tag">
-            <input type="checkbox" name="skills" value="Python"><span>Python</span>
+            <input type="checkbox" name="skills[]" value="Python"><span>Python</span>
           </label>
           <label class="tag">
-            <input type="checkbox" name="skills" value="JavaScript"><span>JavaScript</span>
+            <input type="checkbox" name="skills[]" value="JavaScript"><span>JavaScript</span>
           </label>
           <label class="tag">
-            <input type="checkbox" name="skills" value="Django"><span>Django</span>
+            <input type="checkbox" name="skills[]" value="Django"><span>Django</span>
           </label>
           <label class="tag">
-            <input type="checkbox" name="skills" value="Node.js"><span>Node.js</span>
+            <input type="checkbox" name="skills[]" value="Node.js"><span>Node.js</span>
           </label>
           <label class="tag">
-            <input type="checkbox" name="skills" value="C언어"><span>C언어</span>
+            <input type="checkbox" name="skills[]" value="C언어"><span>C언어</span>
           </label>
           <label class="tag">
-            <input type="checkbox" name="skills" value="HTML/CSS"><span>HTML/CSS</span>
+            <input type="checkbox" name="skills[]" value="HTML/CSS"><span>HTML/CSS</span>
           </label>
           <label class="tag">
-            <input type="checkbox" name="skills" value="Kotlin"> <span>Kotlin</span>
+            <input type="checkbox" name="skills[]" value="Kotlin"> <span>Kotlin</span>
           </label>
           <label class="tag">
-            <input type="checkbox" name="skills" value="SQL"><span>SQL</span>
+            <input type="checkbox" name="skills[]" value="SQL"><span>SQL</span>
           </label>
         </div>
 
@@ -96,7 +95,6 @@
             id="skill-input" 
             placeholder="직접 입력 후 Enter" 
             class="tag-input"
-            name="skills_manual"
         >
       </div>      
       <div class="button-group">
@@ -104,7 +102,7 @@
         <button type="reset">취소</button>
       </div>
     </form>
-    </div>
+  </div>
   </div>
 </div>
 

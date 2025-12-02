@@ -4,8 +4,6 @@ from config import SIDEBAR_CONFIG
 from datetime import datetime
 import pymysql
 from .dao.user_dao import UserDao
-from werkzeug.security import generate_password_hash, check_password_hash
-
 
 bp = Blueprint(
     'account',
@@ -124,18 +122,9 @@ def join():
     nickname = request.form.get("nickname")
     email = request.form.get("email")
 
-    # 체크박스 값
-    interests = request.form.getlist("interests")
-    skills = request.form.getlist("skills")
-
-    # 직접 입력 값
-    interest_manual = request.form.get("interests_manual")
-    skill_manual = request.form.get("skills_manual")
-
-    if interest_manual:
-        interests.append(interest_manual.strip())
-    if skill_manual:
-        skills.append(skill_manual.strip())
+    # 선택된 interests / skills
+    interests = request.form.getlist("interests[]")
+    skills = request.form.getlist("skills[]")
 
     # 비밀번호 확인
     if password != confirm_password:
@@ -151,7 +140,7 @@ def join():
         "email": email
     }
 
-    # 통합 insert (유저 + 관심분야 + 기술)
+    # 유저 + user_attributes 통합 insert
     result = user_dao.insert_user(user_data, interests=interests, skills=skills)
     if not result:
         flash("회원가입 중 오류가 발생했습니다.", "error")
@@ -159,6 +148,7 @@ def join():
 
     flash("회원가입이 완료되었습니다!", "success")
     return redirect("/")
+
 
 
 
