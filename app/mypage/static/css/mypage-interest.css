@@ -130,3 +130,88 @@
     font-size: 14px;
     color: #666;
 }
+/* -------------------------------
+   AI 추천 글 디자인
+--------------------------------*/
+.recommend-panel {
+    margin-top: 40px;
+    padding: 25px 30px;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(6px);
+    border-radius: 16px;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+}
+
+.recommend-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.recommend-sub {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.recommend-card-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.recommend-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 17px 20px;
+    text-decoration: none;
+    border: 1px solid #eee;
+
+    transition: all 0.22s ease;
+}
+
+.recommend-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.1);
+}
+
+.rec-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.rec-bottom {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+}
+
+.rec-label {
+    background: #f0f0f0;
+    padding: 3px 7px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+}
+
+.rec-score {
+    font-size: 13px;
+    font-weight: 700;
+    color: #3066be;
+}
+
+.no-recommend {
+    text-align: center;
+    color: #777;
+    font-size: 14px;
+    padding: 20px 0;
+}

@@ -9,7 +9,22 @@ import pymysql
 
 from posts_data.aezen_recommender import (
     build_user_vector, recommend_articles
+    , load_model, TOPIC_LABELS
 )
+import json
+# ------------------------------------------------------------
+# 기술 키워드 사전
+# ------------------------------------------------------------
+TECH_KEYWORDS = {
+    "python", "java", "c", "c++", "c#", "go", "rust",
+    "javascript", "typescript",
+    "react", "vue", "svelte", "nextjs",
+    "spring", "django", "flask", "fastapi", "node",
+    "sql", "mysql", "oracle", "postgres", "mongodb", "redis",
+    "ai", "ml", "deeplearning", "pytorch", "tensorflow",
+    "docker", "k8s", "kubernetes", "aws", "gcp", "azure"
+}
+
 
 
 
@@ -440,6 +455,17 @@ def mypage_board_detail(board_no):
     tags = posts_dao.get_tags_by_board(board_no)
     comments = posts_dao.get_comments_by_board(board_no)
 
+    files = posts_dao.get_files_by_board(board_no)
+
+    # ★ home.html에서 기대하는 key(fileExt)를 강제로 생성
+    for f in files:
+        # snake_case → camelCase
+        if "file_ext" in f and "fileExt" not in f:
+            f["fileExt"] = f["file_ext"]
+        # None 대비
+        if f.get("fileExt") is None:
+            f["fileExt"] = ""
+        
     if not post:
         return "<script>alert('게시글을 찾을 수 없습니다.'); history.back();</script>"
 
@@ -480,48 +506,16 @@ def mypage_board_detail(board_no):
 # ------------------------------------------------------------
 
 
-# ------------------------------------------------------------
-# 기술 키워드 사전
-# ------------------------------------------------------------
-TECH_KEYWORDS = {
-    "python", "java", "c", "c++", "javascript", "typescript",
-    "react", "vue", "svelte", "nextjs",
-    "spring", "django", "flask", "fastapi", "node",
-    "sql", "mysql", "oracle", "postgres", "mongodb",
-    "ai", "ml", "deeplearning", "pytorch", "tensorflow",
-    "docker", "k8s", "kubernetes", "aws", "gcp", "azure"
-}
-
-# ------------------------------------------------------------
-# 분야별 매핑 (Radar Chart용)
-# ------------------------------------------------------------
-TECH_CATEGORY = {
-    "Frontend": ["react", "vue", "svelte", "javascript", "typescript", "nextjs"],
-    "Backend": ["python", "java", "spring", "django", "fastapi", "flask", "node"],
-    "Database": ["sql", "mysql", "oracle", "postgres", "mongodb"],
-    "AI/ML": ["ai", "ml", "deeplearning", "pytorch", "tensorflow"],
-    "DevOps": ["docker", "k8s", "kubernetes", "aws", "gcp", "azure"]
-}
-
-# ------------------------------------------------------------
-# 키워드 추출 함수
-# ------------------------------------------------------------
-def extract_keywords(text):
-    if not text:
-        return []
-    text = text.lower()
-    found = []
-    for kw in TECH_KEYWORDS:
-        pattern = rf"\b{re.escape(kw)}\b"
-        if re.search(pattern, text):
-            found.append(kw)
-    return found
 
 
+# 🔥 자동 생성된 토픽 라벨 로드
+with open("posts_data/topic_labels.json", "r", encoding="utf-8") as f:
+    TOPIC_LABELS = json.load(f)
 
-# ------------------------------------------------------------
-# 관심도 분석 + BERT 추천 라우트 (완성본)
-# ------------------------------------------------------------
+
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+
 @bp.route("/mypage-interest")
 def mypage_interest():
 
@@ -531,88 +525,40 @@ def mypage_interest():
 
     user_id = user["id"]
 
-    # -----------------------------
-    # 1) 태그 / 텍스트 데이터 수집
-    # -----------------------------
+    # -----------------------------------------
+    # 1) 텍스트 수집 (작성 + 조회 로그 기반)
+    # -----------------------------------------
     tag_data = interest_dao.get_all_tags(user_id)
-    written_tags = tag_data["written_tags"]
-    viewed_tags = tag_data["viewed_tags"]
-
     text_sources = interest_dao.get_all_text_sources(user_id)
-    written_posts = text_sources["written_posts"]
-    viewed_posts = text_sources["viewed_posts"]
-    written_comments = text_sources["written_comments"]
-    viewed_comments = text_sources["viewed_comments"]
 
-    # -----------------------------
-    # 2) 키워드 분석(로그 기반)
-    # -----------------------------
-    tag_keywords = written_tags + viewed_tags
-    text_keywords = []
-
-    for p in written_posts + viewed_posts:
-        text_keywords += extract_keywords(p["board_title"])
-        text_keywords += extract_keywords(p["board_content"])
-
-    for c in written_comments + viewed_comments:
-        text_keywords += extract_keywords(c["comment_answer_content"])
-
-    all_keywords = tag_keywords + text_keywords
-    counter = Counter(all_keywords)
-
-    # ============================================================
-    # ⭐ 3) 추천/비추천 점수(user_interest_keyword) 반영
-    # ============================================================
-    feedback_scores = interest_keyword_dao.get_scores_map(user_id)
-    for kw, score in feedback_scores.items():
-        counter[kw] += score
-
-    # -----------------------------
-    # 4) TOP5 계산
-    # -----------------------------
-    top5 = counter.most_common(5)
-    if top5:
-        top5_labels = [x[0] for x in top5]
-        top5_values = [x[1] for x in top5]
-    else:
-        top5_labels = ["데이터 없음"]
-        top5_values = [0]
-
-    # -----------------------------
-    # 5) Radar Chart 계산
-    # -----------------------------
-    radar_map = {cat: 0 for cat in TECH_CATEGORY}
-    for kw, cnt in counter.items():
-        for cat, lst in TECH_CATEGORY.items():
-            if kw in lst:
-                radar_map[cat] += cnt
-
-    radar_labels = list(radar_map.keys())
-    radar_values = list(radar_map.values())
-
-    # -----------------------------
-    # 6) 추천 시스템용 텍스트 구성
-    # -----------------------------
     texts = []
-    for p in written_posts + viewed_posts:
+
+    for p in text_sources["written_posts"] + text_sources["viewed_posts"]:
         texts.append(p["board_title"] or "")
         texts.append(p["board_content"] or "")
 
-    for c in written_comments + viewed_comments:
+    for c in text_sources["written_comments"] + text_sources["viewed_comments"]:
         texts.append(c["comment_answer_content"] or "")
 
-    texts += written_tags + viewed_tags
+    texts += tag_data["written_tags"] + tag_data["viewed_tags"]
+    # -----------------------------------------
+    # TOP5(기술 키워드 필터링)
+    # -----------------------------------------
 
-    # ============================================================
-    # ⭐ 6-1) Positive feedback을 텍스트 강화에 반영
-    # ============================================================
-    for kw, score in feedback_scores.items():
-        if score > 0:
-            texts.extend([kw] * int(score))
+    joined = " ".join(texts).lower()
+    words = re.findall(r"[a-zA-Z0-9\+\#\.]+", joined)
 
-    # -----------------------------
-    # 7) 유저 벡터 로드 / 생성
-    # -----------------------------
+    tech_only = [w for w in words if w in TECH_KEYWORDS]
+
+    counter = Counter(tech_only)
+    top5 = counter.most_common(5)
+
+    top5_labels = [w[0] for w in top5] if top5 else ["No Data"]
+    top5_values = [w[1] for w in top5] if top5 else [0]
+
+    # -----------------------------------------
+    # 2) 유저 벡터
+    # -----------------------------------------
     user_vector = interest_vector_dao.load_vector(user_id)
 
     if user_vector is None and texts:
@@ -620,81 +566,111 @@ def mypage_interest():
         if user_vector is not None:
             interest_vector_dao.save_vector(user_id, user_vector)
 
-    # -----------------------------
-    # 8) 추천 계산
-    # -----------------------------
-    recommended_articles = []
-    if user_vector is not None:
-        recommended_articles = recommend_articles(user_vector, top_n=5)
+    if user_vector is None:
+        return render_template(
+            "mypage-interest.html",
+            sidebar=SIDEBAR_CONFIG["default"],
+            active="mypage",
+            radar_labels=["No Data"],
+            radar_values=[0],
+            recommended_articles=[],
+            top5_labels=top5_labels,
+            top5_values=top5_values,
+            current_bg=session["user"].get("background_img") or None
+        )
 
-    # -----------------------------
-    # 9) 렌더링
-    # -----------------------------
+    # -----------------------------------------
+    # 3) 카테고리 벡터 로드
+    # -----------------------------------------
+    cat_vectors = np.load("posts_data/category_vectors.npy", allow_pickle=True).item()
+
+    radar_labels = list(cat_vectors.keys())
+    radar_values = []
+
+    # -----------------------------------------
+    # 4) 카테고리 유사도 계산 (레이더)
+    # -----------------------------------------
+    for cat in radar_labels:
+        cat_vec = cat_vectors[cat]
+        sim = cosine_similarity([user_vector], [cat_vec])[0][0]
+        radar_values.append(float(sim))
+
+    # -----------------------------------------
+    # 5) 추천 글 계산
+    # -----------------------------------------
+    recommended_articles = recommend_articles(user_vector, top_n=5)
+
     return render_template(
         "mypage-interest.html",
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-
-        top5_labels=top5_labels,
-        top5_values=top5_values,
         radar_labels=radar_labels,
         radar_values=radar_values,
-
         recommended_articles=recommended_articles,
-
+        top5_labels=top5_labels,
+        top5_values=top5_values,
         current_bg=session["user"].get("background_img") or None
     )
+
+
+
+
+# ------------------------------------------------------------
+# 관심 피드백 — 유저 벡터 조정
+# ------------------------------------------------------------
 @bp.route("/mypage-interest/feedback", methods=["POST"])
 def mypage_interest_feedback():
     user = session.get("user")
     if not user:
-        return jsonify({"ok": False, "error": "login_required"}), 401
+        return jsonify(ok=False), 401
 
     user_id = user["id"]
-    data = request.get_json(silent=True) or {}
+    data = request.get_json() or {}
 
     board_no = data.get("board_no")
     action = data.get("action")  # "like" or "dislike"
 
     if not board_no or action not in ("like", "dislike"):
-        return jsonify({"ok": False, "error": "invalid_params"}), 400
+        return jsonify(ok=False, error="invalid_params"), 400
 
-    # ---------------------------------------------
-    # 가중치 (원하면 조절 가능)
-    # ---------------------------------------------
-    delta = 10 if action == "like" else -20
-
-    # ---------------------------------------------
-    # 게시글 본문 + 태그 로딩
-    # ---------------------------------------------
+    # -----------------------------------------
+    # 1) 게시글 텍스트 가져오기
+    # -----------------------------------------
     post = interest_dao.get_post_with_tags(board_no)
     if not post:
-        return jsonify({"ok": False, "error": "post_not_found"}), 404
+        return jsonify(ok=False, error="post_not_found"), 404
 
-    # 텍스트 구성
-    text_parts = [
-        post.get("board_title") or "",
-        post.get("board_content") or "",
-    ]
-    text_parts += post.get("tags", [])
+    text = f"{post['board_title']} {post['board_content']} {' '.join(post['tags'])}"
 
-    full_text = " ".join(text_parts)
+    # -----------------------------------------
+    # 2) 게시글 임베딩
+    # -----------------------------------------
+    model = load_model()
+    post_vec = model.encode(text)
 
-    # ---------------------------------------------
-    # 키워드 추출
-    # ---------------------------------------------
-    keywords = extract_keywords(full_text)
+    # -----------------------------------------
+    # 3) 기존 유저 벡터 가져오기
+    # -----------------------------------------
+    user_vec = interest_vector_dao.load_vector(user_id)
+    if user_vec is None:
+        user_vec = np.zeros_like(post_vec)
 
-    # ---------------------------------------------
-    # 키워드 점수 DB 반영
-    # ---------------------------------------------
-    for kw in set(keywords):  # 중복 제거
-        interest_keyword_dao.add_score(user_id, kw, delta)
+    # -----------------------------------------
+    # 4) 피드백 적용 (가중치 조절 가능)
+    # -----------------------------------------
+    if action == "like":
+        user_vec = user_vec + (post_vec * 0.2)
+    else:
+        user_vec = user_vec - (post_vec * 0.3)
 
-    interest_vector_dao.delete_vector(user_id)
+    # -----------------------------------------
+    # 5) 저장
+    # -----------------------------------------
+    interest_vector_dao.save_vector(user_id, user_vec)
+
+    return jsonify(ok=True)
 
 
-    return jsonify({"ok": True})
 
 
 
@@ -1107,7 +1083,8 @@ def mypage_point():
     order = request.args.get("order", "latest")
 
     # 모든 거래 내역 (선택된 정렬 순서로 가져옴)
-    point_list = point_dao.get_point_history(user_id, order=order)
+    point_list = list(point_dao.get_point_history(user_id, order=order))
+
     user_point = user["user_current_point"]
 
     # =============================================

@@ -59,21 +59,25 @@ body::before {
 <!-- AI 추천 글 -->
 <section class="recommend-panel">
     <h3 class="recommend-title">AI 추천 글</h3>
+    <p class="recommend-sub">당신의 활동 기반으로 AI가 추천한 글입니다.</p>
 
     {% if recommended_articles and recommended_articles|length > 0 %}
-        <ul class="recommend-list">
-            {% for art in recommended_articles %}
-            <li>
-                <a href="{{ art.url }}" target="_blank" class="recommend-link">
-                    {{ art.title }}
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
+    <div class="recommend-card-wrapper">
+        {% for art in recommended_articles %}
+        <a href="{{ art.url }}" target="_blank" class="recommend-card">
+            <div class="rec-title">{{ art.title }}</div>
+            <div class="rec-bottom">
+                <span class="rec-label">관련도</span>
+                <span class="rec-score">{{ "%.2f"|format(art.score) }}</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
     {% else %}
-        <p class="no-recommend">추천을 위해 데이터가 부족합니다.</p>
+    <p class="no-recommend">추천을 위해 데이터가 부족합니다.</p>
     {% endif %}
 </section>
+
 
  
 
