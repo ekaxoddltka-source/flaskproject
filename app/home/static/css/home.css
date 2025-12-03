@@ -162,6 +162,11 @@
 /* ====================================
  * 6. 게시글 푸터 (Post Footer)
  * ==================================== */
+.bnote,
+.c-text,
+.a-text {
+    white-space: pre-line;
+}
 .post-footer {
     position: relative;
     display: flex;

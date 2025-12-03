@@ -65,7 +65,7 @@
                 <span class="upload">첨부파일 없음</span>
             {% endif %}
 
-            <div class="bnote">
+            <div class="bnote" style="white-space: pre-wrap;">
                 {{ post.boardContent }}
             </div>
 
@@ -110,7 +110,7 @@
                 {% for answer in post.comments %}
                     {% if answer.commentAnswerType == 2 %}
                     <div class="answer-item" data-id="{{ answer.commentAnswerNo }}">
-                        <div class="a-text">
+                        <div class="a-text" style="white-space: pre-wrap;">
                             {% if answer.answerAccepted %}
                                 <span class="chosen-label">채택된 답안</span>
                             {% endif %}
@@ -178,7 +178,7 @@
             {% for comment in post.comments %}
                 {% if comment.commentAnswerType == 1 %}
                 <div class="comment-item" data-id="{{ comment.commentAnswerNo }}">
-                    <span class="c-text">{{ comment.commentAnswerContent }}</span>
+                    <span class="c-text" style="white-space: pre-wrap;">{{ comment.commentAnswerContent }}</span>
 
                     <div class="c-votes">
                         <span class="comment-up" data-id="{{ comment.commentAnswerNo }}">
