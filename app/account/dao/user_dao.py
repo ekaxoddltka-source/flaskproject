@@ -1,7 +1,6 @@
 # app/account/dao/user_dao.py
 import pymysql
 from flask import current_app
-from werkzeug.security import generate_password_hash
 
 class UserDao:
     """User Data Access Object"""
@@ -22,7 +21,7 @@ class UserDao:
             """
             params_user = (
                 data["id"],
-                data["password"],
+                data["password"],  # 비밀번호 그대로 저장
                 data["name"],
                 data["nick"],  # nickname은 nick 컬럼에 들어감
                 data["email"]
@@ -53,3 +52,33 @@ class UserDao:
         finally:
             cursor.close()
             conn.close()
+
+    @staticmethod
+    def get_user_by_name_email(name, email):
+        db = current_app.get_db_connection()
+        sql = "SELECT id FROM user WHERE name=%s AND email=%s AND withdraw=0"
+        with db.cursor() as cursor:
+            cursor.execute(sql, (name, email))
+            result = cursor.fetchone()
+        db.close()
+        return result
+
+    @staticmethod
+    def get_user_by_all(userid, name, email):
+        db = current_app.get_db_connection()
+        sql = "SELECT id FROM user WHERE id=%s AND name=%s AND email=%s AND withdraw=0"
+        with db.cursor() as cursor:
+            cursor.execute(sql, (userid, name, email))
+            result = cursor.fetchone()
+        db.close()
+        return result
+
+    @staticmethod
+    def update_password(userid, password):
+        """임시 비밀번호 그대로 DB에 저장"""
+        db = current_app.get_db_connection()
+        sql = "UPDATE user SET password=%s WHERE id=%s"
+        with db.cursor() as cursor:
+            cursor.execute(sql, (password, userid))
+        db.commit()
+        db.close()

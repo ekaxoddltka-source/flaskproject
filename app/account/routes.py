@@ -1,9 +1,12 @@
 # app/account/routes.py
-from flask import Blueprint, render_template, request, redirect, session, flash, current_app
+from flask import Blueprint, render_template, request, redirect, session, flash, current_app, jsonify
 from config import SIDEBAR_CONFIG
 from datetime import datetime
 import pymysql
 from .dao.user_dao import UserDao
+from app.account.utils.mail import send_email
+from app.account.dao.user_dao import UserDao
+import random, string
 
 bp = Blueprint(
     'account',
@@ -191,3 +194,81 @@ def check_duplicate():
     finally:
         cursor.close()
         conn.close()
+
+
+
+
+    bp = Blueprint('account', __name__, url_prefix='/')
+
+# -----------------------------------
+# 🔹 아이디 찾기 - 인증코드 전송
+# -----------------------------------
+@bp.route('/send-id-code', methods=['POST'])
+def send_id_code():
+    name = request.form.get('name')
+    email = request.form.get('email')
+
+    user = UserDao.get_user_by_name_email(name, email)
+    if not user:
+        return jsonify(success=False, msg="일치하는 회원이 없습니다.")
+
+    code = ''.join(random.choices(string.digits, k=6))
+
+    session['find_id_code'] = code
+    session['find_id_userid'] = user['id']  # user.id
+
+    send_email(email, "아이디 찾기 인증코드", f"인증코드: {code}")
+
+    return jsonify(success=True, msg="인증코드를 이메일로 전송했습니다.")
+
+
+# -----------------------------------
+# 🔹 아이디 찾기 - 최종 확인
+# -----------------------------------
+@bp.route('/find-id', methods=['POST'])
+def find_id():
+    name = request.form.get('name-id')
+    email = request.form.get('email-id')
+    code = request.form.get('code-id')
+
+    if code != session.get('find_id_code'):
+        return "<script>alert('인증코드가 일치하지 않습니다.'); history.back();</script>"
+
+    userid = session.get('find_id_userid')
+
+    return f"""
+    <script>
+    alert("{name}님의 ID는 '{userid}' 입니다.");
+    window.location.href='/join-find';
+    </script>
+    """
+
+
+# -----------------------------------
+# 🔹 비밀번호 찾기 - 임시 비밀번호 발송 (테스트용, 해시 없이)
+# -----------------------------------
+@bp.route('/find-password', methods=['POST'])
+def find_password():
+    userid = request.form.get('userid-pw')
+    name = request.form.get('name-pw')
+    email = request.form.get('email-pw')
+
+    user = UserDao.get_user_by_all(userid, name, email)
+    if not user:
+        return "<script>alert('입력 정보가 일치하지 않습니다.'); history.back();</script>"
+
+    # 🔹 임시 비밀번호 생성
+    temp_pw = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+
+    # 🔹 DB에 그대로 저장
+    UserDao.update_password(userid, temp_pw)
+
+    # 🔹 이메일로 임시 비밀번호 전송
+    send_email(email, "임시 비밀번호 안내", f"임시 비밀번호: {temp_pw}")
+
+    return """
+    <script>
+    alert("임시 비밀번호를 이메일로 전송했습니다.");
+    window.location.href='/join-find';
+    </script>
+    """
