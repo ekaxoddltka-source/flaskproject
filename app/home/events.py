@@ -88,3 +88,33 @@ def handle_disconnect(*args, **kwargs):
     global user_count
     user_count -= 1
     emit('update_user_count', user_count, broadcast=True)
+
+from app.home.chat_recommend.recommend import build_chat_topic
+
+TOP_N = 3
+all_keywords = []
+current_idx = 0
+
+@socketio.on("request_topic")
+def handle_request_topic():
+    global all_keywords, current_idx  # ← 전역 변수임을 명시
+
+    topic_text, full_keywords = build_chat_topic(current_app)
+    
+    if all_keywords != full_keywords:
+        all_keywords = full_keywords
+        current_idx = 0
+
+    if not all_keywords:
+        topics_to_emit = []
+    else:
+        topics_to_emit = [
+            all_keywords[(current_idx + i) % len(all_keywords)]
+            for i in range(TOP_N)
+        ]
+
+    socketio.emit(
+        "recommend_topic",
+        {"topics": topics_to_emit},
+        namespace='/'
+    )

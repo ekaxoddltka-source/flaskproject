@@ -18,7 +18,6 @@ bp = Blueprint(
 
 # Gemini 클라이언트 초기화
 try:
-    
     client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 except Exception as e:
     print(f"Gemini Client 초기화 오류: {e}")
@@ -1967,7 +1966,6 @@ def recommend_tags():
     data = request.json
     title = data.get('title', 'No Title')
     content = data.get('content', 'No Content')
-    print(f"DEBUG_1: Received Title: {title[:10]}..., Content: {content[:10]}...")
 
     if not client:
         return jsonify({"error": "API Client not initialized"}), 500
@@ -1985,7 +1983,6 @@ def recommend_tags():
 
     try:
         # 2. 모델 호출 전 확인
-        print("DEBUG_2: Attempting Gemini API call...")
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt,
@@ -1993,14 +1990,11 @@ def recommend_tags():
         )
         
         # 3. 모델 응답 확인 (가장 중요한 부분)
-        print(f"DEBUG_3: API Success. Response Text: {response.text}")
         
         # 4. 응답 처리 및 반환
         recommended_tags = response.text.strip()
         
         # 5. 최종 결과 확인
-        print(f"DEBUG_4: Final Tags: {recommended_tags}")
-        
         return jsonify({"tags": recommended_tags})
 
     except Exception as e:

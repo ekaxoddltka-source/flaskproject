@@ -1,6 +1,6 @@
 // 디바운싱을 위한 변수
 let typingTimer;
-const doneTypingInterval = 1000; // 1초 후 API 호출
+const doneTypingInterval = 500; // 0.5초 후 API 호출
 
 /**
  * 제목 또는 내용 입력이 멈추면 태그 추천 API를 호출합니다.
@@ -505,6 +505,21 @@ categorySelect.addEventListener("change", () => {
         if (normalForm) normalForm.style.display = "block";
     }
 });
+
+// ==========================
+// 1) 초기 추천 태그 호출
+// ==========================
+function fetchInitialTags() {
+    const title = document.getElementById('title').value.trim();
+    const content = document.getElementById('content').value.trim();
+
+    if (title.length === 0 && content.length === 0) return;
+
+    handleInputForTagRecommendation(); // 기존 함수 재사용
+}
+
+// DOMContentLoaded 끝에 추가
+fetchInitialTags();
   
 
 

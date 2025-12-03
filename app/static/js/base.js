@@ -212,6 +212,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const chatMessages = document.getElementById('chatMessages');
     const chatInput = document.getElementById('chatInput');
     const sendBtn = document.getElementById('sendBtn');
+    const chatTopicText = document.getElementById('chatTopicText');
     const currentUserId = window.currentUserId || ''; 
 
     // ID 기반 색상 생성 함수
@@ -250,6 +251,11 @@ document.addEventListener("DOMContentLoaded", () => {
             chatMessages.removeChild(chatMessages.firstChild);
         }
     }
+
+    // 연결 후 추천 토픽 요청
+    socket.on('connect', () => {
+        socket.emit("request_topic");
+    });
     
     socket.on('load_recent_messages', data => {
         const messages = data.messages;
@@ -282,6 +288,16 @@ document.addEventListener("DOMContentLoaded", () => {
     sendBtn.addEventListener('click', sendMessage);
     chatInput.addEventListener('keydown', e => {
         if (e.key === 'Enter') sendMessage();
+    });
+
+    // ⭐ 추천 토픽 수신
+    socket.on("recommend_topic", data => {
+        const { topics } = data;
+        let topicText = "";
+        if(Array.isArray(topics)) topicText = topics.join(", ");
+        else if(topics && typeof topics==="object") topicText = Object.values(topics).join(", ");
+        else if(topics) topicText = String(topics);
+        chatTopicText.textContent = topicText || "불러오는 중...";
     });
 
 // ===========================

@@ -9,7 +9,6 @@ def build_chat_topic(app, limit=10, keyword_top_n=5):
     """
     # 1) DB에서 TOP 게시글 가져오기
     posts = get_top_posts_last_3_days(app, limit=limit)
-    print(f"[DEBUG] get_top_posts_last_3_days returned {len(posts)} posts")  # 🔥
     if not posts:
         return None, []
 
@@ -26,6 +25,18 @@ def build_chat_topic(app, limit=10, keyword_top_n=5):
     else:
         topic_text = "오늘의 대화 주제 후보: " + ", ".join(list(all_keywords))
 
-    print(f"[DEBUG] topic_text generated: {topic_text}")  # 🔥
-
     return topic_text, list(all_keywords)
+
+def generate_topics(extracted_keywords_list):
+    """
+    스케줄러에서 호출하는 함수.
+    extracted_keywords_list는 extract_keywords_from_posts 반환값 리스트
+    """
+    all_keywords = set()
+    for item in extracted_keywords_list:
+        all_keywords.update(item.get('keywords', []))
+
+    if not all_keywords:
+        return ["최근 인기 게시글에서 유의미한 키워드를 찾지 못했습니다."]
+
+    return list(all_keywords)

@@ -22,5 +22,7 @@ def init_app(app, socketio):
         'socket_handlers': socket_handlers
     }
 
+    socket_handlers.init_socket_handlers(socketio)
+
     # scheduler start
     scheduler.start(socketio, app)  # 🔥 app 추가
