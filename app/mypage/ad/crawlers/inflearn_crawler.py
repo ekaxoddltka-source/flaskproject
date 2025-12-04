@@ -47,6 +47,10 @@ def crawl_inflearn_courses():
                 except Exception as e:
                     print("Error:", e)
                     continue
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+
+        print(f"\n총 {len(data)}개의 강의 데이터를 {file_path}에 저장했습니다.")        
     finally:
         driver.quit()
 
@@ -65,7 +69,3 @@ os.makedirs(folder_path, exist_ok=True)
 # 파일 경로
 file_path = os.path.join(folder_path, "inflearn_courses.json")
 
-with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-
-print(f"\n총 {len(data)}개의 강의 데이터를 {file_path}에 저장했습니다.")

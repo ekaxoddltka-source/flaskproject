@@ -1,3 +1,55 @@
+function loadSidebarAd() {
+    const box = document.getElementById("sidebar-ad");
+    if (!box) return;
+
+    fetch("/api/recommend_ads")
+        .then(r => r.json())
+        .then(ads => {
+            if (!ads || ads.length === 0) {
+                box.innerHTML = `<p style="text-align:center; color:#888">추천 광고 없음</p>`;
+                return;
+            }
+
+            const ad = ads[0];
+
+            box.innerHTML = `
+                <a href="${ad.url}" target="_blank" class="ad-link">
+                    <img src="${ad.image}" alt="${ad.title}" style="width:100%; border-radius:8px;">
+                </a>
+               
+            `;
+
+            logAdView(ad.ad_id);
+
+            box.querySelector(".ad-link").addEventListener("click", () => {
+                logAdClick(ad.ad_id);
+            });
+        })
+        .catch(() => {
+            box.innerHTML = `<p style="text-align:center; color:#888">광고 로딩 실패</p>`;
+        });
+}
+
+function logAdView(adId) {
+    fetch("/api/ad/view", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ ad_id: adId })
+    });
+}
+
+function logAdClick(adId) {
+    fetch("/api/ad/click", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ ad_id: adId })
+    });
+}
+
+
+
+
+
 document.addEventListener("DOMContentLoaded", () => {
 // ===========================
 // 1. ID 기억하기 / 쿠키 저장,삭제 기능
@@ -385,7 +437,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-
+    loadSidebarAd();
 
 
 

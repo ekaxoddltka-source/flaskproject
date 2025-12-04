@@ -6,12 +6,34 @@ from app.mypage.events import send_dm_message
 import re
 from collections import Counter
 import pymysql
+import json
+
+
+
+
+from app.filters.tech_translate import KOREAN_TO_ENGLISH
+
+def normalize_korean_tech_words(text: str) -> str:
+    """한국어 기술명 → 영어 기술명 자동 변환"""
+    if not text:
+        return text
+
+    lowered = text.lower()
+    for kr, en in KOREAN_TO_ENGLISH.items():
+        if kr in lowered:
+            lowered = lowered.replace(kr, en)
+
+    return lowered
+
+
+
 
 from posts_data.aezen_recommender import (
     build_user_vector, recommend_articles
     , load_model, TOPIC_LABELS
 )
-import json
+
+
 # ------------------------------------------------------------
 # 기술 키워드 사전
 # ------------------------------------------------------------
@@ -534,19 +556,30 @@ def mypage_interest():
     texts = []
 
     for p in text_sources["written_posts"] + text_sources["viewed_posts"]:
-        texts.append(p["board_title"] or "")
-        texts.append(p["board_content"] or "")
+        texts.append(normalize_korean_tech_words(p["board_title"] or ""))
+        texts.append(normalize_korean_tech_words(p["board_content"] or ""))
 
+
+        # 1) 게시글 제목·내용 변환 + 수집
+    for p in text_sources["written_posts"] + text_sources["viewed_posts"]:
+        texts.append(normalize_korean_tech_words(p["board_title"] or ""))
+        texts.append(normalize_korean_tech_words(p["board_content"] or ""))
+
+    # 2) 댓글 변환 + 수집
     for c in text_sources["written_comments"] + text_sources["viewed_comments"]:
-        texts.append(c["comment_answer_content"] or "")
+        texts.append(normalize_korean_tech_words(c["comment_answer_content"] or ""))
 
-    texts += tag_data["written_tags"] + tag_data["viewed_tags"]
+    # 3) 태그 변환 + 수집 (중복 제거)
+    all_tags = tag_data["written_tags"] + tag_data["viewed_tags"]
+    texts += [normalize_korean_tech_words(t) for t in all_tags]
+
     # -----------------------------------------
     # TOP5(기술 키워드 필터링)
     # -----------------------------------------
 
     joined = " ".join(texts).lower()
-    words = re.findall(r"[a-zA-Z0-9\+\#\.]+", joined)
+    words = re.findall(r"[가-힣a-zA-Z0-9\+\#\.]+", joined)
+
 
     tech_only = [w for w in words if w in TECH_KEYWORDS]
 
@@ -670,8 +703,123 @@ def mypage_interest_feedback():
 
     return jsonify(ok=True)
 
+#광고 추천 API
+@bp.route("/api/recommend_ads")
+def api_recommend_ads():
+    user = session.get("user")
+    if not user:
+        return jsonify([])
 
+    user_id = user["id"]
 
+    # 1) 유저 벡터 로드
+    user_vec = interest_vector_dao.load_vector(user_id)
+    if user_vec is None:
+        return jsonify([])
+
+    conn = current_app.get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+    try:
+        # 2) 활성 광고 + 임베딩 로드
+        cursor.execute("""
+            SELECT ad_id, ad_title, ad_image_url, landing_url, ad_embedding
+            FROM ad
+            WHERE is_active = 1
+              AND ad_embedding IS NOT NULL
+        """)
+        ads = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+    if not ads:
+        return jsonify([])
+
+    scored_ads = []
+
+    for ad in ads:
+        try:
+            ad_vec = np.array(json.loads(ad["ad_embedding"]), dtype=float)
+        except Exception:
+            continue
+
+        sim = cosine_similarity([user_vec], [ad_vec])[0][0]
+
+        scored_ads.append({
+            "ad_id": ad["ad_id"],
+            "title": ad["ad_title"],
+            "image": ad["ad_image_url"],
+            "url": ad["landing_url"],
+            "score": float(sim),
+        })
+
+    scored_ads.sort(key=lambda x: x["score"], reverse=True)
+
+    # 상위 3개만
+    return jsonify(scored_ads[:3])
+
+@bp.route("/api/ad/view", methods=["POST"])
+def api_ad_view():
+    data = request.get_json() or {}
+    ad_id = data.get("ad_id")
+
+    if not ad_id:
+        return jsonify(success=False, msg="ad_id 없음"), 400
+
+    conn = current_app.get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            INSERT INTO ad_stats (ad_id, views, clicks)
+            VALUES (%s, 1, 0)
+            ON DUPLICATE KEY UPDATE views = views + 1
+        """, (ad_id,))
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+    return jsonify(success=True)
+
+#광고 클릭 로그 API
+@bp.route("/api/ad/click", methods=["POST"])
+def api_ad_click():
+    user = session.get("user")
+    if not user:
+        return jsonify(success=False, msg="로그인 필요"), 403
+
+    data = request.get_json() or {}
+    ad_id = data.get("ad_id")
+
+    if not ad_id:
+        return jsonify(success=False, msg="ad_id 없음"), 400
+
+    user_id = user["id"]
+
+    conn = current_app.get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 클릭 로그
+        cursor.execute("""
+            INSERT INTO ad_click_log (user_id, ad_id)
+            VALUES (%s, %s)
+        """, (user_id, ad_id))
+
+        # stats 업데이트
+        cursor.execute("""
+            INSERT INTO ad_stats (ad_id, views, clicks)
+            VALUES (%s, 0, 1)
+            ON DUPLICATE KEY UPDATE clicks = clicks + 1
+        """, (ad_id,))
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+    return jsonify(success=True)
 
 
 

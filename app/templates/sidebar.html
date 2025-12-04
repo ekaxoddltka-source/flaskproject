@@ -1,12 +1,11 @@
 <!---- 사이드바 ---->
 <div class="sidebar">
 
-    <!-- 광고 영역 -->
-    <div class="ad-top">
-        <!-- ad 테이블 별도 생성 후 광고링크/키워드/금액/이미지 등 사용자 맞춤으로 링크 변경-->
-        <a href="https://www.eduwill.net/sites/home" target="_blank">
-            <img src="{{ url_for('static', filename='images/adbaner.jpg') }}" alt="광고 이미지">
-        </a>
+    <!-- 광고 영역 (동적 추천 광고) -->
+    <div class="ad-top" id="sidebar-ad">
+        <p style="text-align:center; color:#888; font-size:0.85em;">
+            맞춤형 광고 로딩 중...
+        </p>
     </div>
 
     <!-- 탭 버튼들 -->
