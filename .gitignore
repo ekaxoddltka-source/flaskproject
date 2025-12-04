@@ -6,3 +6,4 @@ __pycache__/
 instance/
 .pytest_cache/
 .DS_Store
+app/mypage/ad/embedding/keywords_embeddings.json
