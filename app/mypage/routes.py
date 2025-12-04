@@ -703,7 +703,12 @@ def mypage_interest_feedback():
 
     return jsonify(ok=True)
 
-#광고 추천 API
+from sentence_transformers import SentenceTransformer
+
+
+
+
+
 @bp.route("/api/recommend_ads")
 def api_recommend_ads():
     user = session.get("user")
@@ -712,52 +717,85 @@ def api_recommend_ads():
 
     user_id = user["id"]
 
+    # -------------------------------------------------------------
     # 1) 유저 벡터 로드
+    # -------------------------------------------------------------
     user_vec = interest_vector_dao.load_vector(user_id)
-    if user_vec is None:
-        return jsonify([])
 
+    # -------------------------------------------------------------
+    # 2) 유저 벡터가 없다면 → user_attributes 기반 즉석 생성
+    # -------------------------------------------------------------
+    if user_vec is None:
+        conn = current_app.get_db_connection()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+        cursor.execute("""
+            SELECT value FROM user_attributes
+            WHERE user_id = %s
+        """, (user_id,))
+        rows = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        if rows:
+            # type: skill, interest 구분 상관없이 모두 합침
+            # e.g. "python django ai web backend"
+            text = " ".join([r["value"] for r in rows]).strip()
+            if text:
+                model = load_model()
+                user_vec = model.encode(text)
+
+                interest_vector_dao.save_vector(user_id, user_vec)
+        # 그래도 없으면 추천 불가
+        if user_vec is None:
+            return jsonify([])
+
+    # numpy 배열화
+    user_vec = np.array(user_vec, dtype=float)
+
+    # -------------------------------------------------------------
+    # 3) 광고 가져오기
+    # -------------------------------------------------------------
     conn = current_app.get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
-    try:
-        # 2) 활성 광고 + 임베딩 로드
-        cursor.execute("""
-            SELECT ad_id, ad_title, ad_image_url, landing_url, ad_embedding
-            FROM ad
-            WHERE is_active = 1
-              AND ad_embedding IS NOT NULL
-        """)
-        ads = cursor.fetchall()
-    finally:
-        cursor.close()
-        conn.close()
+    cursor.execute("""
+        SELECT ad_id, ad_title, ad_image_url, landing_url, ad_embedding
+        FROM ad
+        WHERE is_active = 1 AND ad_embedding IS NOT NULL
+    """)
+    ads = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
 
     if not ads:
         return jsonify([])
 
-    scored_ads = []
-
+    # -------------------------------------------------------------
+    # 4) 광고별 유사도 계산
+    # -------------------------------------------------------------
+    result = []
     for ad in ads:
         try:
-            ad_vec = np.array(json.loads(ad["ad_embedding"]), dtype=float)
+            ad_vec = np.array(json.loads(ad["ad_embedding"]))
         except Exception:
             continue
 
-        sim = cosine_similarity([user_vec], [ad_vec])[0][0]
+        sim = float(cosine_similarity([user_vec], [ad_vec])[0][0])
 
-        scored_ads.append({
+        result.append({
             "ad_id": ad["ad_id"],
             "title": ad["ad_title"],
             "image": ad["ad_image_url"],
             "url": ad["landing_url"],
-            "score": float(sim),
+            "score": sim
         })
 
-    scored_ads.sort(key=lambda x: x["score"], reverse=True)
+    result.sort(key=lambda x: x["score"], reverse=True)
 
-    # 상위 3개만
-    return jsonify(scored_ads[:3])
+    return jsonify(result[:3])
 
 @bp.route("/api/ad/view", methods=["POST"])
 def api_ad_view():

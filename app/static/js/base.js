@@ -5,30 +5,44 @@ function loadSidebarAd() {
     fetch("/api/recommend_ads")
         .then(r => r.json())
         .then(ads => {
+
+            // ----- 추천 광고 없음 → 기본 광고 고정 -----
             if (!ads || ads.length === 0) {
-                box.innerHTML = `<p style="text-align:center; color:#888">추천 광고 없음</p>`;
+                box.innerHTML = `
+                    <a href="https://www.eduwill.net/sites/home" target="_blank">
+                        <img src="/static/images/adbaner.jpg"
+                             style="width:100%; border-radius:8px;">
+                    </a>
+                `;
                 return;
             }
 
+            // ----- 추천 광고 있으면 표시 -----
             const ad = ads[0];
-
             box.innerHTML = `
                 <a href="${ad.url}" target="_blank" class="ad-link">
-                    <img src="${ad.image}" alt="${ad.title}" style="width:100%; border-radius:8px;">
+                    <img src="${ad.image}" alt="${ad.title}" 
+                        style="width:100%; border-radius:8px;">
                 </a>
-               
             `;
 
             logAdView(ad.ad_id);
-
             box.querySelector(".ad-link").addEventListener("click", () => {
                 logAdClick(ad.ad_id);
             });
+
         })
         .catch(() => {
-            box.innerHTML = `<p style="text-align:center; color:#888">광고 로딩 실패</p>`;
+            // ----- API 에러 → 기본 광고 -----
+            box.innerHTML = `
+                <a href="https://www.eduwill.net/sites/home" target="_blank">
+                    <img src="/static/images/adbaner.jpg"
+                         style="width:100%; border-radius:8px;">
+                </a>
+            `;
         });
 }
+
 
 function logAdView(adId) {
     fetch("/api/ad/view", {
