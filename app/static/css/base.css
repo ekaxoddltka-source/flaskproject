@@ -375,11 +375,6 @@ header {
     border-radius: 12px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
-.notice-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
 .notice-text {
     font-size: 14px;
     line-height: 1.5;

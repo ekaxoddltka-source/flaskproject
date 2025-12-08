@@ -79,6 +79,8 @@ def load_more_posts():
             board_filter_sql += " AND board_category = 5"
         elif "/privacy" in current_route:
             board_filter_sql += " AND board_category = 6"
+        else:
+            board_filter_sql += " AND board_category IN (1,2,3)"
 
         # 팔로우 필터
         login_user_id = session.get("user", {}).get("id")
@@ -431,7 +433,7 @@ def home():
         conn.close()
 
     notice_buttons = {
-        "top_buttons": ["최신순", "조회순", "추천순", "팔로우순", "검색순"],
+        "top_buttons": ["최신순", "조회순", "추천순", "팔로우순", "검색"],
         "feed_buttons": ["전체", "자유", "코딩테스트", "Q&A"]
     }
 
@@ -905,7 +907,7 @@ def info():
         conn.close()
 
     notice_buttons = {
-    "top_buttons": ["최신순", "조회순", "검색순"],
+    "top_buttons": ["최신순", "조회순", "검색"],
     "feed_buttons": ["전체"]
     }
 
@@ -1108,7 +1110,7 @@ def terms():
         conn.close()
 
     notice_buttons = {
-    "top_buttons": ["최신순", "조회순", "검색순"],
+    "top_buttons": ["최신순", "조회순", "검색"],
     "feed_buttons": ["전체"]
     }
 
@@ -1311,7 +1313,7 @@ def privacy():
         conn.close()
 
     notice_buttons = {
-    "top_buttons": ["최신순", "조회순", "검색순"],
+    "top_buttons": ["최신순", "조회순", "검색"],
     "feed_buttons": ["전체"]
     }
 
@@ -1940,7 +1942,7 @@ def tag_filter(tag_name=None):
         conn.close()
 
     notice_buttons = {
-        "top_buttons": ["최신순", "조회순", "추천순", "팔로우순", "검색순"],
+        "top_buttons": ["최신순", "조회순", "추천순", "팔로우순", "검색"],
         "feed_buttons": ["전체", "자유", "코딩테스트", "Q&A"]
     }
 

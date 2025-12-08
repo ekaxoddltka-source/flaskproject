@@ -68,7 +68,6 @@
       <div class="posts-wrapper">
         <!-- 공지/정렬버튼 -->
         <div class="notice-bar">
-          <div class="notice-row">
 
             <div class="notice-text">
             <strong>📢 공지사항&nbsp;&nbsp;: </strong>&nbsp;&nbsp;
@@ -81,16 +80,16 @@
               <div class="top-buttons">
                   {% set current_endpoint = request.endpoint %}
                   {% for btn in notice_buttons.top_buttons %}
-                      {% if btn != "검색순" %}
+                      {% if btn != "검색" %}
                       <a href="{{ url_for(current_endpoint, top=btn, feed=request.args.get('feed','전체')) }}">
                           <button {% if request.args.get('top','최신순') == btn %}class="active"{% endif %}>{{ btn }}</button>
                       </a>
                       {% endif %}
                   {% endfor %}
 
-                  {% if "검색순" in notice_buttons.top_buttons %}
+                  {% if "검색" in notice_buttons.top_buttons %}
                   <!-- 검색 버튼 -->
-                  <button id="btnSearchToggle">검색순</button>
+                  <button id="btnSearchToggle">검색</button>
 
                   <!-- 히든 검색창 -->
                   <div id="inlineSearchBox" style="display:none; margin-top:6px;">
@@ -115,5 +114,4 @@
               </div>
             </div>
             {% endif %}
-          </div>
         </div>

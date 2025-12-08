@@ -188,8 +188,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // 첫 로딩 때 한번 실행
     loadLatestNotice();
 
-    // 주기적 갱신 (5초마다)
-    setInterval(loadLatestNotice, 5000);
+    // 주기적 갱신 (10초마다)
+    setInterval(loadLatestNotice, 10000);
 
 // ===========================
 // 4. 사이드바 탭 전환 기능
@@ -377,7 +377,7 @@ document.addEventListener("DOMContentLoaded", () => {
         clicked.classList.add("active");
     }
 
-    const searchBtn = Array.from(topButtons).find(btn => btn.textContent.includes("검색순"));
+    const searchBtn = Array.from(topButtons).find(btn => btn.textContent.includes("검색"));
 
     if (searchBtn) {
         searchBtn.parentElement.style.position = "relative";
