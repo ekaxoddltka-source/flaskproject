@@ -546,39 +546,6 @@ header {
         gap: 4px;
     }
 }
-/* 모달 배경 */
-.modal {
-    display: none; /* 처음엔 숨김 */
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.5);
-}
-
-/* 모달 내용 */
-.modal-content {
-    background-color: #fefefe;
-    margin: 10% auto;
-    padding: 20px;
-    border-radius: 10px;
-    width: 50%;
-    max-width: 500px;
-    max-height: 80vh;    /* 화면 높이의 80% */
-    overflow-y: auto;
-}
-
-/* 닫기 버튼 */
-.close {
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
 /* ====================================
  * 5. 사이드바 (Sidebar)
  * ==================================== */
