@@ -77,41 +77,49 @@
             <!-- 조건부 렌더링 영역 -->
             {% if show_notice_buttons %}
             <div class="notice-buttons">
-              <div class="top-buttons">
-                  {% set current_endpoint = request.endpoint %}
-                  {% for btn in notice_buttons.top_buttons %}
-                      {% if btn != "검색" %}
-                      <a href="{{ url_for(current_endpoint, top=btn, feed=request.args.get('feed','전체')) }}">
-                          <button {% if request.args.get('top','최신순') == btn %}class="active"{% endif %}>{{ btn }}</button>
-                      </a>
-                      {% endif %}
-                  {% endfor %}
 
-                  {% if "검색" in notice_buttons.top_buttons %}
-                  <!-- 검색 버튼 -->
-                  <button id="btnSearchToggle">검색</button>
+                <!-- 🔽 정렬 셀렉트박스 -->
+                <div class="top-select">
+                    <select id="topSelect">
+                        {% for btn in notice_buttons.top_buttons %}
+                            {% if btn != "검색" %}
+                            <option value="{{ btn }}"
+                                {% if request.args.get('top','최신순') == btn %}selected{% endif %}>
+                                {{ btn }}
+                            </option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
 
-                  <!-- 히든 검색창 -->
-                  <div id="inlineSearchBox" style="display:none; margin-top:6px;">
-                      <select id="inlineSearchType">
-                          <option value="board_title">제목</option>
-                          <option value="board_content">내용</option>
-                          <option value="id">작성자</option>
-                          <option value="tag">해시태그</option>
-                      </select>
-                      <input type="text" id="inlineSearchInput" placeholder="검색어 입력">
-                      <button id="inlineSearchSubmit">검색</button>
-                      <button id="inlineSearchClose">닫기</button>
-                  </div>
-                  {% endif %}
-              </div>
-              <div class="feed-buttons">
-                  {% for btn in notice_buttons.feed_buttons %}
-                      <a href="{{ url_for(current_endpoint, top=request.args.get('top','최신순'), feed=btn) }}">
-                          <button {% if request.args.get('feed','전체') == btn %}class="active"{% endif %}>{{ btn }}</button>
-                      </a>
-                  {% endfor %}
-              </div>
+                    <!-- 검색 버튼은 그대로 -->
+                    <button id="btnSearchToggle">검색</button>
+
+                    <!-- 기존 검색 박스 유지 -->
+                    <div id="inlineSearchBox" style="display:none; margin-top:6px;">
+                        <select id="inlineSearchType">
+                            <option value="board_title">제목</option>
+                            <option value="board_content">내용</option>
+                            <option value="id">작성자</option>
+                            <option value="tag">해시태그</option>
+                        </select>
+                        <input type="text" id="inlineSearchInput" placeholder="검색어 입력">
+                        <button id="inlineSearchSubmit">검색</button>
+                        <button id="inlineSearchClose">닫기</button>
+                    </div>
+                </div>
+
+                <!-- 🔽 피드 셀렉트박스 -->
+                <div class="feed-select">
+                    <select id="feedSelect">
+                        {% for btn in notice_buttons.feed_buttons %}
+                        <option value="{{ btn }}"
+                            {% if request.args.get('feed','전체') == btn %}selected{% endif %}>
+                            {{ btn }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
             </div>
             {% endif %}
         </div>

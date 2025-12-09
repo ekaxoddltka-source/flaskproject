@@ -19,25 +19,69 @@ main {
 
 .inline-search-box {
   position: absolute;
-  top: 100%;
-  left: -5px;            /* 버튼보다 약간 왼쪽으로 */
-  width: calc(100% - 20px); /* 전체에서 좌우 10px씩 빼기 */
+  top: calc(100% + 6px);        /* 버튼 바로 아래, 약간 띄우기 */
+  right: 0;                     /* 버튼 기준 오른쪽 정렬 */
+  width: 260px;                 /* 보기 좋은 고정 너비 */
+  
   background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 10px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  border: 1px solid #e4e4e4;
+  border-radius: 10px;
+  padding: 12px;
+
+  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+  
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  z-index: 1500;
+  gap: 10px;
+
+  z-index: 2000;
+  animation: dropdownFade 0.15s ease-out;
 }
 
+/* 드롭다운 애니메이션 */
+@keyframes dropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 공통 입력 UI 개선 */
 .inline-search-box select,
-.inline-search-box input,
+.inline-search-box input {
+  padding: 6px 8px;
+  font-size: 12px;
+  border: 1px solid #d5d5d5;
+  border-radius: 6px;
+  background: #fafafa;
+  transition: border 0.15s;
+}
+
+.inline-search-box select:focus,
+.inline-search-box input:focus {
+  border-color: #8a8aff;
+  background: #fff;
+  outline: none;
+}
+
+/* 검색 버튼 */
 .inline-search-box button {
   padding: 6px 8px;
-  font-size: 14px;
+  background: #0078ff;
+  color: #fff;
+  font-size: 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.inline-search-box button:hover {
+  background: #0064d9;
 }
 
 /* ====================================
@@ -79,7 +123,7 @@ header {
 /* site-title 반응형 설정 */
 @media (max-width: 1300px) {
     .site-title {
-        left: 46%;
+        left: 43%;
     }
 }
 @media (max-width: 1200px) {
@@ -118,9 +162,18 @@ header {
         width: 300px;
     }
 }
+@media (max-width: 860px) {
+    .site-title {
+        left: 45%;
+    }
+    .site-title img,
+    .site-title a img {
+        width: 300px;
+    }
+}
 @media (max-width: 800px) {
     .site-title {
-        left: 50%;
+        left: 45%;
     }
     .site-title img,
     .site-title a img {
@@ -341,28 +394,37 @@ header {
  * 4. 게시글 목록 영역 (Posts Wrapper)
  * ==================================== */
 .posts-wrapper {
+    position: relative; /* 버튼 기준 */
     height: 100%;
-    overflow-y: auto;
-    padding-right: 10px;
-    /* Firefox 스크롤바 스타일 복구 */
-    scrollbar-width: thin; 
-    scrollbar-color: #888 #ddd; 
-    position: relative;
+    display: flex;
+    flex-direction: column;
+    /* 스크롤 제거 */
+    overflow: hidden;
 }
-/* Webkit 기반 브라우저 스크롤바 커스텀 */
-.posts-wrapper::-webkit-scrollbar {
+
+.posts {
+    flex: 1 1 auto;    /* 부모 높이에 맞춰 늘어나기 */
+    min-height: 0;     /* flex 자식에서 스크롤 정상 적용 위해 필요 */
+    overflow-y: auto;  /* 여기서만 스크롤 */
+    padding-right: 10px;
+    /* 기존 스크롤바 스타일 유지 가능 */
+    scrollbar-width: thin;
+    scrollbar-color: #888 #ddd;
+}
+
+.posts::-webkit-scrollbar {
     width: 8px;
 }
-.posts-wrapper::-webkit-scrollbar-track {
+.posts::-webkit-scrollbar-track {
     background: #ddd;
     border-radius: 4px;
 }
-.posts-wrapper::-webkit-scrollbar-thumb {
+.posts::-webkit-scrollbar-thumb {
     background-color: #888;
     border-radius: 4px;
     border: 2px solid #ddd;
 }
-.posts-wrapper::-webkit-scrollbar-thumb:hover {
+.posts::-webkit-scrollbar-thumb:hover {
     background-color: #555;
 }
 
@@ -371,9 +433,7 @@ header {
     position: sticky;
     top: 0;
     z-index: 100;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin-bottom: 7px;
 }
 .notice-text {
     font-size: 14px;
@@ -381,6 +441,10 @@ header {
     display: flex;
     align-items: center;
     color: #FFD700; /* 경고색 */
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 6px 6px;
 }
 .notice-text strong {
     color: #333;
@@ -394,35 +458,88 @@ header {
     text-decoration: underline;
 }
 
-/* 공지사항 정렬 버튼 */
+/* notice-buttons 전체 레이아웃 */
 .notice-buttons {
     display: flex;
-    flex-direction: column;
-    gap: 0;
-    align-items: flex-end;
-}
-.notice-buttons button.active {
-    background: #3DADFF;
-    color: #fff;
-    font-weight: bold;
-}
-.top-buttons, .feed-buttons {
-    display: flex;
-}
-.top-buttons button, .feed-buttons button {
-    padding: 5px 10px;
-    border: 1px solid #ddd;
-    background: #fff;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: box-shadow 0.2s ease;
-    height: 31px;
-    white-space: nowrap;
-}
-.notice-buttons button:hover {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    justify-content: space-between; /* 좌우 배치 */
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
 }
 
+/* 왼쪽: feed-select */
+.feed-select {
+    order: 0; /* 왼쪽 */
+}
+.feed-select select {
+    padding: 3px 8px;
+    font-size: 12px;
+    border: 1px solid #d5d5d5;
+    border-radius: 8px;
+    background: #fafafa;
+    cursor: pointer;
+    transition: border 0.15s, background 0.15s;
+    font-weight: 500;
+}
+.feed-select select:focus {
+    outline: none;
+    border-color: #3dadff;
+    background: #fff;
+}
+
+/* 오른쪽: top-select + 검색 버튼 */
+.top-select {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    order: 1; /* 오른쪽 */
+    margin-right: 2px;
+}
+.top-select #topSelect {
+    padding: 3px 8px;
+    font-size: 12px;
+    border: 1px solid #d5d5d5;
+    border-radius: 8px;
+    background: #fafafa;
+    cursor: pointer;
+    transition: border 0.15s, background 0.15s;
+    font-weight: 500;
+}
+.top-select select:focus {
+    outline: none;
+    border-color: #3dadff;
+    background: #fff;
+}
+#btnSearchToggle {
+    padding: 4px 12px;
+    font-size: 12px;
+    background: #3dadff;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    font-weight: 600;
+}
+#btnSearchToggle:hover {
+    background: #2e90d4;
+}
+#btnSearchToggle:active {
+    transform: translateY(0);
+}
+
+/* 반응형: 좁은 화면에서는 세로로 쌓이게 */
+@media (max-width: 700px) {
+    .notice-buttons {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+    .top-select {
+        justify-content: flex-start;
+        gap: 4px;
+    }
+}
 
 /* ====================================
  * 5. 사이드바 (Sidebar)

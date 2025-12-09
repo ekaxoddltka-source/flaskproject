@@ -369,32 +369,60 @@ document.addEventListener("DOMContentLoaded", () => {
 // ===========================
 // 6. 인라인 검색창
 // ===========================
-    let searchBox = null;
-    const topButtons = document.querySelectorAll(".top-buttons button");
+    function updateQueryAndReload(changedKey, changedValue, { resetPage = true } = {}) {
+        const params = new URLSearchParams(window.location.search);
 
-    function setActive(buttons, clicked) {
-        buttons.forEach(btn => btn.classList.remove("active"));
-        clicked.classList.add("active");
+        if (changedValue === null || changedValue === undefined || String(changedValue).trim() === "") {
+            // 값이 빈 문자열이면 파라미터 자체 제거 (원하면 주석 처리)
+            params.delete(changedKey);
+        } else {
+            params.set(changedKey, changedValue);
+        }
+
+        // (선택) 빈 검색어 키워드 완전 제거: keyword 존재하지만 빈값이면 제거
+        if (params.has("keyword") && params.get("keyword").trim() === "") {
+            params.delete("keyword");
+            params.delete("search_type");
+        }
+
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        window.location.href = newUrl;
     }
 
-    const searchBtn = Array.from(topButtons).find(btn => btn.textContent.includes("검색"));
+    // ---------- top / feed 셀렉트 처리 ----------
+    const topSelectEl = document.getElementById("topSelect");
+    const feedSelectEl = document.getElementById("feedSelect");
 
-    if (searchBtn) {
-        searchBtn.parentElement.style.position = "relative";
+    if (topSelectEl) {
+        topSelectEl.addEventListener("change", function() {
+            const selectedTop = this.value;
+            updateQueryAndReload("top", selectedTop);
+        });
+    }
 
-        searchBtn.addEventListener("click", () => {
-            setActive(topButtons, searchBtn);
+    if (feedSelectEl) {
+        feedSelectEl.addEventListener("change", function() {
+            const selectedFeed = this.value;
+            updateQueryAndReload("feed", selectedFeed);
+        });
+    }
 
-            // 검색창 이미 존재하면 포커스
-            if (searchBox) {
-                searchBox.querySelector("#inlineSearchInput").focus();
-                return;
-            }
+    // ---------- 검색 버튼 / 인라인 검색창 (중복 생성 방지, 기존 URL 보존) ----------
+    (function setupInlineSearch() {
+        const searchBtn = document.getElementById("btnSearchToggle");
+        if (!searchBtn) return;
 
-            // 검색창 생성
-            searchBox = document.createElement("div");
-            searchBox.className = "inline-search-box";
-            searchBox.innerHTML = `
+        let searchBox = null;
+
+        function createSearchBox() {
+            // 기존 URL에서 값 채우기
+            const params = new URLSearchParams(window.location.search);
+            const currentType = params.get("search_type") || "board_title";
+            const currentKeyword = params.get("keyword") || "";
+
+            const wrapper = document.createElement("div");
+            wrapper.className = "inline-search-box";
+            wrapper.innerHTML = `
                 <select id="inlineSearchType">
                     <option value="board_title">제목</option>
                     <option value="board_content">내용</option>
@@ -402,15 +430,52 @@ document.addEventListener("DOMContentLoaded", () => {
                     <option value="tag">해시태그</option>
                 </select>
                 <input type="text" placeholder="검색어 입력..." id="inlineSearchInput">
-                <div style="display:flex; gap:6px; margin-top:4px;">
+                <div style="display:flex; gap:6px; margin-top:6px;">
                     <button type="button" id="inlineSearchSubmit">검색</button>
                     <button type="button" id="inlineSearchClose">닫기</button>
                 </div>
             `;
-            searchBtn.parentElement.appendChild(searchBox);
+            // 반영
+            wrapper.querySelector("#inlineSearchType").value = currentType;
+            wrapper.querySelector("#inlineSearchInput").value = currentKeyword;
 
-            const typeSelect = searchBox.querySelector("#inlineSearchType");
+            return wrapper;
+        }
+
+        function closeSearchBox() {
+            if (searchBox) {
+                searchBox.remove();
+                searchBox = null;
+                document.removeEventListener("click", handleOutsideClick);
+                document.removeEventListener("keydown", handleEsc);
+            }
+        }
+
+        function handleOutsideClick(e) {
+            if (searchBox && !searchBox.contains(e.target) && e.target !== searchBtn) {
+                closeSearchBox();
+            }
+        }
+
+        function handleEsc(e) {
+            if (e.key === "Escape") {
+                closeSearchBox();
+            }
+        }
+
+        function openSearchBox() {
+            if (searchBox) {
+                // 이미 열려있으면 포커스
+                searchBox.querySelector("#inlineSearchInput").focus();
+                return;
+            }
+            searchBox = createSearchBox();
+
+            const parent = searchBtn.parentElement || document.body;
+            parent.appendChild(searchBox);
+
             const input = searchBox.querySelector("#inlineSearchInput");
+            const typeSelect = searchBox.querySelector("#inlineSearchType");
             const submit = searchBox.querySelector("#inlineSearchSubmit");
             const close = searchBox.querySelector("#inlineSearchClose");
 
@@ -426,30 +491,34 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
-                // 현재 페이지에 GET 요청 보내기
                 const params = new URLSearchParams(window.location.search);
                 params.set("search_type", type);
                 params.set("keyword", keyword);
+                params.set("page", "1");
+
                 window.location.href = `${window.location.pathname}?${params.toString()}`;
             }
 
-            submit.addEventListener("click", (e) => {
-                e.preventDefault();
-                doSearch();
-            });
-
-            // Enter 키로 검색
-            input.addEventListener("keydown", e => {
+            submit.addEventListener("click", doSearch);
+            input.addEventListener("keydown", (e) => {
                 if (e.key === "Enter") doSearch();
             });
 
-            close.addEventListener("click", (e) => {
-                e.preventDefault();
-                searchBox.remove();
-                searchBox = null;
-            });
+            // 닫기 버튼 클릭
+            close.addEventListener("click", closeSearchBox);
+
+            // 외부 클릭 및 ESC 키 이벤트 등록 (setTimeout으로 초기 이벤트 충돌 방지)
+            setTimeout(() => {
+                document.addEventListener("keydown", handleEsc);
+            }, 0);
+        }
+
+        // 클릭 토글
+        searchBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            openSearchBox();
         });
-    }
+    })();
 
     loadSidebarAd();
 

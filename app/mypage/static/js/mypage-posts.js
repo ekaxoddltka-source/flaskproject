@@ -727,7 +727,7 @@ document.addEventListener("DOMContentLoaded", async() => {
     let loading = false;
     let reachedEnd = false; // 더 이상 데이터가 없음을 표시
 
-    const container = document.querySelector('.posts-wrapper') || window; // posts-wrapper 우선
+    const container = document.querySelector('.posts') || window; // posts 우선
     const postsContainer = document.querySelector('.posts'); // 실제 포스트를 append할 곳
     const scrollTopBtn = document.getElementById("scrollTopBtn"); // 맨위로 버튼
 
