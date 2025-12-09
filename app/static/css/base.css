@@ -263,7 +263,7 @@ header {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    object-fit: cover;
+    object-fit: scale-down;
 }
 
 @media (max-width: 1540px) {
@@ -296,6 +296,10 @@ header {
     border-radius: 12px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     transition: padding 0.15s ease, gap 0.15s ease;
+}
+.icons.icons-admin {
+    padding: 8px 12px;
+    gap: 4px;
 }
 .icons button {
     position: relative;
@@ -333,6 +337,8 @@ header {
 @media (max-width: 800px)  { 
     .icons { padding: 2px 8px; gap: 2px; }
     .icons button { width: 22px; height: 22px; font-size: 11px; }
+    .icons.icons-admin { padding: 3px 6px; gap: 2px; }
+    .icons.icons-admin button { width: 20px; height: 20px; font-size: 10px; }
 }
 @media (max-width: 480px)  { 
     .icons { padding: 1px 6px; gap: 1px; }
@@ -539,6 +545,38 @@ header {
         justify-content: flex-start;
         gap: 4px;
     }
+}
+/* 모달 배경 */
+.modal {
+    display: none; /* 처음엔 숨김 */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+}
+
+/* 모달 내용 */
+.modal-content {
+    background-color: #fefefe;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 10px;
+    width: 50%;
+    max-width: 500px;
+    max-height: 80vh;    /* 화면 높이의 80% */
+    overflow-y: auto;
+}
+
+/* 닫기 버튼 */
+.close {
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
 }
 
 /* ====================================

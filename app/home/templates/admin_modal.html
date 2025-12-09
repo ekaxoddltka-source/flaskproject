@@ -1,0 +1,40 @@
+<div id="adminModalContent" class="modal-content">
+    <span id="closeModal" class="close">&times;</span>
+    <h2>관리자 모드</h2>
+
+    <!-- 탭 메뉴 -->
+    <div class="admin-tabs">
+        <button class="tab-btn active" data-target="tab-users">사용자 관리</button>
+        <button class="tab-btn" data-target="tab-reports">신고 관리</button>
+        <button class="tab-btn" data-target="tab-ads">광고 관리</button>
+    </div>
+
+    <!-- 탭 콘텐츠 영역 -->
+    <div class="tab-content">
+        <div id="tab-users" class="tab-panel">
+            <!-- 사용자 관리 테이블 -->
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>닉네임</th>
+                        <th>권한</th>
+                        <th>활성화</th>
+                        <th>관리</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody">
+                    <!-- JS로 동적 로딩 -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="tab-reports" class="tab-panel hidden">
+            <!-- 신고 관리 내용 -->
+        </div>
+
+        <div id="tab-ads" class="tab-panel hidden">
+            <!-- 광고 관리 내용 -->
+        </div>
+    </div>
+</div>

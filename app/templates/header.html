@@ -47,14 +47,17 @@
     </div>
 
     <!-- 아이콘 (초기 숨김) -->
-    <div class="icons">
-      <button id="btnMyPage" data-tooltip="마이페이지" data-url="{{ url_for('mypage.mypage_posts') }}">👨</button>
-      <button id="btnNotify" data-tooltip="알림">🔔</button>
-      <button id="btnMsg" data-tooltip="메세지">📬</button>
-      <button id="btnTrophy" data-tooltip="포인트">🏆</button>
-      <form action="{{ url_for('account.logout') }}" method="GET" style="display:inline;">
-        <button type="submit" id="btnLogout" data-tooltip="로그아웃">🔑</button>
-      </form>
+    <div class="icons {% if session.user.user_type == 1 %}icons-admin{% endif %}">
+        <button id="btnMyPage" data-tooltip="마이페이지">👨</button>
+        <button id="btnNotify" data-tooltip="알림">🔔</button>
+        <button id="btnMsg" data-tooltip="메세지">📬</button>
+        <button id="btnTrophy" data-tooltip="포인트">🏆</button>
+        {% if session.user.user_type == 1 %}
+            <button id="btnAdminModal" data-tooltip="관리자 모드">🛠️</button>
+        {% endif %}
+        <form action="{{ url_for('account.logout') }}" method="GET" style="display:inline;">
+            <button type="submit" id="btnLogout" data-tooltip="로그아웃">🔑</button>
+        </form>
     </div>
     {% endif %}
   </header>
@@ -123,3 +126,5 @@
             </div>
             {% endif %}
         </div>
+        <!-- 관리자 모달 -->
+        <div id="adminModal" class="modal"></div>
