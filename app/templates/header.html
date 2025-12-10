@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <title>AEZEN 일반인 EZEN 개발자</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
-  <link rel="stylesheet" href="{{ url_for('home.static', filename='css/admin_modal.css') }}">
   <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
 </head>
 <body>
@@ -49,12 +48,12 @@
 
     <!-- 아이콘 (초기 숨김) -->
     <div class="icons {% if session.user.user_type == 1 %}icons-admin{% endif %}">
-        <button id="btnMyPage" data-tooltip="마이페이지">👨</button>
+        <button id="btnMyPage" data-tooltip="마이페이지" data-url="{{ url_for('mypage.mypage_posts') }}">👨</button>
         <button id="btnNotify" data-tooltip="알림">🔔</button>
         <button id="btnMsg" data-tooltip="메세지">📬</button>
         <button id="btnTrophy" data-tooltip="포인트">🏆</button>
         {% if session.user.user_type == 1 %}
-            <button id="btnAdminModal" data-tooltip="관리자 모드">🛠️</button>
+            <button id="btnAdminModal" data-tooltip="관리자 모드" onclick="location.href='/admin-users'">🛠️</button>
         {% endif %}
         <form action="{{ url_for('account.logout') }}" method="GET" style="display:inline;">
             <button type="submit" id="btnLogout" data-tooltip="로그아웃">🔑</button>
@@ -127,5 +126,3 @@
             </div>
             {% endif %}
         </div>
-        <!-- 관리자 모달 -->
-        <div id="adminModal" class="modal"></div>
