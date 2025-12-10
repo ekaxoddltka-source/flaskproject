@@ -1232,9 +1232,86 @@ def api_follow_toggle():
     do_follow = data.get("follow")
 
     if do_follow:
-        return jsonify({"success": follow_dao.follow(user_id, target_id)})
+        ok = follow_dao.follow(user_id, target_id)
+
+        # 🔥 팔로우 알림
+        if ok and user_id != target_id:
+            alert_dao.create_alert(
+                sender_id=user_id,
+                receiver_id=target_id,
+                alert_type=301,
+                alert_content=f"{user['nick']} 님이 당신을 팔로우했습니다."
+            )
+
+        return jsonify({"success": ok})
     else:
         return jsonify({"success": follow_dao.unfollow(user_id, target_id)})
+
+    
+# ------------------------------------------------------------
+# 팔로잉 추가 로드 (인피니티 스크롤)
+# ------------------------------------------------------------
+@bp.route("/mypage-following/load")
+def mypage_following_load():
+    user = get_logged_user()
+    if not user:
+        return jsonify([]), 403
+
+    user_id = user["id"]
+
+    try:
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 20))
+    except:
+        return jsonify([])
+
+    offset = (page - 1) * per_page
+
+    rows = follow_dao.get_following_page(user_id, offset, per_page)
+
+
+    result = []
+    for r in rows:
+        result.append({
+            "user_id": r["user_id"],
+            "nickname": r["nickname"],
+            "icon": url_for("mypage.static", filename=r["icon"]) if r["icon"] else None,
+            "is_following": True
+        })
+
+    return jsonify(result)
+
+# ------------------------------------------------------------
+# 팔로워 추가 로드 (인피니티 스크롤)
+# ------------------------------------------------------------
+@bp.route("/mypage-follower/load")
+def mypage_follower_load():
+    user = get_logged_user()
+    if not user:
+        return jsonify([]), 403
+
+    user_id = user["id"]
+
+    try:
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 20))
+    except:
+        return jsonify([])
+
+    offset = (page - 1) * per_page
+
+    rows = follow_dao.get_follower_page(user_id, offset, per_page)
+
+    result = []
+    for r in rows:
+        result.append({
+            "user_id": r["user_id"],
+            "nickname": r["nickname"],
+            "icon": url_for("mypage.static", filename=r["icon"]) if r["icon"] else None,
+            "is_following": follow_dao.is_following(user_id, r["user_id"])
+        })
+
+    return jsonify(result)
 
 # ------------------------------------------------------------
 # 9. 메시지 기능
@@ -1466,6 +1543,93 @@ def mypage_point():
         user_point=user_point
     )
 
+@bp.route("/mypage-point/load")
+def mypage_point_load():
+    user = get_logged_user()
+    if not user:
+        return jsonify([]), 403
+
+    user_id = user["id"]
+
+    # page / per_page / order 파라미터
+    try:
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 20))
+        order = request.args.get("order", "latest")
+    except:
+        return jsonify([])
+
+    offset = (page - 1) * per_page
+
+    # ---------------------------
+    # 1) 현재 page 데이터 가져오기
+    # ---------------------------
+    rows = point_dao.get_point_history_page(
+        user_id=user_id,
+        order=order,
+        offset=offset,
+        limit=per_page
+    )
+
+    if not rows:
+        return jsonify([])
+
+    # ----------------------------------------
+    # 2) remain_point 계산 (페이지별 누적처리)
+    # ----------------------------------------
+    # 전체 리스트를 매번 읽지 않고, 현재 page 구간에서만 누적 계산
+
+    # 최신순 기준으로 정렬해서 누적 포인트 시작점 찾기
+    # 1페이지의 첫 row에서 사용자 현재 포인트를 역산하여 결정해야 함
+    user_point = user["user_current_point"]
+
+    # 최신순 기준 정렬 필요 (remain_point 계산 규칙 때문)
+    temp_rows = list(rows)
+    temp_rows.sort(key=lambda r: r["point_created_at"], reverse=True)
+
+    balance = None
+
+    # 가장 첫 페이지일 경우 balance = user_current_point
+    if page == 1:
+        balance = user_point
+    else:
+        # N 페이지라면 offset 이전 구간의 변동 합계를 계산해야 한다
+        # → 가장 정확한 방식은 offset~(offset+limit)까지 전체 합산 반영
+        prior_rows = point_dao.get_point_history_page(
+            user_id=user_id,
+            order="latest",
+            offset=0,
+            limit=offset + len(rows)
+        )
+
+        balance = user_point
+        for r in prior_rows:
+            balance -= r["point_amount"]
+
+    # 이제 temp_rows 기준으로 remain_point 계산
+    remain_map = {}
+    for r in temp_rows:
+        remain_map[r["point_no"]] = balance
+        balance -= r["point_amount"]
+
+    # ----------------------------------------
+    # 3) JSON 반환
+    # ----------------------------------------
+    output = []
+    for r in rows:
+        output.append({
+            "point_no": r["point_no"],
+            "point_created_at": r["point_created_at"].strftime("%Y-%m-%d"),
+            "point_reason": r["point_reason"],
+            "point_amount": r["point_amount"],
+            "remain_point": remain_map[r["point_no"]],
+            "board_no": r["board_no"],
+            "point_type": r["point_type"]
+        })
+
+    return jsonify(output)
+
+
 
 # ------------------------------------------------------------
 # 11. 알림
@@ -1504,6 +1668,51 @@ def api_alert_delete_all():
 
     alert_dao.delete_all_alerts(user["id"])
     return jsonify({"success": True})
+@bp.route("/mypage-alert/load")
+def mypage_alert_load():
+    user = get_logged_user()
+    if not user:
+        return jsonify([]), 403
+
+    user_id = user["id"]
+
+    try:
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 20))
+    except:
+        return jsonify([])
+
+    offset = (page - 1) * per_page
+
+    rows = alert_dao.get_alert_page(user_id, offset, per_page)
+
+    # dict 형태로 JSON 변환
+    result = []
+    for r in rows:
+
+        type_map = {
+            101: "댓글",
+            201: "좋아요",
+            301: "팔로우",
+            401: "포인트 적립",
+            402: "포인트 사용",
+            501: "답변 채택",
+            901: "공지"
+        }
+
+        type_str = type_map.get(r["alert_type"], "알림")
+
+        result.append({
+            "alert_no": r["alert_no"],
+            "alert_content": r["alert_content"],
+            "alert_type": type_str,
+            "alerted_at": r["alerted_at"].strftime("%Y-%m-%d %H:%M"),
+            "target_board_no": r["target_board_no"],
+            "target_comment_answer_no": r["target_comment_answer_no"]
+        })
+
+    return jsonify(result)
+
 
 # ------------------------------------------------------------
 # 12. 회원 탈퇴

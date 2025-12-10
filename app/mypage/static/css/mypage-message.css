@@ -364,6 +364,7 @@
     resize: none;
     margin-top: 10px;
     margin-bottom: 12px;
+    box-sizing: border-box;
 }
 
 /* 전송 버튼 */

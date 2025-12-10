@@ -1,5 +1,5 @@
 # app/dao/point_dao.py
-
+import pymysql
 class PointDao:
     def __init__(self, db_conn_func):
         self.db_conn_func = db_conn_func
@@ -145,3 +145,35 @@ class PointDao:
         conn.close()
 
         return row["user_current_point"] if row else 0
+    def get_point_history_page(self, user_id, order="latest", offset=0, limit=20):
+        conn = self.db_conn_func()
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+
+        order_sql = {
+            "latest": "ORDER BY point_created_at DESC",
+            "oldest": "ORDER BY point_created_at ASC",
+            "high": "ORDER BY point_amount DESC",
+            "low": "ORDER BY point_amount ASC"
+        }
+
+        sql = f"""
+            SELECT 
+                point_no,
+                id,
+                point_amount,
+                point_type,
+                point_reason,
+                point_created_at,
+                board_no
+            FROM point
+            WHERE id = %s
+            {order_sql.get(order, order_sql["latest"])}
+            LIMIT %s OFFSET %s
+        """
+
+        cur.execute(sql, (user_id, limit, offset))
+        rows = cur.fetchall()
+
+        cur.close()
+        conn.close()
+        return rows

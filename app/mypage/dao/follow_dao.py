@@ -207,3 +207,54 @@ class FollowDao:
         cur.close()
         conn.close()
         return rows
+    # -----------------------------------------------------
+    # 10) 팔로잉 페이지 페이징 조회 (인피니티 스크롤)
+    # -----------------------------------------------------
+    def get_following_page(self, user_id, offset, limit):
+        conn = self.db_conn_func()
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+
+        sql = """
+            SELECT 
+                u.id AS user_id,
+                u.nick AS nickname,
+                u.icon AS icon
+            FROM follow f
+            JOIN user u ON f.followed_id = u.id
+            WHERE f.following_id = %s
+            ORDER BY f.follow_started_at DESC
+            LIMIT %s OFFSET %s
+        """
+
+        cur.execute(sql, (user_id, limit, offset))
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return rows
+
+
+
+    # -----------------------------------------------------
+    # 11) 팔로워 페이지 페이징 조회 (인피니티 스크롤)
+    # -----------------------------------------------------
+    def get_follower_page(self, user_id, offset, limit):
+        conn = self.db_conn_func()
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+
+        sql = """
+            SELECT 
+                u.id AS user_id,
+                u.nick AS nickname,
+                u.icon AS icon
+            FROM follow f
+            JOIN user u ON f.following_id = u.id
+            WHERE f.followed_id = %s
+            ORDER BY f.follow_started_at DESC
+            LIMIT %s OFFSET %s
+        """
+
+        cur.execute(sql, (user_id, limit, offset))
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return rows
