@@ -1,0 +1,286 @@
+/* ======================= */
+/* 전체 컨테이너           */
+/* ======================= */
+
+.admin-container {
+    max-width: 1500px;
+    margin: 20px auto;
+}
+
+/* 제목 */
+.admin-container h2 {
+    font-size: 28px;
+    margin-bottom: 20px;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between; /* 왼쪽: 제목, 오른쪽: 버튼 */
+    align-items: center; /* 수직 가운데 정렬 */
+    margin-bottom: 20px;
+}
+
+#goHomeBtn {
+    padding: 7px 14px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    background-color: #4d86ff;
+    color: #fff;
+    transition: 0.2s;
+}
+
+#goHomeBtn:hover {
+    background-color: #3b6fd1;
+}
+
+/* ======================= */
+/* 탭 메뉴 스타일 (폴더 탭) */
+/* ======================= */
+
+.admin-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 0;
+    border-bottom: 2px solid #ddd;
+}
+
+.tab-btn {
+    padding: 10px 18px;
+    border: 1px solid #ddd;
+    border-bottom: none;
+    background: #f1f1f1;
+
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+.tab-btn:hover {
+    background: #e7e7e7;
+}
+
+/* 선택된 탭 */
+.tab-btn.active {
+    background: #fff;
+    border-bottom: 2px solid #fff;
+    position: relative;
+    top: 2px;
+}
+
+/* ======================= */
+/* 탭 콘텐츠 박스           */
+/* ======================= */
+
+.tab-content {
+    border: 1px solid #ddd;
+    border-radius: 0 10px 10px 10px;
+    padding: 20px;
+    background: #fff;
+    margin-top: -1px; /* 탭과 연결 */
+}
+
+.tab-panel.hidden {
+    display: none;
+}
+
+/* ======================= */
+/* 사용자 관리 검색 + 정렬  */
+/* ======================= */
+.user-search-sort {
+    display: flex;
+    flex-direction: column; /* 검색/정렬과 통계 영역 구분 */
+    gap: 10px;
+    margin-bottom: 7px;
+}
+
+/* 검색 + 정렬 영역 (첫 줄) */
+.user-search-sort .user-search-sort-top {
+    display: flex;
+    justify-content: space-between; /* 검색 왼쪽, 정렬 오른쪽 */
+    align-items: center;
+    gap: 10px;
+    padding: 5px 0;
+}
+
+/* 검색 영역 */
+.user-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* 정렬 영역 */
+.user-sort {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* 검색 input */
+.user-search input {
+    padding: 8px 10px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+/* 버튼 */
+.user-search button,
+.user-sort button {
+    padding: 7px 10px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    background-color: #4d86ff;
+    color: #fff;
+}
+
+/* 정렬 select */
+.user-sort select {
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+/* ======================= */
+/* 사용자 테이블 스타일      */
+/* ======================= */
+
+.admin-table {
+    width: 100%; /* 필요에 따라 100%로도 가능 */
+    table-layout: auto; /* 데이터 길이에 맞춰 열 너비 자동 조정 */
+    border-collapse: collapse;
+    font-size: 13px;
+}
+/* 일부 열은 최소/최대 너비 지정 가능 */
+.admin-table th, .admin-table td {
+    padding: 3px;
+    border-bottom: 1px solid #eee;
+    text-align: center;
+    white-space: nowrap; /* 줄바꿈 방지 */
+}
+
+/* ID, 이름처럼 데이터 길이가 짧은 열 */
+.admin-table th:nth-child(2),
+.admin-table td:nth-child(2),
+.admin-table th:nth-child(3),
+.admin-table td:nth-child(3) {
+    width: 80px; /* 최소 너비 지정 가능 */
+}
+
+/* 이메일처럼 길이가 긴 열 */
+.admin-table th:nth-child(5),
+.admin-table td:nth-child(5) {
+    min-width: 180px; /* 길이에 따라 늘어남 */
+    max-width: 300px; /* 너무 길어지면 제한 */
+}
+
+.admin-table th {
+    background: #f5f5f5;
+    padding: 10px;
+    border-bottom: 2px solid #ddd;
+    text-align: left;
+    font-size: 12px;
+    text-align: center;
+}
+
+.admin-table td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    text-align: center;
+}
+
+.admin-table tr:hover {
+    background: #fafafa;
+}
+
+.admin-table select {
+    padding: 5px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+.admin-table input.user-points {
+    width: 80px; /* 기존보다 좁게 */
+    text-align: right; /* 숫자 오른쪽 정렬 */
+}
+/* ======================= */
+/* 사용자 통계 영역          */
+/* ======================= */
+.user-stats {
+    display: flex;
+    justify-content: flex-end; /* 오른쪽 정렬 */
+    gap: 10px;
+    font-size: 12px;
+}
+
+.user-stats div {
+    background: #f9f9f9;
+    padding: 5px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+/* ======================= */
+/* 체크박스 스타일          */
+/* ======================= */
+.admin-table input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* ======================= */
+/* 개별 관리 버튼           */
+/* ======================= */
+.admin-table td button {
+    padding: 5px 8px;
+    font-size: 12px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    margin: 2px;
+    color: #fff;
+    transition: 0.2s;
+}
+
+/* 관리 버튼 종류별 색상 */
+.admin-table td button[data-action="ban"] {
+    background-color: #4d86ff;
+}
+.admin-table td button:hover {
+    opacity: 0.85;
+}
+
+/* ======================= */
+/* 일괄 처리 버튼           */
+/* ======================= */
+.user-sort-bulk {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bulk-actions {
+    text-align: right;
+}
+
+.bulk-actions button {
+    padding: 7px 10px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    background-color: #4d86ff;
+    color: #fff;
+    transition: 0.2s;
+}
+
+.bulk-actions button:hover {
+    background-color: #3b6fd1;
+}

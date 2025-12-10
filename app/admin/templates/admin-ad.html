@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>관리자 모드</title>
+    <link rel="stylesheet" href="{{ url_for('admin.static', filename='css/admin-ad.css') }}">
+</head>
+<body>
+
+    <div id="adminPage" class="admin-container">
+
+    <div class="admin-header">
+        <h2>관리자 모드</h2>
+        <button id="goHomeBtn">홈으로 이동</button>
+    </div>
+
+        <!-- 탭 메뉴 -->
+        <div class="admin-tabs">
+            <button class="tab-btn" data-target="tab-users">사용자 관리</button>
+            <button class="tab-btn" data-target="tab-reports">신고 관리</button>
+            <button class="tab-btn active" data-target="tab-ads">광고 관리</button>
+        </div>
+
+        <!-- 탭 콘텐츠 영역 -->
+        <div class="tab-content">
+            <!-- 광고 관리 -->
+            <div id="tab-ads" class="tab-panel">
+                <!-- 검색 + 필터 -->
+                <div class="ad-search-sort">
+                    <div class="ad-search">
+                        <input type="text" id="searchAdInput" placeholder="광고 제목, 키워드 검색">
+                        <button id="searchAdBtn">검색</button>
+                    </div>
+                    <div class="ad-filters">
+                        <select id="filterCategorySelect">
+                            <option value="">카테고리</option>
+                        </select>
+                        <select id="filterActiveSelect">
+                            <option value="">활성 상태</option>
+                            <option value="1">활성</option>
+                            <option value="0">비활성</option>
+                        </select>
+
+                        <button id="sortAdBtn">정렬</button>
+                    </div>
+                </div>
+
+                <!-- 광고 테이블 -->
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="selectAllAds"></th>
+                            <th>광고 ID</th>
+                            <th>제목</th>
+                            <th>설명</th>
+                            <th>카테고리</th>
+                            <th>우선순위</th>
+                            <th>키워드</th>
+                            <th>링크</th>
+                            <th>활성</th>
+                            <th>생성일</th>
+                            <th>수정일</th>
+                            <th>조회</th>
+                            <th>클릭</th>
+                            <th>관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adTableBody">
+                        <!-- 예시 행 -->
+                        <tr>
+                            <td><input type="checkbox" class="ad-checkbox" data-id="1"></td>
+                            <td>1</td>
+                            <td>샘플 광고</td>
+                            <td>광고 설명 예시</td>
+                            <td>카테고리A</td>
+                            <td>1</td>
+                            <td>키워드1, 키워드2</td>
+                            <td><a href="https://example.com" target="_blank">이동</a></td>
+                            <td>활성</td>
+                            <td>2025-12-10 11:00</td>
+                            <td>2025-12-10 11:30</td>
+                            <td>123</td>
+                            <td>45</td>
+                            <td>
+                                <button class="ad-action-btn" data-action="edit" data-id="1">수정</button>
+                                <button class="ad-action-btn" data-action="delete" data-id="1">삭제</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- 일괄 관리 버튼 -->
+                <div class="bulk-actions">
+                    <button id="bulkActivateBtn">선택 광고 활성</button>
+                    <button id="bulkDeactivateBtn">선택 광고 비활성</button>
+                    <button id="bulkDeleteBtn">선택 광고 삭제</button>
+                </div>
+
+                <!-- 광고 클릭 로그 -->
+                <div class="ad-log">
+                    <h3>광고 클릭 로그</h3>
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>로그 ID</th>
+                                <th>유저 ID</th>
+                                <th>광고 ID</th>
+                                <th>클릭 시간</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adClickLogBody">
+                            <tr>
+                                <td>1</td>
+                                <td>user123</td>
+                                <td>1</td>
+                                <td>2025-12-10 11:05</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('admin.static', filename='js/admin-ad.js') }}"></script>
+
+</body>
+</html>

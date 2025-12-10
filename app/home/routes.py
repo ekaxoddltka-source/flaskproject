@@ -2003,8 +2003,3 @@ def recommend_tags():
         print(f"DEBUG_ERROR: Full API/Processing Error: {e}")
         # 이 부분이 실행되었을 때 500 에러 메시지가 브라우저로 갑니다.
         return jsonify({"error": "Failed to get recommendations"}), 500
-    
-@bp.route("/admin/modal")
-def admin_modal():
-    # 관리자 권한 확인 가능
-    return render_template("admin_modal.html")

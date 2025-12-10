@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>관리자 모드</title>
+    <link rel="stylesheet" href="{{ url_for('admin.static', filename='css/admin-report.css') }}">
+</head>
+<body>
+
+    <div id="adminPage" class="admin-container">
+
+    <div class="admin-header">
+        <h2>관리자 모드</h2>
+        <button id="goHomeBtn">홈으로 이동</button>
+    </div>
+
+        <!-- 탭 메뉴 -->
+        <div class="admin-tabs">
+            <button class="tab-btn" data-target="tab-users">사용자 관리</button>
+            <button class="tab-btn active" data-target="tab-reports">신고 관리</button>
+            <button class="tab-btn" data-target="tab-ads">광고 관리</button>
+        </div>
+
+        <!-- 탭 콘텐츠 영역 -->
+        <div class="tab-content">
+            <!-- 신고 관리 -->
+            <div id="tab-reports" class="tab-panel">
+                <!-- 검색 + 필터 -->
+                <div class="report-search-sort">
+                    <div class="report-search">
+                        <input type="text" id="searchReportInput" placeholder="신고자 ID, 게시글 번호, 내용 검색">
+                        <button id="searchReportBtn">검색</button>
+                    </div>
+                    <div class="report-filters">
+                        <select id="filterStatusSelect">
+                            <option value="">신고 상태</option>
+                            <option value="1">처리중</option>
+                            <option value="2">처리완료</option>
+                        </select>
+                        <select id="filterCategorySelect">
+                            <option value="">카테고리</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 신고 테이블 -->
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="selectAllReports"></th>
+                            <th>신고 번호</th>
+                            <th>신고자 ID</th>
+                            <th>게시글 번호</th>
+                            <th>카테고리</th>
+                            <th>신고 내용</th>
+                            <th>상태</th>
+                            <th>등록일</th>
+                            <th>마지막 업데이트</th>
+                            <th>관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTableBody">
+                        <!-- 예시 행 -->
+                        <tr>
+                            <td><input type="checkbox" class="report-checkbox" data-id="1"></td>
+                            <td>1</td>
+                            <td>user123</td>
+                            <td><a href="/board/101" target="_blank">101</a></td>
+                            <td>스팸</td>
+                            <td>광고 글 신고</td>
+                            <td>처리중</td>
+                            <td>2025-12-10 11:00</td>
+                            <td>2025-12-10 11:30</td>
+                            <td>
+                                <button class="report-action-btn" data-action="resolve" data-id="1">처리 완료</button>
+                                <button class="report-action-btn" data-action="delete" data-id="1">삭제</button>
+                            </td>
+                        </tr>
+                        <!-- 더 많은 행은 JS로 동적 로딩 예정 -->
+                    </tbody>
+                </table>
+
+                <!-- 일괄 처리 버튼 -->
+                <div class="bulk-actions">
+                    <button id="bulkResolveBtn">선택 신고 처리 완료</button>
+                    <button id="bulkDeleteBtn">선택 신고 삭제</button>
+                </div>
+
+                <!-- 처리 로그 표시 영역 -->
+                <div class="report-log">
+                    <h3>처리 로그</h3>
+                    <ul id="reportLogList">
+                        <li>[2025-12-10 11:45] 신고 번호 1 처리 완료 by 관리자A</li>
+                        <li>[2025-12-10 12:00] 신고 번호 2 삭제 by 관리자B</li>
+                        <!-- 향후 JS로 추가 예정 -->
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('admin.static', filename='js/admin-report.js') }}"></script>
+
+</body>
+</html>

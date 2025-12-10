@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>관리자 모드</title>
+    <link rel="stylesheet" href="{{ url_for('admin.static', filename='css/admin-users.css') }}">
+</head>
+<body>
+
+<div id="adminPage" class="admin-container">
+
+    <div class="admin-header">
+        <h2>관리자 모드</h2>
+        <button id="goHomeBtn">홈으로 이동</button>
+    </div>
+
+    <!-- 탭 메뉴 -->
+    <div class="admin-tabs">
+        <button class="tab-btn active" data-target="tab-users">사용자 관리</button>
+        <button class="tab-btn" data-target="tab-reports">신고 관리</button>
+        <button class="tab-btn" data-target="tab-ads">광고 관리</button>
+    </div>
+
+    <!-- 탭 콘텐츠 영역 -->
+    <div class="tab-content">
+
+        <!-- 사용자 관리 -->
+        <div id="tab-users" class="tab-panel">
+
+            <!-- 검색 + 필터 + 통계 -->
+            <div class="user-search-sort">
+                <!-- 통계 요약 -->
+                <div class="user-stats">
+                    <div>전체 회원: <span id="totalUsers">0</span>명</div>
+                    <div>활성 회원: <span id="activeUsers">0</span>명</div>
+                    <div>탈퇴 회원: <span id="withdrawUsers">0</span>명</div>
+                </div>
+
+                <div class="user-search-sort-top">
+                    <!-- 검색 -->
+                    <div class="user-search">
+                        <input type="text" id="searchUserInput" placeholder="ID 또는 닉네임으로 검색" />
+                        <button id="searchUserBtn">검색</button>
+                    </div>
+
+                    <div class="user-sort-bulk">
+                        <div class="user-sort">
+                            <select id="sortUserSelect">
+                                <option value="created_at">가입일</option>
+                                <option value="last_login_at">마지막 로그인</option>
+                                <option value="user_type">유저 타입</option>
+                                <option value="withdraw">탈퇴 여부</option>
+                            </select>
+                            <button id="sortOrderBtn" data-order="asc">내림차순</button>
+                        </div>
+                        <div class="bulk-actions">
+                            <button id="bulkBanBtn">선택 일괄 적용</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 사용자 테이블 -->
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="selectAllUsers"></th>
+                        <th>ID</th>
+                        <th>이름</th>
+                        <th>닉네임</th>
+                        <th>이메일</th>
+                        <th>가입일</th>
+                        <th>마지막 로그인</th>
+                        <th>유저 타입</th>
+                        <th>탈퇴 여부</th>
+                        <th>탈퇴일자</th>
+                        <th>보유 포인트</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody">
+                    <!-- JS로 동적 로딩 -->
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('admin.static', filename='js/admin-users.js') }}"></script>
+
+</body>
+</html>

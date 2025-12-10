@@ -75,10 +75,12 @@ def register_blueprints(app):
     from app.home.routes import bp as home_bp
     from app.account.routes import bp as account_bp
     from app.mypage.routes import bp as mypage_bp
+    from app.admin.routes import bp as admin_bp
 
     app.register_blueprint(home_bp)
     app.register_blueprint(account_bp)
     app.register_blueprint(mypage_bp)
+    app.register_blueprint(admin_bp)
 
 # -------------------------------------
 # SocketIO 이벤트 등록 함수
