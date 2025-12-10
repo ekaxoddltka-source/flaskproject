@@ -17,7 +17,8 @@ class FollowDao:
             SELECT 
                 f.followed_id AS user_id,
                 u.nick AS nickname,
-                f.follow_started_at AS followed_at
+                f.follow_started_at AS followed_at,
+                u.icon AS icon
             FROM follow f
             JOIN user u ON f.followed_id = u.id
             WHERE f.following_id = %s
@@ -43,7 +44,8 @@ class FollowDao:
             SELECT 
                 f.following_id AS user_id,
                 u.nick AS nickname,
-                f.follow_started_at AS followed_at
+                f.follow_started_at AS followed_at,
+                u.icon AS icon
             FROM follow f
             JOIN user u ON f.following_id = u.id
             WHERE f.followed_id = %s

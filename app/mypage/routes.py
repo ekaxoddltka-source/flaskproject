@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, session, redirect
+from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
 from config import SIDEBAR_CONFIG
 from flask import current_app 
 from datetime import datetime
@@ -38,13 +38,57 @@ from posts_data.aezen_recommender import (
 # 기술 키워드 사전
 # ------------------------------------------------------------
 TECH_KEYWORDS = {
-    "python", "java", "c", "c++", "c#", "go", "rust",
-    "javascript", "typescript",
-    "react", "vue", "svelte", "nextjs",
-    "spring", "django", "flask", "fastapi", "node",
-    "sql", "mysql", "oracle", "postgres", "mongodb", "redis",
-    "ai", "ml", "deeplearning", "pytorch", "tensorflow",
-    "docker", "k8s", "kubernetes", "aws", "gcp", "azure"
+    # Programming Languages
+    "python", "java", "c", "c++", "c#", "go", "rust", "ruby", "swift", "kotlin",
+    "scala", "php", "r", "matlab", "typescript", "javascript",
+
+    # Backend Frameworks & Runtimes
+    "spring", "spring boot", "django", "flask", "fastapi", "node", "nodejs",
+    "express", "nestjs", "laravel", "rails", "asp.net", "gin", "fiber",
+
+    # Frontend Frameworks
+    "react", "react native", "vue", "svelte", "nextjs", "nuxt", "angular",
+    "tailwind", "bootstrap", "threejs",
+
+    # Mobile
+    "android", "ios", "flutter", "swiftui", "kotlin multiplatform",
+
+    # AI / ML / Data Science
+    "ai", "ml", "machine learning", "deep learning",
+    "pytorch", "tensorflow", "keras", "sklearn",
+    "nlp", "cv", "computer vision", "llm",
+    "transformer", "bert", "gpt",
+
+    # Data / Big Data
+    "sql", "mysql", "postgres", "postgresql", "oracle", "mongodb", "redis",
+    "elasticsearch", "kafka", "rabbitmq",
+    "hadoop", "spark", "hive", "airflow", "snowflake",
+    "data warehouse", "etl", "data pipeline",
+
+    # Cloud / DevOps
+    "aws", "gcp", "azure",
+    "docker", "kubernetes", "k8s",
+    "terraform", "ansible", "jenkins", "github actions",
+    "ci", "cd", "devops",
+
+    # Infra / Tools
+    "git", "github", "gitlab", "bitbucket",
+    "vscode", "intellij", "postman", "jira",
+
+    # Algorithms & CS Foundation
+    "algorithm", "data structure",
+    "oop", "functional programming",
+    "network", "http", "rest api", "grpc",
+
+    # Testing
+    "jest", "pytest", "unittest", "selenium", "cypress",
+
+    # Security
+    "jwt", "oauth", "csrf", "xss", "hashing", "encryption",
+
+    # Misc
+    "microservices", "monolithic", "architecture",
+    "websocket", "graphql"
 }
 
 
@@ -573,21 +617,56 @@ def mypage_interest():
     all_tags = tag_data["written_tags"] + tag_data["viewed_tags"]
     texts += [normalize_korean_tech_words(t) for t in all_tags]
 
+        # -----------------------------------------
+    # TOP5 관심 기술 추출 (정확도 극대화 버전)
     # -----------------------------------------
-    # TOP5(기술 키워드 필터링)
-    # -----------------------------------------
 
-    joined = " ".join(texts).lower()
-    words = re.findall(r"[가-힣a-zA-Z0-9\+\#\.]+", joined)
+    joined = " ".join(texts)
+    normalized = normalize_korean_tech_words(joined)  # 한글 기술명 자동 변환
+    lowered = normalized.lower()
 
+    # 1) 기술 키워드 문자열 길이순 정렬 (복합 기술 우선 감지)
+    sorted_keywords = sorted(TECH_KEYWORDS, key=len, reverse=True)
 
-    tech_only = [w for w in words if w in TECH_KEYWORDS]
+    counts = {}
 
-    counter = Counter(tech_only)
-    top5 = counter.most_common(5)
+    for kw in sorted_keywords:
+        pattern = r"\b" + re.escape(kw) + r"\b"       # 단어 경계 포함 → 오탐 방지
+        matches = re.findall(pattern, lowered)
+        if matches:
+            # 등장 횟수 + 길이 가중치 (긴 기술어가 더 의미 있음)
+            weight = len(kw) * 0.1
+            counts[kw] = len(matches) + weight
 
-    top5_labels = [w[0] for w in top5] if top5 else ["No Data"]
-    top5_values = [w[1] for w in top5] if top5 else [0]
+    # 2) 서브 단어 중복 방지 예:
+    # "react native" → react, native 자동 필터링
+    final_counts = {}
+
+    for kw in sorted_keywords:
+        if kw not in counts:
+            continue
+
+        is_subword = False
+        for longer_kw in sorted_keywords:
+            if longer_kw == kw or longer_kw not in counts:
+                continue
+            if kw in longer_kw:  # react ∈ react native
+                is_subword = True
+                break
+
+        if not is_subword:
+            final_counts[kw] = counts[kw]
+
+    # 3) 최종 TOP5 선정
+    top5 = sorted(final_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+
+    if top5:
+        top5_labels = [w[0] for w in top5]
+        top5_values = [w[1] for w in top5]
+    else:
+        top5_labels = ["No Data"]
+        top5_values = [0]
+
 
     # -----------------------------------------
     # 2) 유저 벡터
@@ -706,6 +785,13 @@ def mypage_interest_feedback():
 from sentence_transformers import SentenceTransformer
 
 
+from datetime import datetime
+
+def get_rotating_category():
+    categories = [0, 1, 2]  # 인프런, 교보, 원티드
+    now = datetime.now()
+    index = (now.minute // 10) % len(categories)
+    return categories[index]
 
 
 
@@ -717,70 +803,63 @@ def api_recommend_ads():
 
     user_id = user["id"]
 
-    # -------------------------------------------------------------
-    # 1) 유저 벡터 로드
-    # -------------------------------------------------------------
+    # ① 유저 벡터 로드
     user_vec = interest_vector_dao.load_vector(user_id)
 
-    # -------------------------------------------------------------
-    # 2) 유저 벡터가 없다면 → user_attributes 기반 즉석 생성
-    # -------------------------------------------------------------
+    # ② 유저 벡터 없으면 user_attributes로 생성
     if user_vec is None:
         conn = current_app.get_db_connection()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
 
-        cursor.execute("""
-            SELECT value FROM user_attributes
-            WHERE user_id = %s
-        """, (user_id,))
+        cursor.execute("SELECT value FROM user_attributes WHERE user_id=%s", (user_id,))
         rows = cursor.fetchall()
 
         cursor.close()
         conn.close()
 
         if rows:
-            # type: skill, interest 구분 상관없이 모두 합침
-            # e.g. "python django ai web backend"
             text = " ".join([r["value"] for r in rows]).strip()
             if text:
                 model = load_model()
                 user_vec = model.encode(text)
-
                 interest_vector_dao.save_vector(user_id, user_vec)
-        # 그래도 없으면 추천 불가
+
         if user_vec is None:
             return jsonify([])
 
-    # numpy 배열화
     user_vec = np.array(user_vec, dtype=float)
 
-    # -------------------------------------------------------------
-    # 3) 광고 가져오기
-    # -------------------------------------------------------------
+    # ③ 카테고리 회전
+    category = get_rotating_category()
+
+    # ④ 광고 로드
     conn = current_app.get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
     cursor.execute("""
         SELECT ad_id, ad_title, ad_image_url, landing_url, ad_embedding
         FROM ad
-        WHERE is_active = 1 AND ad_embedding IS NOT NULL
-    """)
+        WHERE is_active=1 
+          AND ad_embedding IS NOT NULL
+          AND ad_category=%s
+    """, (category,))
+
     ads = cursor.fetchall()
 
     cursor.close()
     conn.close()
 
     if not ads:
+        # 카테고리에 광고 없으면 그냥 빈 배열 → 프론트가 기본광고 띄움
         return jsonify([])
 
-    # -------------------------------------------------------------
-    # 4) 광고별 유사도 계산
-    # -------------------------------------------------------------
+    # ⑤ 유사도 계산
     result = []
+
     for ad in ads:
         try:
             ad_vec = np.array(json.loads(ad["ad_embedding"]))
-        except Exception:
+        except:
             continue
 
         sim = float(cosine_similarity([user_vec], [ad_vec])[0][0])
@@ -795,7 +874,9 @@ def api_recommend_ads():
 
     result.sort(key=lambda x: x["score"], reverse=True)
 
+    # ⑥ 상위 3개 광고 반환
     return jsonify(result[:3])
+
 
 @bp.route("/api/ad/view", methods=["POST"])
 def api_ad_view():
@@ -864,6 +945,9 @@ def api_ad_click():
 # ------------------------------------------------------------
 # 4. 아이템 관리 페이지 (DB 기반)
 # ------------------------------------------------------------
+# ------------------------------------------------------------
+# 아이템 인피니티 스크롤 (추가 API)
+# ------------------------------------------------------------
 @bp.route('/mypage-items')
 def mypage_items():
     user = get_logged_user()
@@ -872,13 +956,8 @@ def mypage_items():
 
     user_id = user["id"]
 
-    # 구매한 아이템만 가져오기 (정답)
-    items = user_item_dao.get_user_items(user_id)
-
-    # 장착 여부는 이미 포함됨 (ui.is_equipped)
-    # items: [
-    #   { item_no, is_equipped, item_name, item_type, item_price, item_img }
-    # ]
+    # ✅ 첫 페이지 : 12개만 로드
+    items = user_item_dao.get_user_items_page(user_id, offset=0, limit=12)
 
     return render_template(
         'mypage-items.html',
@@ -887,7 +966,6 @@ def mypage_items():
         current_bg=session["user"].get("background_img") or None,
         items=items
     )
-
 
 # ------------------------------------------------------------
 # 아이템 장착
@@ -981,6 +1059,44 @@ def api_item_unequip():
     })
 
 
+# ------------------------------------------------------------
+# 아이템 목록 추가 로드 (인피니티 스크롤용)
+# ------------------------------------------------------------
+@bp.route("/mypage-items/load")
+def mypage_items_load():
+    user = get_logged_user()
+    if not user:
+        return jsonify([]), 403
+
+    user_id = user["id"]
+
+    # page, per_page 파라미터
+    try:
+        page = int(request.args.get("page", 1))
+    except ValueError:
+        page = 1
+    try:
+        per_page = int(request.args.get("per_page", 12))
+    except ValueError:
+        per_page = 12
+
+    offset = (page - 1) * per_page
+
+    # 페이징된 아이템 조회 (새 함수 필요)
+    rows = user_item_dao.get_user_items_page(user_id, offset=offset, limit=per_page)
+
+    # JSON 형태로 변환
+    result = []
+    for row in rows:
+        result.append({
+            "item_no":      row["item_no"],
+            "item_name":    row["item_name"],
+            "item_type":    row["item_type"],
+            "item_img_url": url_for("mypage.static", filename=row["item_img"]),
+            "is_equipped":  bool(row["is_equipped"]),
+        })
+
+    return jsonify(result)
 
 # ------------------------------------------------------------
 # 5. 내 정보 페이지
@@ -1135,7 +1251,7 @@ def mypage_message():
     user_id = user["id"]
     rooms = message_dao.get_rooms_for_user(user_id)
     total_unread = sum(r["unread_count"] for r in rooms)
-
+    follow_list = follow_dao.get_following_list(user_id)
     return render_template(
         "mypage-message.html",
         sidebar=SIDEBAR_CONFIG["default"],
@@ -1143,6 +1259,7 @@ def mypage_message():
         current_bg=session["user"].get("background_img") or None,
         rooms=rooms,
         user_id=user_id,
+        follow_list=follow_list,
         total_unread=total_unread
     )
 
@@ -1255,6 +1372,52 @@ def api_delete_room():
         message_dao.delete_room_for_user(int(rn), user_id)
 
     return jsonify({"success": True})
+
+@bp.route("/api/mypage/search-user", methods=["POST"])
+def api_search_user():
+    data = request.get_json()
+    keyword = f"%{data.get('keyword', '')}%"
+
+    conn = current_app.get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+    cursor.execute("""
+        SELECT id, nick 
+        FROM user
+        WHERE id LIKE %s OR nick LIKE %s
+        LIMIT 20
+    """, (keyword, keyword))
+
+    users = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify(users)
+
+
+@bp.route("/api/mypage/message/start", methods=["POST"])
+def api_start_message():
+    user = session.get("user")
+    if not user:
+        return jsonify(success=False), 403
+
+    data = request.get_json()
+    target_id = data.get("target_id")
+    content = data.get("content")
+
+    if not target_id or not content:
+        return jsonify(success=False), 400
+
+    sender_id = user["id"]
+
+    # 방 생성 or 가져오기
+    room_no = message_dao.create_or_get_room(sender_id, target_id)
+
+    # 메시지 저장
+    message_dao.send_message(room_no, sender_id, target_id, content)
+
+    return jsonify(success=True, room_no=room_no)
 
 # ------------------------------------------------------------
 # 10. 포인트

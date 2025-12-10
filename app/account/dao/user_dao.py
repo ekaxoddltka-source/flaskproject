@@ -11,19 +11,21 @@ class UserDao:
         cursor = conn.cursor()
 
         try:
-            # 1. 기본 유저 정보 insert
+            # 1. 기본 유저 정보 insert 
             sql_user = """
             INSERT INTO user (
-                id, password, name, nick, email, created_at, last_login_at, withdraw
+                id, password, name, nick, email,
+                created_at, last_login_at, withdraw
             ) VALUES (
-                %s, %s, %s, %s, %s, NOW(), NOW(), 0
+                %s, %s, %s, %s, %s,
+                NOW(), NOW(), 0
             )
             """
             params_user = (
                 data["id"],
-                data["password"],  # 비밀번호 그대로 저장
+                data["password"],
                 data["name"],
-                data["nick"],  # nickname은 nick 컬럼에 들어감
+                data["nick"],
                 data["email"]
             )
             cursor.execute(sql_user, params_user)
@@ -52,6 +54,7 @@ class UserDao:
         finally:
             cursor.close()
             conn.close()
+
 
     @staticmethod
     def get_user_by_name_email(name, email):

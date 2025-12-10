@@ -32,19 +32,22 @@ body::before {
 
             <!-- 헤더 -->
             <h2 class="message-title">
-                📨 메세지함
+                📨 메시지함
                 {% if total_unread > 0 %}
                 <span class="unread-badge">🔴 {{ total_unread }}</span>
                 {% endif %}
             </h2>
 
-            <!-- 전체 선택 / 삭제 -->
+            <!-- 선택 기능 + 새 메시지 버튼 -->
             <div class="message-controls">
+
                 <label><input type="checkbox" id="select-all"> 전체 선택</label>
 
-                <button class="btn-delete-selected-message">
-                    선택 삭제
-                </button>
+                <div class="control-buttons">
+                    <button class="btn-delete-selected-message">선택 삭제</button>
+                    <button id="open-new-message" class="btn-new-message">새 메시지</button>
+                </div>
+
             </div>
 
             <!-- 메시지 리스트 -->
@@ -55,7 +58,7 @@ body::before {
                         data-room-no="{{ room.room_no }}"
                         data-partner-id="{{ room.partner_id }}"
                         data-partner-nick="{{ room.partner_nick }}">
-                        
+
                         <input type="checkbox" class="message-check" data-room-no="{{ room.room_no }}">
 
                         <div class="message-left">
@@ -72,7 +75,7 @@ body::before {
                                 </span>
                             </div>
 
-                            <span class="content">{{ room.last_message_content or "대화 내역이 없습니다." }}</span>
+                            <span class="content">{{ room.last_message_content or "대화 내용 없음" }}</span>
                         </div>
 
                         <div class="message-actions">
@@ -85,7 +88,7 @@ body::before {
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div class="message-empty">아직 대화방이 없습니다.</div>
+                    <div class="message-empty">대화방이 없습니다.</div>
                 {% endif %}
             </div>
 
@@ -102,6 +105,53 @@ body::before {
             </div>
         </div>
     </div>
+
+
+<!-- 새 메시지 모달 -->
+<div id="new-message-modal" class="newmsg-modal hidden">
+    <div class="newmsg-content">
+
+        <!-- 헤더 -->
+        <div class="modal-header">
+            <h3>새 메시지 보내기</h3>
+            <button id="close-new-message" class="close-btn">×</button>
+        </div>
+
+        <!-- 유저 검색 -->
+        <div class="modal-section">
+            <label class="section-title">유저 검색</label>
+            <input id="search-user-input" 
+                   class="input-field" 
+                   placeholder="닉네임 또는 ID 검색">
+            <div id="search-result" class="user-list"></div>
+        </div>
+
+        <!-- 팔로우 목록 -->
+        <div class="modal-section">
+            <div class="section-title">
+                팔로우 목록
+                <button id="toggle-follow-list" class="arrow-btn">▼</button>
+            </div>
+
+            <div id="follow-list" class="closed user-list">
+                {% for user in follow_list %}
+                    <div class="user-item" data-user-id="{{ user.user_id }}" data-nick="{{ user.nickname }}">
+                        <span class="nick">{{ user.nickname }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 메시지 입력 -->
+        <textarea id="new-message-content" 
+                  class="textarea" 
+                  placeholder="메시지를 입력하세요"></textarea>
+
+        <!-- 전송 버튼 -->
+        <button id="send-new-message" class="btn-primary">보내기</button>
+
+    </div>
+</div>
 
 </div>
 </div>

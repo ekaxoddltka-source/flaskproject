@@ -1,16 +1,14 @@
-/* 공지사항 탭 폭과 동일하게 맞추기 */
+/* ============================
+   패널 레이아웃 (원래 디자인 유지)
+============================ */
 #panel-follow {
-    background: #fff;
-    padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.07);
-    margin-top: 20px;
-    margin-bottom: 20px;
-
-    width: 100%;
-    max-width: 980px;      /* 공지사항과 동일 폭 */
-    margin-left: auto;
-    margin-right: auto;
+  background: #fff;
+  padding: 24px 32px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 탭 버튼 */
@@ -34,38 +32,86 @@
     color: #fff;
 }
 
-/* 리스트 */
+/* ============================
+   팔로우 리스트 스타일 (업그레이드)
+============================ */
 .follow-item {
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    padding: 12px 0;
-    border-bottom: 1px solid #ddd;
+
+    padding: 16px 20px;
+    margin-bottom: 14px;
+
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 12px;
+    backdrop-filter: blur(5px);
+
+    box-shadow: 0 3px 10px rgba(0,0,0,0.07);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.follow-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
 }
 
 .nickname {
     font-weight: 600;
+    font-size: 17px;
+    color: #333;
 }
-
+/* ============================
+   기본 팔로우 버튼 (Follow)
+============================ */
 .follow-toggle {
-    padding: 7px 14px;
-    border-radius: 6px;
-    border: none;
+    padding: 7px 18px;
+    border-radius: 8px;
+    border: 2px solid #3DADFF;
+    background: #c3c2c5;
+    color: #000000;
+    font-weight: 600;
     cursor: pointer;
+    transition: all 0.25s ease;
+
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
 
-.following {
+/* hover 시 파란 강조 */
+.follow-toggle:hover {
     background: #3DADFF;
     color: #fff;
+    box-shadow: 0 3px 8px rgba(61,173,255,0.35);
 }
-.follow-wrapper {
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    padding: 0;
+
+/* 클릭 시 */
+.follow-toggle:active {
+    transform: scale(0.95);
 }
-#panel-follow.content-panel {
-    width: 100%;
-    max-width: 1100px;   /* 공지사항 패널과 동일한 폭 */
-    margin-left: auto;
-    margin-right: auto;
+
+/* ============================
+   팔로잉 버튼 (Following)
+============================ */
+.follow-toggle.following {
+    background: #3DADFF;
+    color: #fff;
+    border-color: #3DADFF;
+}
+
+/* hover 시 ‘언팔로우 느낌’ → 빨간색보다 톤 다운된 사이트 분위기 유지 */
+.follow-toggle.following:hover {
+    background: #FF5A5A;
+    border-color: #FF5A5A;
+    color: #fff;
+    box-shadow: 0 3px 8px rgba(255,90,90,0.35);
+}
+
+/* ============================
+   반응형
+============================ */
+@media screen and (max-width: 600px) {
+    .follow-toggle {
+        padding: 6px 14px;
+        font-size: 13px;
+    }
 }

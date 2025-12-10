@@ -1,3 +1,4 @@
+import pymysql
 class UserItemDao:
     def __init__(self, db_conn_func):
         self.db_conn_func = db_conn_func
@@ -111,6 +112,31 @@ class UserItemDao:
         """
         cur.execute(sql, (user_id,))
         rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return rows
+    
+    def get_user_items_page(self, user_id, offset=0, limit=12):
+        conn = self.db_conn_func()
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+
+        sql = """
+            SELECT 
+                ui.item_no,
+                ui.is_equipped,
+                i.item_name,
+                i.item_type,
+                i.item_price,
+                i.item_img
+            FROM user_item ui
+            JOIN item i ON ui.item_no = i.item_no
+            WHERE ui.user_id = %s
+            ORDER BY ui.item_no DESC
+            LIMIT %s OFFSET %s
+        """
+        cur.execute(sql, (user_id, limit, offset))
+        rows = cur.fetchall()
+
         cur.close()
         conn.close()
         return rows

@@ -3,6 +3,8 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage-follow.css') }}">
 <link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage.css') }}">
+<link rel="stylesheet" href="{{ url_for('mypage.static', filename='css/mypage-follow-card.css') }}">
+
 {% if current_bg and current_bg != 'None' %}
     {% set bg_url = url_for('mypage.static', filename=current_bg) %}
 {% else %}
@@ -11,14 +13,7 @@
 
 <style>
 :root {
-    --dynamic-bg: url("{{ bg_url }}");
-}
-
-body::before {
-    content: "";
-    background-image: var(--dynamic-bg);
-    background-size: cover;
-    background-repeat: no-repeat;
+    --dynamic-bg: url('{{ bg_url }}');
 }
 </style>
 
@@ -30,30 +25,43 @@ body::before {
 
     <section id="panel-follow" class="content-panel">
 
+        <!-- 탭 -->
         <div class="follow-tabs">
-            <a href="/mypage-following" class="active">팔로워</a>
-            <a href="/mypage-follower">팔로우</a>
+            <a href="/mypage-following" class="active">팔로잉</a>
+            <a href="/mypage-follower">팔로워</a>
         </div>
 
-        {% for user in following_list %}
-        <div class="follow-item">
+        <!-- 카드 그리드 -->
+        <div class="follow-grid">
+            {% for user in following_list %}
+            <div class="follow-card">
 
-            <span class="nickname">{{ user.nickname }}</span>
+                <!-- 프로필 이미지 -->
+                <div class="profile-img">
+                    {% if user.icon %}
+                        <img src="{{ url_for('mypage.static', filename=user.icon) }}">
+                    {% else %}
+                        <img src="{{ url_for('mypage.static', filename='icons/default.png') }}">
+                    {% endif %}
+                </div>
 
-            {% if user.is_following %}
-                <button class="follow-toggle following"
-                        data-user-id="{{ user.user_id }}">
-                    팔로잉
-                </button>
-            {% else %}
-                <button class="follow-toggle"
-                        data-user-id="{{ user.user_id }}">
-                    팔로우
-                </button>
-            {% endif %}
+                <!-- 닉네임 -->
+                <div class="nickname">{{ user.nickname }}</div>
 
+                <!-- 버튼 -->
+                {% if user.is_following %}
+                    <button class="follow-toggle following" data-user-id="{{ user.user_id }}">
+                        팔로잉
+                    </button>
+                {% else %}
+                    <button class="follow-toggle" data-user-id="{{ user.user_id }}">
+                        팔로우
+                    </button>
+                {% endif %}
+
+            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
 
     </section>
 
