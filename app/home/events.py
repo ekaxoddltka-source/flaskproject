@@ -3,8 +3,10 @@ from flask_socketio import emit
 from .. import socketio
 import pymysql
 from datetime import datetime
+from app.filters.slang_filter import mask_slang
 
 user_count = 0
+
 
 @socketio.on('connect')
 def handle_connect(auth=None):
@@ -24,35 +26,36 @@ def handle_connect(auth=None):
     finally:
         conn.close()
 
+    # 화면에는 마스킹 후 전송
     safe_msgs = []
     for msg in recent_msgs:
         safe_msgs.append({
             "id": msg["id"],
-            "chat_content": msg["chat_content"],
+            "chat_content": mask_slang(msg["chat_content"]),
             "chat_created_at": (
                 msg["chat_created_at"].strftime('%H:%M')
                 if isinstance(msg["chat_created_at"], datetime)
                 else str(msg["chat_created_at"])
             )
         })
+
     safe_msgs.reverse()
 
-    # 로그인 여부를 클라이언트로 함께 전달
     emit('load_recent_messages', {
         'messages': safe_msgs,
         'canChat': bool(user)
     })
 
     if user:
-        global user_count
         user_count += 1
         emit('update_user_count', user_count, broadcast=True)
+
+
 
 @socketio.on('send_message')
 def handle_message(data):
     user = session.get('user')
     if not user:
-        # 로그인 안 됐으면 무시
         return
 
     message = data.get('message')
@@ -62,6 +65,7 @@ def handle_message(data):
     user_id = user['id']
     now = datetime.now()
 
+    # DB에는 원본 저장
     conn = current_app.get_db_connection()
     try:
         with conn.cursor() as cursor:
@@ -73,11 +77,15 @@ def handle_message(data):
     finally:
         conn.close()
 
-    emit('receive_message', {
-        'id': user_id,
-        'chat_content': message,
-        'chat_created_at': now.strftime('%H:%M')
+    # 사용자 화면에는 마스킹된 내용만 브로드캐스트
+    safe_text = mask_slang(message)
+
+    emit("receive_message", {
+        "id": user_id,
+        "chat_content": safe_text,
+        "chat_created_at": now.strftime("%H:%M")
     }, broadcast=True)
+
 
 @socketio.on('disconnect')
 def handle_disconnect(*args, **kwargs):
@@ -89,18 +97,20 @@ def handle_disconnect(*args, **kwargs):
     user_count -= 1
     emit('update_user_count', user_count, broadcast=True)
 
+
 from app.home.chat_recommend.recommend import build_chat_topic
 
 TOP_N = 3
 all_keywords = []
 current_idx = 0
 
+
 @socketio.on("request_topic")
 def handle_request_topic():
-    global all_keywords, current_idx  # ← 전역 변수임을 명시
+    global all_keywords, current_idx
 
     topic_text, full_keywords = build_chat_topic(current_app)
-    
+
     if all_keywords != full_keywords:
         all_keywords = full_keywords
         current_idx = 0

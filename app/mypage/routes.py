@@ -7,6 +7,7 @@ import re
 from collections import Counter
 import pymysql
 import json
+from app.filters.slang_filter import mask_slang
 
 
 
@@ -137,6 +138,7 @@ bp = Blueprint(
     static_folder="static",
     static_url_path="/mypage/static"
 )
+bp.add_app_template_filter(mask_slang, "mask_slang")
 
 # ------------------------------------------------------------
 # 공통 함수
@@ -1381,7 +1383,10 @@ def api_get_room_messages(room_no):
         "sender_id": row["sender_id"],
         "receiver_id": row["receiver_id"],
         "is_me": row["sender_id"] == user_id,
-        "content": row["message_content"],
+
+        # 👇 DB 원본 → 화면은 마스킹
+        "content": mask_slang(row["message_content"]),
+
         "sent_at": row["message_sent_at"].strftime("%Y-%m-%d %H:%M")
     } for row in rows]
 
@@ -1404,22 +1409,26 @@ def api_send_message():
     if not receiver_id or not content:
         return jsonify({"success": False, "msg": "잘못된 요청"}), 400
 
-    # 방 생성 or 기존 방 불러오기
+    # 방이 없으면 생성
     if not room_no:
         room_no = message_dao.create_or_get_room(user_id, receiver_id)
 
-    # DB 저장
+    # 1) DB에는 원본 저장
     msg_no = message_dao.send_message(room_no, user_id, receiver_id, content)
+
+    # 2) 화면에는 마스킹된 텍스트 전달
+    masked = mask_slang(content)
+
     receiver_info = user_dao.get_user_by_id(receiver_id)
 
-    # 🔥 WebSocket 실시간 메시지 전송
+    # 3) WebSocket 실시간 전송도 마스킹된 내용으로
     send_dm_message(
         receiver_id,
         {
             "room_no": room_no,
             "sender_id": user_id,
             "receiver_id": receiver_id,
-            "content": content,
+            "content": masked,
             "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M")
         }
     )
@@ -1430,7 +1439,7 @@ def api_send_message():
         "message_no": msg_no,
         "sender_id": user_id,
         "receiver_nick": receiver_info["nick"],
-        "content": content,
+        "content": masked,  # 화면에서는 마스킹된 텍스트
         "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M")
     })
 
@@ -1491,10 +1500,14 @@ def api_start_message():
     # 방 생성 or 가져오기
     room_no = message_dao.create_or_get_room(sender_id, target_id)
 
-    # 메시지 저장
+    # DB 저장 (원본)
     message_dao.send_message(room_no, sender_id, target_id, content)
 
-    return jsonify(success=True, room_no=room_no)
+    # 필요하다면 여기서도 masked_content를 응답에 포함 가능
+    masked_content = mask_slang(content)
+
+    return jsonify(success=True, room_no=room_no, content=masked_content)
+
 
 # ------------------------------------------------------------
 # 10. 포인트

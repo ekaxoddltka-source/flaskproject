@@ -7,6 +7,7 @@ import os
 from urllib.parse import unquote
 from google import genai
 from google.genai import types
+from app.filters.slang_filter import mask_slang
 
 bp = Blueprint(
     'home',
@@ -470,7 +471,7 @@ def write():
 
     # POST 요청: 글 저장
     title = request.form.get("boardTitle", "").strip()
-    content = request.form.get("boardContent", "").strip()
+    content = request.form.get("boardContent", "").strip()     
     category = request.form.get("boardCategory")
     user_id = user["id"]
 
@@ -677,8 +678,8 @@ def update_post(board_no):
 
             if not title or not content:
                 flash("제목과 내용을 모두 입력해야 합니다.", "error")
-                return redirect(request.url)
-
+                return redirect(request.url)            
+    
             now = datetime.now()
             # 게시글 업데이트
             cursor.execute("""
@@ -1466,6 +1467,10 @@ def update_comment():
 
     if not comment_id or not content:
         return jsonify(success=False, msg="필수 정보 누락")
+    
+    # 욕설 포함 시 수정 금지
+    if mask_slang(content) != content:
+        return jsonify(success=False, msg="욕설이 포함되어 있어 댓글을 수정할 수 없습니다.")
 
     conn = current_app.get_db_connection()
     cursor = conn.cursor()
@@ -1491,6 +1496,10 @@ def update_answer():
 
     if not answer_id or not content:
         return jsonify(success=False, msg="필수 정보 누락")
+    
+        #  욕설 포함 시 수정 금지
+    if mask_slang(content) != content:
+        return jsonify(success=False, msg="욕설이 포함되어 있어 답변을 수정할 수 없습니다.")
 
     conn = current_app.get_db_connection()
     cursor = conn.cursor()
@@ -1513,9 +1522,14 @@ def add_comment():
     data = request.get_json()
     board_no = data.get("boardNo")
     content = data.get("content", "").strip()
-
+   
     if not board_no or not content:
         return jsonify(success=False, msg="필수 정보 누락")
+
+    # 욕설 포함 여부 검사
+    if mask_slang(content) != content:
+        return jsonify(success=False, msg="댓글에 욕설이 포함되어 있어 등록할 수 없습니다.")
+
 
     conn = current_app.get_db_connection()
     cursor = conn.cursor()
@@ -1549,6 +1563,10 @@ def add_answer():
 
     if not board_no or not content:
         return jsonify(success=False, msg="필수 정보 누락")
+    
+    if mask_slang(content) != content:
+        return jsonify(success=False, msg="답변에 욕설이 포함되어 있어 작성할 수 없습니다.")
+
 
     conn = current_app.get_db_connection()
     cursor = conn.cursor()

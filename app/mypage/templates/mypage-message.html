@@ -75,7 +75,7 @@ body::before {
                                 </span>
                             </div>
 
-                            <span class="content">{{ room.last_message_content or "대화 내용 없음" }}</span>
+                            <span class="content">{{ room.last_message_content | mask_slang or "대화 내용 없음" }}</span>
                         </div>
 
                         <div class="message-actions">

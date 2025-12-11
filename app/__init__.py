@@ -56,6 +56,10 @@ def create_app():
     # SocketIO 앱 등록
     socketio.init_app(app)
 
+    from app.filters.slang_filter import load_slang_terms_from_db
+    load_slang_terms_from_db(app)
+
+
     # 블루프린트 등록
     register_blueprints(app)
 

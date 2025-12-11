@@ -62,28 +62,35 @@ document.addEventListener("DOMContentLoaded", () => {
        3) 메시지 전송
     ------------------------------ */
     async function sendMessage() {
-        const msg = replyInput.value.trim();
-        if (!msg) return;
+    const msg = replyInput.value.trim();
+    if (!msg) return;
 
-        replyInput.value = "";
-        resizeTextarea(replyInput);
+    replyInput.value = "";
+    resizeTextarea(replyInput);
 
-        appendMessage(msg, true);
+    // ❌ 원본 메시지 즉시 출력 금지
+    // appendMessage(msg, true);
+
+    try {
+        const res = await fetch("/api/mypage/messages/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                room_no: roomNo,
+                receiver_id: partnerId,
+                content: msg
+            })
+        });
+
+        const data = await res.json();
+
+        // ⭕ 서버가 필터링한 메시지를 출력
+        appendMessage(data.content, true);
         scrollToBottom();
 
-        try {
-            await fetch("/api/mypage/messages/send", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    room_no: roomNo,
-                    receiver_id: partnerId,
-                    content: msg
-                })
-            });
-        } catch (err) {
-            console.error("메시지 전송 실패", err);
-        }
+    } catch (err) {
+        console.error("메시지 전송 실패", err);
+    }
     }
 
     sendBtn.addEventListener("click", sendMessage);
