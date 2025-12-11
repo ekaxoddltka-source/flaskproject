@@ -256,3 +256,182 @@
 .ad-log tr:hover {
     background: #fafafa;
 }
+/* 페이지네이션 컨테이너 */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    padding: 20px 0;
+    user-select: none;
+}
+
+/* 기본 버튼 */
+.pagination button {
+    padding: 6px 10px;
+    border: 1px solid #d0d0d0;
+    background: #ffffff;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+/* 버튼 호버 */
+.pagination button:hover {
+    border-color: #4a7dff;
+}
+
+/* 현재 페이지 */
+.pagination .active-page {
+    background: #4a7dff;
+    color: #ffffff;
+    border-color: #4a7dff;
+    font-weight: 300;
+}
+
+/* 비활성(Prev/Next 막힘) */
+.pagination button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* ======================= */
+/* 모달 전체 배경           */
+/* ======================= */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(3px);
+    animation: fadeIn 0.25s ease-out;
+}
+
+/* ======================= */
+/* 모달 박스                */
+/* ======================= */
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    width: 800px;                 /* 좌우 여백 문제 해결 - 크기 증가 */
+    max-width: 92%;               /* 모바일 대응 */
+    padding: 32px 34px;           /* 좌우 여백 확실히 넓고 균일 */
+
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0px 12px 30px rgba(0,0,0,0.25);
+
+    animation: modalSlideUp 0.3s ease-out;
+}
+.modal-content,
+.modal-content * {
+    box-sizing: border-box;
+}
+
+/* 제목 스타일 */
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 22px;
+    font-weight: 700;
+    color: #222;
+}
+
+/* ======================= */
+/* 입력 요소 스타일         */
+/* ======================= */
+.modal-content label {
+    font-size: 14px;
+    margin-top: 16px;
+    margin-bottom: 6px;
+    display: block;
+    color: #444;
+    font-weight: 500;
+}
+
+.modal-content input,
+.modal-content textarea,
+.modal-content select {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid #d4d4d4;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #fafafa;
+    transition: 0.2s;
+}
+
+.modal-content input:focus,
+.modal-content textarea:focus,
+.modal-content select:focus {
+    border-color: #4d7fff;
+    background: #fff;
+}
+
+.modal-content textarea {
+    height: 110px;
+}
+
+/* ======================= */
+/* 버튼 영역                */
+/* ======================= */
+.modal-buttons {
+    margin-top: 26px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modal-buttons button {
+    padding: 9px 18px;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+    font-weight: 500;
+}
+
+/* 저장 버튼 */
+#saveAdBtn {
+    background: #2563eb;
+    color: #fff;
+}
+
+#saveAdBtn:hover {
+    background: #1d4fd8;
+}
+
+/* 닫기 버튼 */
+#closeEditModal {
+    background: #e5e5e5;
+    color: #333;
+}
+
+#closeEditModal:hover {
+    background: #d4d4d4;
+}
+
+/* ======================= */
+/* 애니메이션               */
+/* ======================= */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes modalSlideUp {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -46%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}

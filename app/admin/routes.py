@@ -344,3 +344,265 @@ def api_admin_reports_update():
 def admin_ad():
     
     return render_template("admin-ad.html")
+
+# =========================
+# 광고 목록 조회 API
+# (검색 + 필터 + 정렬 + 조회/클릭 포함)
+# =========================
+@bp.route("/api/admin-ad", methods=["GET"])
+def api_admin_ad():
+    search = request.args.get("search", "").strip()
+    category = request.args.get("category", "").strip()
+    active = request.args.get("active", "").strip()
+
+    sort_by = request.args.get("sort_by", "ad_id").strip()
+    sort_order = request.args.get("sort_order", "ASC").upper()
+
+    # 페이지네이션
+    try:
+        page = int(request.args.get("page", 1))
+    except:
+        page = 1
+
+    try:
+        limit = int(request.args.get("limit", 10))
+    except:
+        limit = 10
+
+    if page < 1:
+        page = 1
+    if limit < 1 or limit > 200:
+        limit = 10
+
+    offset = (page - 1) * limit
+
+    allowed_sort = ["ad_id", "created_at", "updated_at", "views", "clicks"]
+    if sort_by not in allowed_sort:
+        sort_by = "ad_id"
+    if sort_order not in ["ASC", "DESC"]:
+        sort_order = "ASC"
+
+    conn = current_app.get_db_connection()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+
+    sql_where = "WHERE 1"
+    params = []
+
+    # 검색
+    if search:
+        sql_where += " AND (ad_title LIKE %s OR ad_keywords LIKE %s)"
+        params += [f"%{search}%", f"%{search}%"]
+
+    # 카테고리
+    if category:
+        sql_where += " AND ad_category = %s"
+        params.append(category)
+
+    # 활성 상태
+    if active:
+        sql_where += " AND is_active = %s"
+        params.append(active)
+
+    # ===============================
+    # 전체 개수 조회
+    # ===============================
+    count_sql = f"SELECT COUNT(*) AS total FROM ad {sql_where}"
+    cur.execute(count_sql, params)
+    total_count = cur.fetchone()["total"]
+
+    # ===============================
+    # 실제 데이터 조회 (LIMIT 포함)
+    # ===============================
+    data_sql = f"""
+        SELECT 
+            a.*,
+            COALESCE(s.views, 0) AS views,
+            COALESCE(s.clicks, 0) AS clicks
+        FROM ad AS a
+        LEFT JOIN ad_stats AS s ON a.ad_id = s.ad_id
+        {sql_where}
+        ORDER BY {sort_by} {sort_order}, ad_id ASC
+        LIMIT %s OFFSET %s
+    """
+    cur.execute(data_sql, params + [limit, offset])
+    ads = cur.fetchall()
+
+    # 날짜 포맷
+    for ad in ads:
+        for key in ["created_at", "updated_at"]:
+            if ad.get(key):
+                ad[key] = ad[key].strftime("%Y-%m-%d %H:%M:%S")
+
+    cur.close()
+    conn.close()
+
+    return jsonify({
+        "ads": ads,
+        "total_count": total_count,
+        "page": page,
+        "limit": limit
+    })
+
+# =========================
+# 광고 단일 조회 API
+# =========================
+@bp.route("/api/admin-ad/<int:ad_id>", methods=["GET"])
+def api_admin_ad_get(ad_id):
+    conn = current_app.get_db_connection()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+
+    try:
+        sql = """
+            SELECT 
+                a.*,
+                COALESCE(s.views, 0) AS views,
+                COALESCE(s.clicks, 0) AS clicks
+            FROM ad AS a
+            LEFT JOIN ad_stats AS s ON a.ad_id = s.ad_id
+            WHERE a.ad_id = %s
+        """
+        cur.execute(sql, (ad_id,))
+        ad = cur.fetchone()
+
+        if not ad:
+            return jsonify({"success": False, "message": "Ad not found"}), 404
+
+        # 날짜 변환
+        for key in ["created_at", "updated_at"]:
+            if ad.get(key):
+                ad[key] = ad[key].strftime("%Y-%m-%d %H:%M:%S")
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+    finally:
+        cur.close()
+        conn.close()
+
+    return jsonify({"success": True, "ad": ad})
+
+# =========================
+# 광고 업데이트 API
+# =========================
+@bp.route("/api/admin-ad/update", methods=["POST"])
+def api_admin_ad_update():
+    data = request.json
+
+    ad_id = data.get("ad_id")
+    ad_title = data.get("ad_title")
+    description = data.get("description")
+    ad_category = data.get("ad_category")
+    ad_keywords = data.get("ad_keywords")
+    landing_url = data.get("landing_url")
+    ad_priority = data.get("ad_priority")
+
+    if not ad_id:
+        return jsonify({"success": False, "message": "ad_id is required"}), 400
+
+    conn = current_app.get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        sql = """
+            UPDATE ad
+            SET
+                ad_title = %s,
+                description = %s,
+                ad_category = %s,
+                ad_keywords = %s,
+                landing_url = %s,
+                ad_priority = %s,
+                updated_at = NOW()
+            WHERE ad_id = %s
+        """
+
+        cur.execute(sql, (
+            ad_title,
+            description,
+            ad_category,
+            ad_keywords,
+            landing_url,
+            ad_priority,
+            ad_id
+        ))
+
+        conn.commit()
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+    finally:
+        cur.close()
+        conn.close()
+
+    return jsonify({"success": True})
+
+# =========================
+# 광고 단일 삭제
+# =========================
+@bp.route("/api/admin-ad/delete", methods=["POST"])
+def api_admin_ad_delete():
+    ad_id = request.json.get("ad_id")
+
+    if not ad_id:
+        return jsonify({"success": False, "message": "ad_id is required"}), 400
+
+    conn = current_app.get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("DELETE FROM ad WHERE ad_id = %s", (ad_id,))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+    return jsonify({"success": True})
+
+
+
+# =========================
+# 광고 일괄 처리 (활성/비활성/삭제)
+# =========================
+@bp.route("/api/admin-ad/bulk", methods=["POST"])
+def api_admin_ad_bulk():
+    data = request.json
+    action = data.get("action")
+    ids = data.get("ids", [])
+
+    if not action or not isinstance(ids, list) or len(ids) == 0:
+        return jsonify({"success": False, "message": "Invalid parameters"}), 400
+
+    conn = current_app.get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        placeholders = ",".join(["%s"] * len(ids))
+
+        if action == "delete":
+            cur.execute(f"DELETE FROM ad WHERE ad_id IN ({placeholders})", ids)
+
+        elif action == "activate":
+            cur.execute(f"UPDATE ad SET is_active = 1 WHERE ad_id IN ({placeholders})", ids)
+
+        elif action == "deactivate":
+            cur.execute(f"UPDATE ad SET is_active = 0 WHERE ad_id IN ({placeholders})", ids)
+
+        else:
+            return jsonify({"success": False, "message": "Unknown action"}), 400
+
+        conn.commit()
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+    finally:
+        cur.close()
+        conn.close()
+
+    return jsonify({"success": True})

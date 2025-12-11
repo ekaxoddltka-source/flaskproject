@@ -34,14 +34,28 @@
                     <div class="ad-filters">
                         <select id="filterCategorySelect">
                             <option value="">카테고리</option>
+                            <option value="0">강의</option>
+                            <option value="1">서적</option>
+                            <option value="2">구인</option>
+                            <option value="3">쇼핑</option>
                         </select>
                         <select id="filterActiveSelect">
                             <option value="">활성 상태</option>
                             <option value="1">활성</option>
                             <option value="0">비활성</option>
                         </select>
+                        <select id="sortBySelect">
+                            <option value="ad_id">광고 ID</option>
+                            <option value="created_at">생성일</option>
+                            <option value="updated_at">수정일</option>
+                            <option value="views">조회</option>
+                            <option value="clicks">클릭</option>
+                        </select>
 
-                        <button id="sortAdBtn">정렬</button>
+                        <select id="sortOrderSelect">
+                            <option value="ASC">오름차순</option>
+                            <option value="DESC">내림차순</option>
+                        </select>
                     </div>
                 </div>
 
@@ -96,27 +110,43 @@
                     <button id="bulkDeleteBtn">선택 광고 삭제</button>
                 </div>
 
-                <!-- 광고 클릭 로그 -->
-                <div class="ad-log">
-                    <h3>광고 클릭 로그</h3>
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>로그 ID</th>
-                                <th>유저 ID</th>
-                                <th>광고 ID</th>
-                                <th>클릭 시간</th>
-                            </tr>
-                        </thead>
-                        <tbody id="adClickLogBody">
-                            <tr>
-                                <td>1</td>
-                                <td>user123</td>
-                                <td>1</td>
-                                <td>2025-12-10 11:05</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div id="adPagination" class="pagination"></div>
+
+                <!-- 광고 수정 모달 -->
+                <div id="editAdModal" class="modal" style="display:none;">
+                    <div class="modal-content">
+                        <h2>광고 수정</h2>
+
+                        <input type="hidden" id="editAdId">
+
+                        <label>제목</label>
+                        <input type="text" id="editAdTitle">
+
+                        <label>설명</label>
+                        <textarea id="editAdDesc"></textarea>
+
+                        <label>키워드</label>
+                        <input type="text" id="editAdKeywords">
+
+                        <label>카테고리</label>
+                        <select id="editAdCategory">
+                            <option value="0">강의</option>
+                            <option value="1">서적</option>
+                            <option value="2">구인</option>
+                            <option value="3">쇼핑</option>
+                        </select>
+
+                        <label>우선순위</label>
+                        <input type="number" id="editAdPriority">
+
+                        <label>랜딩 URL</label>
+                        <input type="text" id="editAdUrl">
+
+                        <div class="modal-buttons">
+                            <button id="saveAdBtn">저장</button>
+                            <button id="closeEditModal">닫기</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
