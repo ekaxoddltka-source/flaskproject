@@ -258,3 +258,42 @@
 .report-log li:last-child {
     border-bottom: none;
 }
+/* 페이지네이션 컨테이너 */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    padding: 20px 0;
+    user-select: none;
+}
+
+/* 기본 버튼 */
+.pagination button {
+    padding: 6px 10px;
+    border: 1px solid #d0d0d0;
+    background: #ffffff;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+/* 버튼 호버 */
+.pagination button:hover {
+    border-color: #4a7dff;
+}
+
+/* 현재 페이지 */
+.pagination .active-page {
+    background: #4a7dff;
+    color: #ffffff;
+    border-color: #4a7dff;
+    font-weight: 300;
+}
+
+/* 비활성(Prev/Next 막힘) */
+.pagination button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}

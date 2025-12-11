@@ -11,7 +11,6 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  /* ❌ 여기에도 overflow 주지 않기 */
 }
 
 .form-title {
@@ -37,7 +36,8 @@
   box-sizing: border-box;
 
   /* ✅ 강제로 늘어나지 않게 */
-  height: auto;
+  max-height: 80vh; /* 화면의 80% 높이 제한 */
+  overflow-y: auto; /* 넘치면 스크롤 */
 }
 
 .write-form textarea {

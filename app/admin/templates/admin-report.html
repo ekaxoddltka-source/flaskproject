@@ -28,13 +28,13 @@
                 <!-- 검색 + 필터 -->
                 <div class="report-search-sort">
                     <div class="report-search">
-                        <input type="text" id="searchReportInput" placeholder="신고자 ID, 게시글 번호, 내용 검색">
+                        <input type="text" id="searchReportInput" placeholder="신고자 ID, 게시글 번호 검색">
                         <button id="searchReportBtn">검색</button>
                     </div>
                     <div class="report-filters">
                         <select id="filterStatusSelect">
                             <option value="">신고 상태</option>
-                            <option value="1">처리중</option>
+                            <option value="1">대기중</option>
                             <option value="2">처리완료</option>
                         </select>
                         <select id="filterCategorySelect">
@@ -86,16 +86,7 @@
                     <button id="bulkDeleteBtn">선택 신고 삭제</button>
                 </div>
 
-                <!-- 처리 로그 표시 영역 -->
-                <div class="report-log">
-                    <h3>처리 로그</h3>
-                    <ul id="reportLogList">
-                        <li>[2025-12-10 11:45] 신고 번호 1 처리 완료 by 관리자A</li>
-                        <li>[2025-12-10 12:00] 신고 번호 2 삭제 by 관리자B</li>
-                        <!-- 향후 JS로 추가 예정 -->
-                    </ul>
-                </div>
-
+                <div id="reportPagination" class="pagination"></div>
             </div>
         </div>
     </div>
