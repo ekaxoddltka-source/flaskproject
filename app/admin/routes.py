@@ -339,6 +339,39 @@ def api_admin_reports_update():
 
     return jsonify({"success": True})
 
+@bp.route("/api/admin-reports/restore", methods=["POST"])
+def api_admin_reports_restore():
+    data = request.json
+    board_nos = data.get("board_nos", [])
+
+    if not isinstance(board_nos, list) or not board_nos:
+        return jsonify({"success": False, "message": "Invalid parameters"}), 400
+
+    conn = current_app.get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        # 게시글 복구
+        cur.execute(
+            "UPDATE board SET board_deleted = 0 WHERE board_no IN (%s)" % ",".join(["%s"]*len(board_nos)),
+            board_nos
+        )
+
+        # 신고 상태 다시 대기중으로
+        cur.execute(
+            "UPDATE report SET report_status = 1, report_updated_at = NOW() WHERE board_no IN (%s)" % ",".join(["%s"]*len(board_nos)),
+            board_nos
+        )
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+    return jsonify({"success": True})
 
 @bp.route("/admin-ad")
 def admin_ad():

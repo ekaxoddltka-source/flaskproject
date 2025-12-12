@@ -78,6 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>
                     ${r.report_status === 1 ? `<button class="report-action-btn" data-action="resolve" data-id="${r.report_no}">처리 완료</button>` : ""}
                     ${r.report_status !== 2 ? `<button class="report-action-btn" data-action="delete" data-id="${r.report_no}">삭제</button>` : ""}
+                    ${r.report_status === 2 ? `<button class="report-action-btn" data-action="restore" data-board-no="${r.board_no}">되돌리기</button>` : ""}
                 </td>
             `;
             reportTableBody.appendChild(tr);
@@ -165,8 +166,25 @@ document.addEventListener("DOMContentLoaded", () => {
     // ===========================
     reportTableBody.addEventListener("click", e => {
         if (!e.target.classList.contains("report-action-btn")) return;
-        const id = e.target.dataset.id;
+
         const action = e.target.dataset.action;
+
+        if(action === "restore") {
+            const boardNo = e.target.dataset.boardNo;
+            fetch("/api/admin-reports/restore", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ board_nos: [boardNo] })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) loadReports();
+                else alert(data.message || "복구 실패");
+            });
+            return;
+        }
+
+        const id = e.target.dataset.id;
 
         fetch("/api/admin-reports/update", {
             method: "POST",

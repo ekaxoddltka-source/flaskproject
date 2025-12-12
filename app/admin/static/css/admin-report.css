@@ -210,6 +210,14 @@
     background-color: #c82333;
 }
 
+.report-action-btn[data-action="restore"] {
+    background-color: #4d86ff;
+}
+
+.report-action-btn[data-action="restore"]:hover {
+    background-color: #3b6fd1;
+}
+
 /* 일괄 처리 버튼 */
 .bulk-actions {
     margin: 15px 0;
