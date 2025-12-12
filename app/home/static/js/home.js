@@ -54,26 +54,32 @@ function renderPost(post, loginUserId) {
     // 답안 HTML (commentAnswerType == 2)
     let answersHtml = "";
     if ((post.boardCategory === 2 || post.boardCategory === 3) && post.comments) {
-        const answerItems = post.comments.filter(a => a.commentAnswerType === 2).map(answer => {
+        const answerItems = post.comments
+        .filter(a => a.commentAnswerType === 2)
+        .map(answer => {
+            // 안전하게 HTML escape 처리
+            const safeContent = escapeHtml(answer.commentAnswerContent || "");
+
             return `
             <div class="answer-item" data-id="${answer.commentAnswerNo}">
-                <div class="a-text">
-                    ${answer.answerAccepted ? '<span class="chosen-label">채택된 답안</span>' : ''}
-                    ${answer.commentAnswerContent}
-                </div>
+                <div class="a-text">${answer.answerAccepted ? '<span class="chosen-label">채택된 답안</span>' : ''}${safeContent}</div>
                 <div class="a-footer">
                     <span class="author">by ${answer.commenterNick}</span>
+
                     ${loginUserId === answer.commenterId ? `
                     <div class="answer-actions">
                         <span class="edit-btn">수정</span>
                         <span class="delete-btn" data-type="answer" data-id="${answer.commentAnswerNo}">삭제</span>
                     </div>` : ''}
-                    <button class="a-choice ${answer.answerAccepted ? 'disabled' : ''}" ${answer.answerAccepted ? 'disabled' : ''}>
+
+                    <button class="a-choice ${answer.answerAccepted ? 'disabled' : ''}" 
+                            ${answer.answerAccepted ? 'disabled' : ''}>
                         ${answer.answerAccepted ? '채택 완료' : '채택'}
                     </button>
                 </div>
             </div>`;
-        }).join("");
+        })
+        .join("");
 
         answersHtml = `
         <div class="answer-toggle">
@@ -430,21 +436,36 @@ document.addEventListener("DOMContentLoaded", async() => {
             const isComment = !!commentItem;
             const post = item.closest(".post");
 
+            // 원본 텍스트 엘리먼트
             const textEl = item.querySelector(isComment ? ".c-text" : ".a-text");
+            if (!textEl) return;
+
+            // 안전하게 라벨을 제거한 "텍스트만" 복사
+            const copyNode = textEl.cloneNode(true); // 내부 HTML 복사
+            const label = copyNode.querySelector(".chosen-label");
+            if (label) label.remove(); // 채택 라벨 삭제
+
+            const cleanText = copyNode.textContent.trim(); // 라벨 제거 후 순수 텍스트
+
+            // 폼/textarea 찾기
             const form = post.querySelector(isComment ? ".comment-form" : ".answer-form");
             const textarea = form?.querySelector("textarea");
             const submitBtn = form?.querySelector(isComment ? ".submit-comment" : "button[type='submit']");
+            if (!textarea || !submitBtn) return;
 
-            if (!textEl || !textarea || !submitBtn) return;
+            // 텍스트 입력
+            textarea.value = cleanText;
 
-            textarea.value = textEl.textContent.trim();
+            // 수정모드 세팅
             textarea.dataset.editing = "true";
             textarea.dataset.targetId = item.dataset.id;
             textarea.dataset.editType = isComment ? "comment" : "answer";
+
             submitBtn.textContent = "수정완료";
 
             textarea.focus();
             if (isComment) form.style.display = "flex";
+
             return;
         }
 
@@ -663,7 +684,22 @@ document.addEventListener("DOMContentLoaded", async() => {
                         : `.answer-item[data-id="${targetId}"] .a-text`;
 
                 const textEl = post.querySelector(selector);
-                if (textEl) textEl.innerHTML = escapeHtml(content);
+                if (textEl) {
+
+                    // 1) 갱신 전 라벨이 있었는지 먼저 확인
+                    let hadChosenLabel = false;
+                    if (type === "answer") {
+                        hadChosenLabel = !!textEl.querySelector(".chosen-label");
+                    }
+
+                    // 2) 텍스트만 갱신
+                    textEl.innerHTML = escapeHtml(content);
+
+                    // 3) 라벨이 있었으면 다시 prepend
+                    if (type === "answer" && hadChosenLabel) {
+                        textEl.innerHTML = `<span class="chosen-label">채택된 답안</span> ` + textEl.innerHTML;
+                    }
+                }
 
                 textarea.value = "";
                 textarea.dataset.editing = "false";

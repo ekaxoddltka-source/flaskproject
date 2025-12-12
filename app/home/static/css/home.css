@@ -166,7 +166,7 @@
 .bnote,
 .c-text,
 .a-text {
-    white-space: pre-line;
+    white-space: normal !important;
 }
 .post-footer {
     position: relative;
