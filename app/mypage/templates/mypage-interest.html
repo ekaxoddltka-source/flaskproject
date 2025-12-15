@@ -64,7 +64,7 @@ body::before {
     {% if recommended_articles and recommended_articles|length > 0 %}
     <div class="recommend-card-wrapper">
         {% for art in recommended_articles %}
-        <a href="{{ art.url }}" target="_blank" class="recommend-card">
+        <a href="/board/{{ art.board_no }}" target="_blank" class="recommend-card">
             <div class="rec-title">{{ art.title }}</div>
             <div class="rec-bottom">
                 <span class="rec-label">관련도</span>
@@ -97,6 +97,14 @@ body::before {
 </script>
 
 <script src="{{ url_for('mypage.static', filename='js/mypage-interest.js') }}"></script>
+<script>
+document.addEventListener("click", function (e) {
+    const card = e.target.closest(".recommend-card");
+    if (!card) return;
 
+    // 공통 클릭 로직 차단
+    e.stopPropagation();
+});
+</script>
 {% endblock %}
 

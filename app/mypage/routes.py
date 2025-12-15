@@ -1,103 +1,29 @@
-from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
+from flask import (
+    Blueprint, render_template, request,
+    jsonify, session, redirect, url_for, current_app
+)
 from config import SIDEBAR_CONFIG
-from flask import current_app 
 from datetime import datetime
 from app.mypage.events import send_dm_message
-import re
-from collections import Counter
-import pymysql
-import json
 from app.filters.slang_filter import mask_slang
-
-
-
-
 from app.filters.tech_translate import KOREAN_TO_ENGLISH
 
-def normalize_korean_tech_words(text: str) -> str:
-    """한국어 기술명 → 영어 기술명 자동 변환"""
-    if not text:
-        return text
 
-    lowered = text.lower()
-    for kr, en in KOREAN_TO_ENGLISH.items():
-        if kr in lowered:
-            lowered = lowered.replace(kr, en)
+import json
+import pymysql
+import numpy as np
 
-    return lowered
+from sklearn.metrics.pairwise import cosine_similarity
+from app.mypage.services.interest_vector_service import InterestVectorService
+from posts_data.aezen_recommender import load_model
 
 
 
-
-from posts_data.aezen_recommender import (
-    build_user_vector, recommend_articles
-    , load_model, TOPIC_LABELS
-)
 
 
 # ------------------------------------------------------------
-# 기술 키워드 사전
+# DAO import
 # ------------------------------------------------------------
-TECH_KEYWORDS = {
-    # Programming Languages
-    "python", "java", "c", "c++", "c#", "go", "rust", "ruby", "swift", "kotlin",
-    "scala", "php", "r", "matlab", "typescript", "javascript",
-
-    # Backend Frameworks & Runtimes
-    "spring", "spring boot", "django", "flask", "fastapi", "node", "nodejs",
-    "express", "nestjs", "laravel", "rails", "asp.net", "gin", "fiber",
-
-    # Frontend Frameworks
-    "react", "react native", "vue", "svelte", "nextjs", "nuxt", "angular",
-    "tailwind", "bootstrap", "threejs",
-
-    # Mobile
-    "android", "ios", "flutter", "swiftui", "kotlin multiplatform",
-
-    # AI / ML / Data Science
-    "ai", "ml", "machine learning", "deep learning",
-    "pytorch", "tensorflow", "keras", "sklearn",
-    "nlp", "cv", "computer vision", "llm",
-    "transformer", "bert", "gpt",
-
-    # Data / Big Data
-    "sql", "mysql", "postgres", "postgresql", "oracle", "mongodb", "redis",
-    "elasticsearch", "kafka", "rabbitmq",
-    "hadoop", "spark", "hive", "airflow", "snowflake",
-    "data warehouse", "etl", "data pipeline",
-
-    # Cloud / DevOps
-    "aws", "gcp", "azure",
-    "docker", "kubernetes", "k8s",
-    "terraform", "ansible", "jenkins", "github actions",
-    "ci", "cd", "devops",
-
-    # Infra / Tools
-    "git", "github", "gitlab", "bitbucket",
-    "vscode", "intellij", "postman", "jira",
-
-    # Algorithms & CS Foundation
-    "algorithm", "data structure",
-    "oop", "functional programming",
-    "network", "http", "rest api", "grpc",
-
-    # Testing
-    "jest", "pytest", "unittest", "selenium", "cypress",
-
-    # Security
-    "jwt", "oauth", "csrf", "xss", "hashing", "encryption",
-
-    # Misc
-    "microservices", "monolithic", "architecture",
-    "websocket", "graphql"
-}
-
-
-
-
-
-
-# DAO
 from app.mypage.dao.user_dao import UserDao
 from app.mypage.dao.alert_dao import AlertDao
 from app.mypage.dao.follow_dao import FollowDao
@@ -108,29 +34,14 @@ from app.mypage.dao.user_info_dao import UserInfoDao
 from app.mypage.dao.withdraw_dao import WithdrawDao
 from app.mypage.dao.item_dao import ItemDao
 from app.mypage.dao.user_item_dao import UserItemDao
-from app.mypage.dao.view_log_dao import ViewLogDao  
+from app.mypage.dao.view_log_dao import ViewLogDao
 from app.mypage.dao.interest_dao import InterestDao
 from app.mypage.dao.interest_vector_dao import InterestVectorDao
 from app.mypage.dao.interest_keyword_dao import InterestKeywordDao
-
-
-
-# DAO 객체
-user_dao = UserDao(lambda: current_app.get_db_connection())
-alert_dao = AlertDao(lambda: current_app.get_db_connection())
-follow_dao = FollowDao(lambda: current_app.get_db_connection())
-message_dao = MessageDao(lambda: current_app.get_db_connection())
-posts_dao = MyPagePostsDao(lambda: current_app.get_db_connection())
-point_dao = PointDao(lambda:current_app.get_db_connection())
-user_info_dao = UserInfoDao(lambda: current_app.get_db_connection())
-withdraw_dao = WithdrawDao(lambda: current_app.get_db_connection())
-item_dao = ItemDao(lambda: current_app.get_db_connection())
-user_item_dao = UserItemDao(lambda: current_app.get_db_connection())
-view_log_dao = ViewLogDao(lambda: current_app.get_db_connection())
-interest_dao = InterestDao(lambda: current_app.get_db_connection())
-interest_vector_dao = InterestVectorDao(lambda: current_app.get_db_connection())
-interest_keyword_dao = InterestKeywordDao(lambda: current_app.get_db_connection())
-
+from app.mypage.services.keyword_service import KeywordService
+# ------------------------------------------------------------
+# Blueprint & DAO 객체
+# ------------------------------------------------------------
 bp = Blueprint(
     "mypage",
     __name__,
@@ -140,11 +51,39 @@ bp = Blueprint(
 )
 bp.add_app_template_filter(mask_slang, "mask_slang")
 
+# DAO 객체
+user_dao = UserDao(lambda: current_app.get_db_connection())
+alert_dao = AlertDao(lambda: current_app.get_db_connection())
+follow_dao = FollowDao(lambda: current_app.get_db_connection())
+message_dao = MessageDao(lambda: current_app.get_db_connection())
+posts_dao = MyPagePostsDao(lambda: current_app.get_db_connection())
+point_dao = PointDao(lambda: current_app.get_db_connection())
+user_info_dao = UserInfoDao(lambda: current_app.get_db_connection())
+withdraw_dao = WithdrawDao(lambda: current_app.get_db_connection())
+item_dao = ItemDao(lambda: current_app.get_db_connection())
+user_item_dao = UserItemDao(lambda: current_app.get_db_connection())
+view_log_dao = ViewLogDao(lambda: current_app.get_db_connection())
+interest_dao = InterestDao(lambda: current_app.get_db_connection())
+
+
+def get_interest_vector_dao():
+    return InterestVectorDao(
+        lambda: current_app.get_db_connection()
+    )
+
+_model = None
+
+def get_model():
+    global _model
+    if _model is None:
+        _model = load_model()
+    return _model
 # ------------------------------------------------------------
 # 공통 함수
 # ------------------------------------------------------------
 def get_logged_user():
     return session.get("user")
+
 
 def require_login_js():
     return """
@@ -154,6 +93,10 @@ def require_login_js():
         </script>
     """
 
+
+# ------------------------------------------------------------
+# 1. 마이페이지 글 목록
+# ------------------------------------------------------------
 @bp.route("/mypage-posts")
 def mypage_posts():
     page = 1
@@ -170,29 +113,27 @@ def mypage_posts():
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
     try:
-        # 1️⃣ 기본 필터: 로그인한 사용자가 작성한 글
         board_filter_sql = "SELECT board_no FROM board WHERE board_deleted = 0 AND id = %s"
         params_filter = [login_user_id]
 
-        # feed 필터 적용
-        category_map = {"자유": 1, "Q&A": 2, "코딩테스트": 3, "공지사항": 4, "이용약관": 5, "개인정보처리방침": 6}
+        category_map = {
+            "자유": 1, "Q&A": 2, "코딩테스트": 3,
+            "공지사항": 4, "이용약관": 5, "개인정보처리방침": 6
+        }
         if feed_filter != "전체" and feed_filter in category_map:
             board_filter_sql += " AND board_category = %s"
             params_filter.append(category_map[feed_filter])
 
-        # 2️⃣ 정렬
         if top_filter == "조회순":
             order_clause = "ORDER BY hit DESC, board_created_at DESC, board_no DESC"
         elif top_filter == "추천순":
             order_clause = "ORDER BY board_like DESC, board_created_at DESC, board_no DESC"
-        else:  # 최신순 기본
+        else:
             order_clause = "ORDER BY board_created_at DESC, board_no DESC"
 
-        # 3️⃣ LIMIT + OFFSET
         board_filter_sql = f"{board_filter_sql} {order_clause} LIMIT %s OFFSET %s"
         params_filter.extend([per_page, offset])
 
-        # 게시글 번호 조회
         cursor.execute(board_filter_sql, tuple(params_filter))
         board_rows = cursor.fetchall()
         board_nos = [r['board_no'] for r in board_rows]
@@ -200,7 +141,6 @@ def mypage_posts():
         if not board_nos:
             boardList = []
         else:
-            # 상세 조회
             format_strings = ','.join(['%s'] * len(board_nos))
             sql = f"""
                 SELECT
@@ -245,7 +185,6 @@ def mypage_posts():
             cursor.execute(sql, tuple(board_nos))
             rows = cursor.fetchall()
 
-            # 게시글 조립
             board_map = {}
             for row in rows:
                 bno = row["board_no"]
@@ -279,7 +218,10 @@ def mypage_posts():
                     })
                 if row.get("tag_name") and not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
                     post["tags"].append({"tagName": row["tag_name"]})
-                if row.get("comment_answer_no") and not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
+                if row.get("comment_answer_no") and not any(
+                    c["commentAnswerNo"] == row["comment_answer_no"]
+                    for c in post["comments"]
+                ):
                     post["comments"].append({
                         "commentAnswerNo": row["comment_answer_no"],
                         "boardNo": bno,
@@ -319,6 +261,7 @@ def mypage_posts():
         current_bg=session["user"].get("background_img") or None
     )
 
+
 @bp.route("/mypage-posts/load")
 def mypage_posts_load():
     login_user_id = session.get("user", {}).get("id")
@@ -336,17 +279,17 @@ def mypage_posts_load():
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
     try:
-        # 1️⃣ 기본 필터: 로그인한 사용자가 작성한 글만
         board_filter_sql = "SELECT board_no FROM board WHERE board_deleted = 0 AND id = %s"
         params_filter = [login_user_id]
 
-        # feed 필터
-        category_map = {"자유": 1, "Q&A": 2, "코딩테스트": 3, "공지사항": 4, "이용약관": 5, "개인정보처리방침": 6}
+        category_map = {
+            "자유": 1, "Q&A": 2, "코딩테스트": 3,
+            "공지사항": 4, "이용약관": 5, "개인정보처리방침": 6
+        }
         if feed_filter != "전체" and feed_filter in category_map:
             board_filter_sql += " AND board_category = %s"
             params_filter.append(category_map[feed_filter])
 
-        # 현재 페이지에 따라 category 고정 필터
         current_route = request.referrer or ""
         if "/info" in current_route:
             board_filter_sql += " AND board_category = 4"
@@ -355,7 +298,6 @@ def mypage_posts_load():
         elif "/privacy" in current_route:
             board_filter_sql += " AND board_category = 6"
 
-        # 태그 필터
         if tag_name:
             board_filter_sql += """
                 AND board_no IN (
@@ -367,15 +309,13 @@ def mypage_posts_load():
             """
             params_filter.append(tag_name)
 
-        # 2️⃣ 정렬
         if top_filter == "조회순":
             order_clause = "ORDER BY hit DESC, board_created_at DESC, board_no DESC"
         elif top_filter == "추천순":
             order_clause = "ORDER BY board_like DESC, board_created_at DESC, board_no DESC"
-        else:  # 최신순 기본
+        else:
             order_clause = "ORDER BY board_created_at DESC, board_no DESC"
 
-        # 3️⃣ SQL 실행 (전체 조회 후 Python에서 페이징)
         cursor.execute(f"{board_filter_sql} {order_clause}", tuple(params_filter))
         all_board_rows = cursor.fetchall()
         all_board_nos = [r['board_no'] for r in all_board_rows]
@@ -384,7 +324,6 @@ def mypage_posts_load():
         if not board_nos:
             return jsonify([])
 
-        # 4️⃣ 상세 조회 (JOIN 포함)
         format_strings = ','.join(['%s'] * len(board_nos))
         sql = f"""
             SELECT
@@ -429,7 +368,6 @@ def mypage_posts_load():
         cursor.execute(sql, tuple(board_nos))
         rows = cursor.fetchall()
 
-        # 5️⃣ 게시글 조립
         board_map = {}
         for row in rows:
             bno = row["board_no"]
@@ -463,7 +401,10 @@ def mypage_posts_load():
                 })
             if row.get("tag_name") and not any(t["tagName"] == row["tag_name"] for t in post["tags"]):
                 post["tags"].append({"tagName": row["tag_name"]})
-            if row.get("comment_answer_no") and not any(c["commentAnswerNo"] == row["comment_answer_no"] for c in post["comments"]):
+            if row.get("comment_answer_no") and not any(
+                c["commentAnswerNo"] == row["comment_answer_no"]
+                for c in post["comments"]
+            ):
                 post["comments"].append({
                     "commentAnswerNo": row["comment_answer_no"],
                     "boardNo": bno,
@@ -492,12 +433,14 @@ def mypage_posts_load():
 # ------------------------------------------------------------
 @bp.route("/api/mypage/post/<int:board_no>")
 def api_mypage_post_detail(board_no):
+    print("🔥 ENTER mypage_board_detail", board_no)
     return {
         "post": posts_dao.get_post_detail(board_no),
         "files": posts_dao.get_files_by_board(board_no),
         "tags": posts_dao.get_tags_by_board(board_no),
         "comments": posts_dao.get_comments_by_board(board_no)
     }
+
 
 @bp.route("/api/log/view", methods=["POST"])
 def api_log_view():
@@ -507,50 +450,85 @@ def api_log_view():
 
     data = request.get_json()
     board_no = data.get("board_no")
-
     if not board_no:
-        return jsonify({"success": False, "msg": "board_no 없음"}), 400
+        return jsonify({"success": False}), 400
 
-    view_log_dao.insert_view_log(user["id"], board_no)
+    user_id = user["id"]
+
+    # 1️⃣ 조회 로그
+    view_log_dao.insert_view_log(user_id, board_no)
+
+    # 2️⃣ 게시글 텍스트
+    post = interest_dao.get_post_with_tags(board_no)
+    if not post:
+        return jsonify({"success": True})
+
+    text = f"{post['board_title']} {post['board_content']} {' '.join(post['tags'])}"
+
+    # 3️⃣ 벡터 업데이트
+    model = get_model()
+    post_vec = model.encode(text)
+
+    vector_dao = get_interest_vector_dao()
+    user_vec = vector_dao.load_vector(user_id)
+
+    if user_vec is None:
+        user_vec = post_vec * 0.05
+    else:
+        user_vec = user_vec + (post_vec * 0.05)
+
+    InterestVectorService(vector_dao).save_vector_with_keywords(
+        user_id, user_vec
+    )
+
+    # 4️⃣ 키워드 점수 업데이트
+    keyword_counter = KeywordService._extract_from_text(text)
+    keyword_dao = InterestKeywordDao(
+        lambda: current_app.get_db_connection()
+    )
+
+    for kw, score in keyword_counter.items():
+        keyword_dao.add_score(
+            user_id=user_id,
+            keyword=kw,
+            delta=score * 1.0
+        )
+
+    print("🔥 INTEREST UPDATED:", board_no)
 
     return jsonify({"success": True})
 
+
+
 @bp.route("/board/<int:board_no>")
 def mypage_board_detail(board_no):
-    # 게시글 데이터 가져오기
-    post = posts_dao.get_post_detail(board_no)
+    post_detail = posts_dao.get_post_detail(board_no)
     files = posts_dao.get_files_by_board(board_no)
     tags = posts_dao.get_tags_by_board(board_no)
     comments = posts_dao.get_comments_by_board(board_no)
 
-    files = posts_dao.get_files_by_board(board_no)
-
-    # ★ home.html에서 기대하는 key(fileExt)를 강제로 생성
     for f in files:
-        # snake_case → camelCase
         if "file_ext" in f and "fileExt" not in f:
             f["fileExt"] = f["file_ext"]
-        # None 대비
         if f.get("fileExt") is None:
             f["fileExt"] = ""
-        
-    if not post:
+
+    if not post_detail:
         return "<script>alert('게시글을 찾을 수 없습니다.'); history.back();</script>"
 
-    # boardList 형식 그대로 맞추기
     boardList = [{
-        "boardNo": post["board_no"],
-        "id": post["id"],
-        "nick": post["writer_nick"],
-        "boardTitle": post["board_title"],
-        "boardContent": post["board_content"],
-        "boardCategory": post["board_category"],
-        "hit": post["hit"],
-        "boardLike": post["board_like"],
-        "boardDislike": post["board_dislike"],
-        "boardCreatedAt": post["board_created_at"],
-        "boardUpdatedAt": post["board_updated_at"],
-        "board_deleted": post["board_deleted"],
+        "boardNo": post_detail["board_no"],
+        "id": post_detail["id"],
+        "nick": post_detail["writer_nick"],
+        "boardTitle": post_detail["board_title"],
+        "boardContent": post_detail["board_content"],
+        "boardCategory": post_detail["board_category"],
+        "hit": post_detail["hit"],
+        "boardLike": post_detail["board_like"],
+        "boardDislike": post_detail["board_dislike"],
+        "boardCreatedAt": post_detail["board_created_at"],
+        "boardUpdatedAt": post_detail["board_updated_at"],
+        "board_deleted": post_detail["board_deleted"],
         "files": files,
         "tags": tags,
         "comments": comments
@@ -558,128 +536,98 @@ def mypage_board_detail(board_no):
 
     login_user_id = session.get("user", {}).get("id")
 
+    # -------------------------------------------------
+    # 유저 벡터 + 키워드 반영 (HOME / JS 수정 없음)
+    # -------------------------------------------------
+    user = session.get("user")
+    if user:
+        user_id = user["id"]
+
+        post = interest_dao.get_post_with_tags(board_no)
+        if post:
+            text = f"{post['board_title']} {post['board_content']} {' '.join(post['tags'])}"
+
+            # 1️⃣ 벡터 반영
+            model = get_model()
+            post_vec = model.encode(text)
+
+            interest_vector_dao = get_interest_vector_dao()
+            user_vec = interest_vector_dao.load_vector(user_id)
+
+            if user_vec is None:
+                user_vec = post_vec * 0.05
+            else:
+                user_vec = user_vec + (post_vec * 0.05)
+
+            InterestVectorService(interest_vector_dao) \
+                .save_vector_with_keywords(user_id, user_vec)
+
+            # 2️⃣ 키워드 점수 반영 (🔥 핵심)
+            from app.mypage.services.keyword_service import KeywordService
+            from app.mypage.dao.interest_keyword_dao import InterestKeywordDao
+
+            keyword_counter = KeywordService._extract_from_text(text)
+
+            if keyword_counter:
+                keyword_dao = InterestKeywordDao(
+                    lambda: current_app.get_db_connection()
+                )
+
+                for kw, score in keyword_counter.items():
+                    keyword_dao.add_score(
+                        user_id=user_id,
+                        keyword=kw,
+                        delta=score * 1.0  # ← 가중치 1
+                    )
+
     return render_template(
         "home.html",
-        boardList=boardList,        # 하나만 넣어서 렌더링
-        show_writeBtn=False,        # 상세 페이지에서는 글쓰기 버튼 숨기는 게 자연스럽다
-        show_notice_buttons=False,  # 필요하면 유지해도 됨
+        boardList=boardList,
+        show_writeBtn=False,
+        show_notice_buttons=False,
         sidebar=SIDEBAR_CONFIG["default"],
         active="chat",
         login_user_id=login_user_id
     )
 
-
 # ------------------------------------------------------------
 # 3. 관심사 페이지
 # ------------------------------------------------------------
-
-
-
-
-# 🔥 자동 생성된 토픽 라벨 로드
-with open("posts_data/topic_labels.json", "r", encoding="utf-8") as f:
-    TOPIC_LABELS = json.load(f)
-
-
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-
+# ------------------------------------------------------------
+# 3. 관심사 페이지
+# ------------------------------------------------------------
 @bp.route("/mypage-interest")
 def mypage_interest():
-
     user = session.get("user")
     if not user:
         return require_login_js()
 
     user_id = user["id"]
 
-    # -----------------------------------------
-    # 1) 텍스트 수집 (작성 + 조회 로그 기반)
-    # -----------------------------------------
-    tag_data = interest_dao.get_all_tags(user_id)
-    text_sources = interest_dao.get_all_text_sources(user_id)
+    interest_vector_dao = get_interest_vector_dao()
+    keyword_dao = InterestKeywordDao(
+        lambda: current_app.get_db_connection()
+    )
 
-    texts = []
-
-    for p in text_sources["written_posts"] + text_sources["viewed_posts"]:
-        texts.append(normalize_korean_tech_words(p["board_title"] or ""))
-        texts.append(normalize_korean_tech_words(p["board_content"] or ""))
-
-
-        # 1) 게시글 제목·내용 변환 + 수집
-    for p in text_sources["written_posts"] + text_sources["viewed_posts"]:
-        texts.append(normalize_korean_tech_words(p["board_title"] or ""))
-        texts.append(normalize_korean_tech_words(p["board_content"] or ""))
-
-    # 2) 댓글 변환 + 수집
-    for c in text_sources["written_comments"] + text_sources["viewed_comments"]:
-        texts.append(normalize_korean_tech_words(c["comment_answer_content"] or ""))
-
-    # 3) 태그 변환 + 수집 (중복 제거)
-    all_tags = tag_data["written_tags"] + tag_data["viewed_tags"]
-    texts += [normalize_korean_tech_words(t) for t in all_tags]
-
-        # -----------------------------------------
-    # TOP5 관심 기술 추출 (정확도 극대화 버전)
-    # -----------------------------------------
-
-    joined = " ".join(texts)
-    normalized = normalize_korean_tech_words(joined)  # 한글 기술명 자동 변환
-    lowered = normalized.lower()
-
-    # 1) 기술 키워드 문자열 길이순 정렬 (복합 기술 우선 감지)
-    sorted_keywords = sorted(TECH_KEYWORDS, key=len, reverse=True)
-
-    counts = {}
-
-    for kw in sorted_keywords:
-        pattern = r"\b" + re.escape(kw) + r"\b"       # 단어 경계 포함 → 오탐 방지
-        matches = re.findall(pattern, lowered)
-        if matches:
-            # 등장 횟수 + 길이 가중치 (긴 기술어가 더 의미 있음)
-            weight = len(kw) * 0.1
-            counts[kw] = len(matches) + weight
-
-    # 2) 서브 단어 중복 방지 예:
-    # "react native" → react, native 자동 필터링
-    final_counts = {}
-
-    for kw in sorted_keywords:
-        if kw not in counts:
-            continue
-
-        is_subword = False
-        for longer_kw in sorted_keywords:
-            if longer_kw == kw or longer_kw not in counts:
-                continue
-            if kw in longer_kw:  # react ∈ react native
-                is_subword = True
-                break
-
-        if not is_subword:
-            final_counts[kw] = counts[kw]
-
-    # 3) 최종 TOP5 선정
-    top5 = sorted(final_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-
-    if top5:
-        top5_labels = [w[0] for w in top5]
-        top5_values = [w[1] for w in top5]
-    else:
-        top5_labels = ["No Data"]
-        top5_values = [0]
-
-
-    # -----------------------------------------
-    # 2) 유저 벡터
-    # -----------------------------------------
+    # --------------------------------------------------
+    # 1️⃣ DB 조회 (계산 ❌)
+    # --------------------------------------------------
     user_vector = interest_vector_dao.load_vector(user_id)
+    scores_map = keyword_dao.get_scores_map(user_id)  # {kw: score}
 
-    if user_vector is None and texts:
-        user_vector = build_user_vector(texts)
-        if user_vector is not None:
-            interest_vector_dao.save_vector(user_id, user_vector)
+    # TOP 5 키워드
+    sorted_keywords = sorted(
+        scores_map.items(),
+        key=lambda x: x[1],
+        reverse=True
+    )[:5]
 
+    top5_labels = [k for k, _ in sorted_keywords]
+    top5_values = [v for _, v in sorted_keywords]
+
+    # --------------------------------------------------
+    # 벡터 없으면 빈 상태
+    # --------------------------------------------------
     if user_vector is None:
         return render_template(
             "mypage-interest.html",
@@ -688,32 +636,38 @@ def mypage_interest():
             radar_labels=["No Data"],
             radar_values=[0],
             recommended_articles=[],
-            top5_labels=top5_labels,
-            top5_values=top5_values,
+            top5_labels=top5_labels or ["No Data"],
+            top5_values=[1] * len(top5_labels) if top5_labels else [0],
             current_bg=session["user"].get("background_img") or None
         )
 
-    # -----------------------------------------
-    # 3) 카테고리 벡터 로드
-    # -----------------------------------------
-    cat_vectors = np.load("posts_data/category_vectors.npy", allow_pickle=True).item()
+    # --------------------------------------------------
+    # 2️⃣ 레이더 그래프 (가벼운 계산만)
+    # --------------------------------------------------
+    cat_vectors = np.load(
+        "posts_data/category_vectors.npy",
+        allow_pickle=True
+    ).item()
 
     radar_labels = list(cat_vectors.keys())
-    radar_values = []
+    radar_values = [
+        float(cosine_similarity([user_vector], [cat_vectors[c]])[0][0])
+        for c in radar_labels
+    ]
 
-    # -----------------------------------------
-    # 4) 카테고리 유사도 계산 (레이더)
-    # -----------------------------------------
-    for cat in radar_labels:
-        cat_vec = cat_vectors[cat]
-        sim = cosine_similarity([user_vector], [cat_vec])[0][0]
-        radar_values.append(float(sim))
+    # --------------------------------------------------
+    # 3️⃣ AI 추천 글 (벡터만 사용)
+    # --------------------------------------------------
+    from app.mypage.services.post_recommender import PostRecommender
 
-    # -----------------------------------------
-    # 5) 추천 글 계산
-    # -----------------------------------------
-    recommended_articles = recommend_articles(user_vector, top_n=5)
+    recommended_articles = PostRecommender.recommend(
+        user_vector=user_vector,
+        top_n=5
+    )
 
+    # --------------------------------------------------
+    # 렌더링
+    # --------------------------------------------------
     return render_template(
         "mypage-interest.html",
         sidebar=SIDEBAR_CONFIG["default"],
@@ -721,10 +675,11 @@ def mypage_interest():
         radar_labels=radar_labels,
         radar_values=radar_values,
         recommended_articles=recommended_articles,
-        top5_labels=top5_labels,
-        top5_values=top5_values,
+        top5_labels=top5_labels or ["No Data"],
+        top5_values=top5_values or [0],
         current_bg=session["user"].get("background_img") or None
     )
+
 
 
 
@@ -737,6 +692,7 @@ def mypage_interest_feedback():
     user = session.get("user")
     if not user:
         return jsonify(ok=False), 401
+    interest_vector_dao = get_interest_vector_dao()
 
     user_id = user["id"]
     data = request.get_json() or {}
@@ -747,54 +703,39 @@ def mypage_interest_feedback():
     if not board_no or action not in ("like", "dislike"):
         return jsonify(ok=False, error="invalid_params"), 400
 
-    # -----------------------------------------
-    # 1) 게시글 텍스트 가져오기
-    # -----------------------------------------
     post = interest_dao.get_post_with_tags(board_no)
     if not post:
         return jsonify(ok=False, error="post_not_found"), 404
 
     text = f"{post['board_title']} {post['board_content']} {' '.join(post['tags'])}"
 
-    # -----------------------------------------
-    # 2) 게시글 임베딩
-    # -----------------------------------------
-    model = load_model()
+    model = get_model()
     post_vec = model.encode(text)
 
-    # -----------------------------------------
-    # 3) 기존 유저 벡터 가져오기
-    # -----------------------------------------
     user_vec = interest_vector_dao.load_vector(user_id)
     if user_vec is None:
         user_vec = np.zeros_like(post_vec)
 
-    # -----------------------------------------
-    # 4) 피드백 적용 (가중치 조절 가능)
-    # -----------------------------------------
     if action == "like":
         user_vec = user_vec + (post_vec * 0.2)
     else:
         user_vec = user_vec - (post_vec * 0.3)
 
-    # -----------------------------------------
-    # 5) 저장
-    # -----------------------------------------
-    interest_vector_dao.save_vector(user_id, user_vec)
+    service = InterestVectorService(interest_vector_dao)
+    service.save_vector_with_keywords(user_id, user_vec)
+
 
     return jsonify(ok=True)
 
-from sentence_transformers import SentenceTransformer
 
-
-from datetime import datetime
-
+# ------------------------------------------------------------
+# 4. 광고 추천
+# ------------------------------------------------------------
 def get_rotating_category():
     categories = [0, 1, 2]  # 인프런, 교보, 원티드
     now = datetime.now()
     index = (now.minute // 10) % len(categories)
     return categories[index]
-
 
 
 @bp.route("/api/recommend_ads")
@@ -804,11 +745,10 @@ def api_recommend_ads():
         return jsonify([])
 
     user_id = user["id"]
+    interest_vector_dao = get_interest_vector_dao()
 
-    # ① 유저 벡터 로드
     user_vec = interest_vector_dao.load_vector(user_id)
 
-    # ② 유저 벡터 없으면 user_attributes로 생성
     if user_vec is None:
         conn = current_app.get_db_connection()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
@@ -822,19 +762,19 @@ def api_recommend_ads():
         if rows:
             text = " ".join([r["value"] for r in rows]).strip()
             if text:
-                model = load_model()
+                model = get_model()
                 user_vec = model.encode(text)
-                interest_vector_dao.save_vector(user_id, user_vec)
+                service = InterestVectorService(interest_vector_dao)
+                service.save_vector_with_keywords(user_id, user_vec)
+
 
         if user_vec is None:
             return jsonify([])
 
     user_vec = np.array(user_vec, dtype=float)
 
-    # ③ 카테고리 회전
     category = get_rotating_category()
 
-    # ④ 광고 로드
     conn = current_app.get_db_connection()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
 
@@ -852,16 +792,13 @@ def api_recommend_ads():
     conn.close()
 
     if not ads:
-        # 카테고리에 광고 없으면 그냥 빈 배열 → 프론트가 기본광고 띄움
         return jsonify([])
 
-    # ⑤ 유사도 계산
     result = []
-
     for ad in ads:
         try:
             ad_vec = np.array(json.loads(ad["ad_embedding"]))
-        except:
+        except Exception:
             continue
 
         sim = float(cosine_similarity([user_vec], [ad_vec])[0][0])
@@ -875,8 +812,6 @@ def api_recommend_ads():
         })
 
     result.sort(key=lambda x: x["score"], reverse=True)
-
-    # ⑥ 상위 3개 광고 반환
     return jsonify(result[:3])
 
 
@@ -904,7 +839,7 @@ def api_ad_view():
 
     return jsonify(success=True)
 
-#광고 클릭 로그 API
+
 @bp.route("/api/ad/click", methods=["POST"])
 def api_ad_click():
     user = session.get("user")
@@ -923,13 +858,11 @@ def api_ad_click():
     cursor = conn.cursor()
 
     try:
-        # 클릭 로그
         cursor.execute("""
             INSERT INTO ad_click_log (user_id, ad_id)
             VALUES (%s, %s)
         """, (user_id, ad_id))
 
-        # stats 업데이트
         cursor.execute("""
             INSERT INTO ad_stats (ad_id, views, clicks)
             VALUES (%s, 0, 1)
@@ -943,12 +876,8 @@ def api_ad_click():
     return jsonify(success=True)
 
 
-
 # ------------------------------------------------------------
-# 4. 아이템 관리 페이지 (DB 기반)
-# ------------------------------------------------------------
-# ------------------------------------------------------------
-# 아이템 인피니티 스크롤 (추가 API)
+# 5. 아이템 관리 페이지 (인피니티 스크롤 포함)
 # ------------------------------------------------------------
 @bp.route('/mypage-items')
 def mypage_items():
@@ -957,8 +886,6 @@ def mypage_items():
         return require_login_js()
 
     user_id = user["id"]
-
-    # ✅ 첫 페이지 : 12개만 로드
     items = user_item_dao.get_user_items_page(user_id, offset=0, limit=12)
 
     return render_template(
@@ -969,9 +896,7 @@ def mypage_items():
         items=items
     )
 
-# ------------------------------------------------------------
-# 아이템 장착
-# ------------------------------------------------------------
+
 @bp.route("/api/mypage/item/equip", methods=["POST"])
 def api_item_equip():
     user = get_logged_user()
@@ -981,7 +906,6 @@ def api_item_equip():
     user_id = user["id"]
     item_no = request.json.get("item_no")
 
-    # 아이템 정보 조회
     item = item_dao.get_item(item_no)
     if not item:
         return jsonify({"success": False, "msg": "아이템 없음"}), 400
@@ -989,16 +913,10 @@ def api_item_equip():
     item_type = item["item_type"]
     item_img = item["item_img"]
 
-    # 같은 타입 전체 해제 (함수명 수정!)
     user_item_dao.unequip_type(user_id, item_type)
-
-    # 현재 아이템 장착
     user_item_dao.equip_item(user_id, item_no)
-
-    # user 테이블 업데이트
     user_item_dao.update_user_profile(user_id, item_type, item_img)
 
-    # 세션 즉시 반영
     if item_type == "background":
         session["user"]["background_img"] = item_img
     elif item_type == "icon":
@@ -1009,15 +927,12 @@ def api_item_equip():
     session.modified = True
 
     return jsonify({
-    "success": True,
-    "item_type": item_type,
-    "item_img": item_img
-})
+        "success": True,
+        "item_type": item_type,
+        "item_img": item_img
+    })
 
 
-# ------------------------------------------------------------
-# 아이템 해제
-# ------------------------------------------------------------
 @bp.route("/api/mypage/item/unequip", methods=["POST"])
 def api_item_unequip():
     user = get_logged_user()
@@ -1038,13 +953,9 @@ def api_item_unequip():
 
     item_type = item["item_type"]
 
-    # 아이템 해제
     user_item_dao.unequip_item(user_id, item_no)
-
-    # user 테이블 NULL 처리
     user_item_dao.update_user_profile(user_id, item_type, None)
 
-    # 세션 갱신
     if item_type == "background":
         session["user"]["background_img"] = None
     elif item_type == "icon":
@@ -1061,9 +972,6 @@ def api_item_unequip():
     })
 
 
-# ------------------------------------------------------------
-# 아이템 목록 추가 로드 (인피니티 스크롤용)
-# ------------------------------------------------------------
 @bp.route("/mypage-items/load")
 def mypage_items_load():
     user = get_logged_user()
@@ -1072,7 +980,6 @@ def mypage_items_load():
 
     user_id = user["id"]
 
-    # page, per_page 파라미터
     try:
         page = int(request.args.get("page", 1))
     except ValueError:
@@ -1084,10 +991,8 @@ def mypage_items_load():
 
     offset = (page - 1) * per_page
 
-    # 페이징된 아이템 조회 (새 함수 필요)
     rows = user_item_dao.get_user_items_page(user_id, offset=offset, limit=per_page)
 
-    # JSON 형태로 변환
     result = []
     for row in rows:
         result.append({
@@ -1100,8 +1005,9 @@ def mypage_items_load():
 
     return jsonify(result)
 
+
 # ------------------------------------------------------------
-# 5. 내 정보 페이지
+# 6. 내 정보 페이지
 # ------------------------------------------------------------
 @bp.route("/mypage-info")
 def mypage_info():
@@ -1117,12 +1023,12 @@ def mypage_info():
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
         user=user_info,
-        current_bg = session["user"].get("background_img") or None
-
+        current_bg=session["user"].get("background_img") or None
     )
 
+
 # ------------------------------------------------------------
-# 6. 닉네임/이메일 중복 확인
+# 7. 닉네임/이메일 중복 확인
 # ------------------------------------------------------------
 @bp.route("/api/mypage/check-nickname", methods=["POST"])
 def api_check_nickname():
@@ -1139,8 +1045,9 @@ def api_check_email():
     exists = user_info_dao.check_email_exists(email)
     return jsonify({"success": True, "exists": exists})
 
+
 # ------------------------------------------------------------
-# 7. 프로필 수정
+# 8. 프로필 수정
 # ------------------------------------------------------------
 @bp.route("/api/mypage/update-profile", methods=["POST"])
 def api_update_profile():
@@ -1175,8 +1082,9 @@ def api_update_profile():
 
     return jsonify({"success": True})
 
+
 # ------------------------------------------------------------
-# 8. 팔로잉 / 팔로워
+# 9. 팔로잉 / 팔로워
 # ------------------------------------------------------------
 @bp.route("/mypage-following")
 def mypage_following():
@@ -1195,9 +1103,9 @@ def mypage_following():
         following_list=following,
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        current_bg = session["user"].get("background_img") or None
-
+        current_bg=session["user"].get("background_img") or None
     )
+
 
 @bp.route("/mypage-follower")
 def mypage_follower():
@@ -1216,12 +1124,10 @@ def mypage_follower():
         follower_list=followers,
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        current_bg = session["user"].get("background_img") or None
+        current_bg=session["user"].get("background_img") or None
     )
 
-# ------------------------------------------------------------
-# 8-1. 팔로우 토글
-# ------------------------------------------------------------
+
 @bp.route("/api/follow-toggle", methods=["POST"])
 def api_follow_toggle():
     user = get_logged_user()
@@ -1236,7 +1142,6 @@ def api_follow_toggle():
     if do_follow:
         ok = follow_dao.follow(user_id, target_id)
 
-        # 🔥 팔로우 알림
         if ok and user_id != target_id:
             alert_dao.create_alert(
                 sender_id=user_id,
@@ -1249,10 +1154,7 @@ def api_follow_toggle():
     else:
         return jsonify({"success": follow_dao.unfollow(user_id, target_id)})
 
-    
-# ------------------------------------------------------------
-# 팔로잉 추가 로드 (인피니티 스크롤)
-# ------------------------------------------------------------
+
 @bp.route("/mypage-following/load")
 def mypage_following_load():
     user = get_logged_user()
@@ -1264,13 +1166,11 @@ def mypage_following_load():
     try:
         page = int(request.args.get("page", 1))
         per_page = int(request.args.get("per_page", 20))
-    except:
+    except Exception:
         return jsonify([])
 
     offset = (page - 1) * per_page
-
     rows = follow_dao.get_following_page(user_id, offset, per_page)
-
 
     result = []
     for r in rows:
@@ -1283,9 +1183,7 @@ def mypage_following_load():
 
     return jsonify(result)
 
-# ------------------------------------------------------------
-# 팔로워 추가 로드 (인피니티 스크롤)
-# ------------------------------------------------------------
+
 @bp.route("/mypage-follower/load")
 def mypage_follower_load():
     user = get_logged_user()
@@ -1297,11 +1195,10 @@ def mypage_follower_load():
     try:
         page = int(request.args.get("page", 1))
         per_page = int(request.args.get("per_page", 20))
-    except:
+    except Exception:
         return jsonify([])
 
     offset = (page - 1) * per_page
-
     rows = follow_dao.get_follower_page(user_id, offset, per_page)
 
     result = []
@@ -1315,12 +1212,10 @@ def mypage_follower_load():
 
     return jsonify(result)
 
+
 # ------------------------------------------------------------
-# 9. 메시지 기능
+# 10. 메시지 기능
 # ------------------------------------------------------------
-
-
-
 @bp.route("/mypage-message")
 def mypage_message():
     user = get_logged_user()
@@ -1331,6 +1226,7 @@ def mypage_message():
     rooms = message_dao.get_rooms_for_user(user_id)
     total_unread = sum(r["unread_count"] for r in rooms)
     follow_list = follow_dao.get_following_list(user_id)
+
     return render_template(
         "mypage-message.html",
         sidebar=SIDEBAR_CONFIG["default"],
@@ -1342,6 +1238,7 @@ def mypage_message():
         total_unread=total_unread
     )
 
+
 @bp.route("/mypage-message/room/<int:room_no>")
 def mypage_message_room(room_no):
     user = get_logged_user()
@@ -1349,8 +1246,6 @@ def mypage_message_room(room_no):
         return require_login_js()
 
     user_id = user["id"]
-
-    # 방 정보 불러오기
     room = message_dao.get_room_info(room_no, user_id)
     if not room:
         return require_login_js()
@@ -1383,10 +1278,7 @@ def api_get_room_messages(room_no):
         "sender_id": row["sender_id"],
         "receiver_id": row["receiver_id"],
         "is_me": row["sender_id"] == user_id,
-
-        # 👇 DB 원본 → 화면은 마스킹
         "content": mask_slang(row["message_content"]),
-
         "sent_at": row["message_sent_at"].strftime("%Y-%m-%d %H:%M")
     } for row in rows]
 
@@ -1409,19 +1301,14 @@ def api_send_message():
     if not receiver_id or not content:
         return jsonify({"success": False, "msg": "잘못된 요청"}), 400
 
-    # 방이 없으면 생성
     if not room_no:
         room_no = message_dao.create_or_get_room(user_id, receiver_id)
 
-    # 1) DB에는 원본 저장
     msg_no = message_dao.send_message(room_no, user_id, receiver_id, content)
-
-    # 2) 화면에는 마스킹된 텍스트 전달
     masked = mask_slang(content)
 
     receiver_info = user_dao.get_user_by_id(receiver_id)
 
-    # 3) WebSocket 실시간 전송도 마스킹된 내용으로
     send_dm_message(
         receiver_id,
         {
@@ -1439,7 +1326,7 @@ def api_send_message():
         "message_no": msg_no,
         "sender_id": user_id,
         "receiver_nick": receiver_info["nick"],
-        "content": masked,  # 화면에서는 마스킹된 텍스트
+        "content": masked,
         "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M")
     })
 
@@ -1458,6 +1345,7 @@ def api_delete_room():
         message_dao.delete_room_for_user(int(rn), user_id)
 
     return jsonify({"success": True})
+
 
 @bp.route("/api/mypage/search-user", methods=["POST"])
 def api_search_user():
@@ -1497,20 +1385,16 @@ def api_start_message():
 
     sender_id = user["id"]
 
-    # 방 생성 or 가져오기
     room_no = message_dao.create_or_get_room(sender_id, target_id)
-
-    # DB 저장 (원본)
     message_dao.send_message(room_no, sender_id, target_id, content)
 
-    # 필요하다면 여기서도 masked_content를 응답에 포함 가능
     masked_content = mask_slang(content)
 
     return jsonify(success=True, room_no=room_no, content=masked_content)
 
 
 # ------------------------------------------------------------
-# 10. 포인트
+# 11. 포인트
 # ------------------------------------------------------------
 @bp.route("/mypage-point")
 def mypage_point():
@@ -1521,29 +1405,19 @@ def mypage_point():
     user_id = user["id"]
     order = request.args.get("order", "latest")
 
-    # 모든 거래 내역 (선택된 정렬 순서로 가져옴)
     point_list = list(point_dao.get_point_history(user_id, order=order))
-
     user_point = user["user_current_point"]
 
-    # =============================================
-    #       ★ remain_point 계산 (최신순 고정)
-    # =============================================
-
-    # 1) 원본 리스트는 order 기준으로 표시용
-    # 2) 최신순으로 정렬된 리스트 생성 (잔액 계산용)
     sorted_list = point_list.copy()
     sorted_list.sort(key=lambda r: r["point_created_at"], reverse=True)
 
     balance_map = {}
     balance = user_point
 
-    # 최신순 기준 잔액 계산
     for row in sorted_list:
         balance_map[row["point_no"]] = balance
-        balance -= row["point_amount"]  # 다음 줄을 위해 조정
+        balance -= row["point_amount"]
 
-    # 3) 화면에 표시되는 정렬(order)대로 remain_point 매핑
     for row in point_list:
         row["remain_point"] = balance_map[row["point_no"]]
 
@@ -1556,6 +1430,7 @@ def mypage_point():
         user_point=user_point
     )
 
+
 @bp.route("/mypage-point/load")
 def mypage_point_load():
     user = get_logged_user()
@@ -1564,19 +1439,15 @@ def mypage_point_load():
 
     user_id = user["id"]
 
-    # page / per_page / order 파라미터
     try:
         page = int(request.args.get("page", 1))
         per_page = int(request.args.get("per_page", 20))
         order = request.args.get("order", "latest")
-    except:
+    except Exception:
         return jsonify([])
 
     offset = (page - 1) * per_page
 
-    # ---------------------------
-    # 1) 현재 page 데이터 가져오기
-    # ---------------------------
     rows = point_dao.get_point_history_page(
         user_id=user_id,
         order=order,
@@ -1587,47 +1458,29 @@ def mypage_point_load():
     if not rows:
         return jsonify([])
 
-    # ----------------------------------------
-    # 2) remain_point 계산 (페이지별 누적처리)
-    # ----------------------------------------
-    # 전체 리스트를 매번 읽지 않고, 현재 page 구간에서만 누적 계산
-
-    # 최신순 기준으로 정렬해서 누적 포인트 시작점 찾기
-    # 1페이지의 첫 row에서 사용자 현재 포인트를 역산하여 결정해야 함
     user_point = user["user_current_point"]
 
-    # 최신순 기준 정렬 필요 (remain_point 계산 규칙 때문)
     temp_rows = list(rows)
     temp_rows.sort(key=lambda r: r["point_created_at"], reverse=True)
 
-    balance = None
-
-    # 가장 첫 페이지일 경우 balance = user_current_point
     if page == 1:
         balance = user_point
     else:
-        # N 페이지라면 offset 이전 구간의 변동 합계를 계산해야 한다
-        # → 가장 정확한 방식은 offset~(offset+limit)까지 전체 합산 반영
         prior_rows = point_dao.get_point_history_page(
             user_id=user_id,
             order="latest",
             offset=0,
             limit=offset + len(rows)
         )
-
         balance = user_point
         for r in prior_rows:
             balance -= r["point_amount"]
 
-    # 이제 temp_rows 기준으로 remain_point 계산
     remain_map = {}
     for r in temp_rows:
         remain_map[r["point_no"]] = balance
         balance -= r["point_amount"]
 
-    # ----------------------------------------
-    # 3) JSON 반환
-    # ----------------------------------------
     output = []
     for r in rows:
         output.append({
@@ -1643,9 +1496,8 @@ def mypage_point_load():
     return jsonify(output)
 
 
-
 # ------------------------------------------------------------
-# 11. 알림
+# 12. 알림
 # ------------------------------------------------------------
 @bp.route("/mypage-alert")
 def mypage_alert():
@@ -1659,9 +1511,10 @@ def mypage_alert():
         "mypage-alert.html",
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        current_bg = session["user"].get("background_img") or None,
+        current_bg=session["user"].get("background_img") or None,
         alerts=alerts
     )
+
 
 @bp.route("/api/alert/delete", methods=["POST"])
 def api_alert_delete():
@@ -1673,6 +1526,7 @@ def api_alert_delete():
     alert_dao.delete_alert(data.get("alert_no"), user["id"])
     return jsonify({"success": True})
 
+
 @bp.route("/api/alert/delete-all", methods=["POST"])
 def api_alert_delete_all():
     user = get_logged_user()
@@ -1681,6 +1535,8 @@ def api_alert_delete_all():
 
     alert_dao.delete_all_alerts(user["id"])
     return jsonify({"success": True})
+
+
 @bp.route("/mypage-alert/load")
 def mypage_alert_load():
     user = get_logged_user()
@@ -1692,17 +1548,14 @@ def mypage_alert_load():
     try:
         page = int(request.args.get("page", 1))
         per_page = int(request.args.get("per_page", 20))
-    except:
+    except Exception:
         return jsonify([])
 
     offset = (page - 1) * per_page
-
     rows = alert_dao.get_alert_page(user_id, offset, per_page)
 
-    # dict 형태로 JSON 변환
     result = []
     for r in rows:
-
         type_map = {
             101: "댓글",
             201: "좋아요",
@@ -1728,7 +1581,7 @@ def mypage_alert_load():
 
 
 # ------------------------------------------------------------
-# 12. 회원 탈퇴
+# 13. 회원 탈퇴
 # ------------------------------------------------------------
 @bp.route("/mypage-withdraw")
 def mypage_withdraw():
@@ -1740,8 +1593,9 @@ def mypage_withdraw():
         "mypage-withdraw.html",
         sidebar=SIDEBAR_CONFIG["default"],
         active="mypage",
-        current_bg = session["user"].get("background_img") or None
+        current_bg=session["user"].get("background_img") or None
     )
+
 
 @bp.route("/api/mypage/withdraw", methods=["POST"])
 def api_withdraw():
@@ -1756,22 +1610,18 @@ def api_withdraw():
     if not user_id or not password:
         return jsonify({"success": False, "msg": "아이디/비밀번호 필요"}), 400
 
-    # 1) 유저 정보 확인
     user_row = user_dao.check_login(user_id, password)
     if not user_row:
         return jsonify({"success": False, "msg": "아이디 또는 비밀번호 불일치"}), 400
 
-    # 2) 탈퇴 처리
     withdraw_dao.withdraw_user(user_id)
-
-    # 3) 세션 삭제
     session.pop("user", None)
 
     return jsonify({"success": True})
 
 
 # ------------------------------------------------------------
-# 13. 기타
+# 14. 포인트샵
 # ------------------------------------------------------------
 @bp.route("/pointshop")
 def pointshop():
@@ -1783,10 +1633,8 @@ def pointshop():
     owned = {item["item_no"] for item in user_items}
 
     products = item_dao.get_all_items()
-
     for p in products:
         p["owned"] = (p["item_no"] in owned)
-
 
     user_point = user["user_current_point"]
 
@@ -1815,26 +1663,19 @@ def api_item_buy():
 
     price = item["item_price"]
 
-    # 1) 중복 구매 방지
     if user_item_dao.has_item(user_id, item_no):
         return jsonify(success=False, msg="이미 보유한 아이템입니다."), 400
 
-    # 2) 포인트 체크
     current_point = point_dao.get_total_point(user_id)
     if current_point < price:
         return jsonify(success=False, msg="포인트 부족"), 400
 
-    # 3) 포인트 차감
     point_dao.use_point(user_id, price, f"아이템 구매: {item['item_name']}")
-
-    # 4) 아이템 지급
     user_item_dao.add_item(user_id, item_no)
 
-    # 🔥 5) 세션에 최신 포인트 반영
     session["user"]["user_current_point"] = current_point - price
     session.modified = True
 
-    # 🔥 6) JS에서 즉시 업데이트할 수 있도록 new_point 반환
     return jsonify(
         success=True,
         new_point=session["user"]["user_current_point"]
