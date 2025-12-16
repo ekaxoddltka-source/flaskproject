@@ -3,7 +3,23 @@ import re
 
 _slang_words = []
 _pattern = None
+# 자음 욕설 패턴 (공백/특수문자 우회 대응)
+_CONSONANT_SLANG_PATTERN = re.compile(
+    r'(^|[ \t\n\r.,!?])'        # 공백 or 문장부호만
+    r'(?:'
+    r'[ㅅㅆ]\s*ㅂ|'             # ㅅㅂ, ㅆㅂ
+    r'ㅂ\s*ㅅ|'                 # ㅂㅅ
+    r'ㅄ|'                      # ㅄ
+    r'ㅈ\s*ㄹ|'                 # ㅈㄹ
+    r'ㅅ\s*ㄲ'                  # ㅅㄲ
+    r')'
+    r'(?=$|[ \t\n\r.,!?])'
+)
 
+
+
+def has_consonant_slang(text: str) -> bool:
+    return bool(_CONSONANT_SLANG_PATTERN.search(text))
 
 def load_slang_terms_from_db(app):
     """
@@ -52,23 +68,33 @@ def is_boundary(c):
 
 def mask_slang(text: str) -> str:
     """
-    욕설을 *로 마스킹하되, 오탐 방지를 위한 기본 경계 로직 포함.
-    prefix/suffix 로직 없음 — rollback 버전
+    1차: DB 기반 욕설 마스킹 (기존 로직)
+    2차: 자음 욕설 패턴 마스킹
     """
-    if not text or not _pattern:
+    if not text:
         return text
 
-    def replacer(match):
-        word = match.group(0)
-        start, end = match.span()
+    original_text = text
 
-        before = text[start - 1] if start > 0 else ""
-        after = text[end] if end < len(text) else ""
+    # ---------- 1차: DB 욕설 ----------
+    if _pattern:
+        def replacer(match):
+            word = match.group(0)
+            start, end = match.span()
 
-        # 오탐 방지 — 년도가 "10년", "30년"인 경우 등 경계 체크
-        if not is_boundary(before) and not is_boundary(after):
-            return word  # 그대로 둔다 (오탐 방지)
+            before = original_text[start - 1] if start > 0 else ""
+            after = original_text[end] if end < len(original_text) else ""
 
-        return "*" * len(word)
+            if not is_boundary(before) and not is_boundary(after):
+                return word  # 오탐 방지
 
-    return _pattern.sub(replacer, text)
+            return "*" * len(word)
+
+        text = _pattern.sub(replacer, text)
+   
+    # ---------- 2차: 자음 욕설 ----------
+    if _CONSONANT_SLANG_PATTERN.search(text):
+        return "***"
+
+
+    return text

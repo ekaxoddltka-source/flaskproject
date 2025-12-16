@@ -787,3 +787,130 @@ footer a {
 footer a:hover {
   text-decoration: underline;
 }
+
+/* =========================
+ * 광고 설명 팝업 (Ad Explain Popup)
+ * ========================= */
+
+.ad-popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.15s ease-out;
+}
+
+.ad-popup {
+    background: #fff;
+    width: 360px;
+    max-width: calc(100% - 32px);
+    padding: 20px 22px;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    z-index: 9999;
+    animation: popupSlide 0.18s ease-out;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #333;
+}
+
+/* 제목 */
+.ad-popup h3 {
+    margin: 0 0 12px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #3DADFF;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ad-popup h3::before {
+    font-size: 18px;
+}
+
+/* 본문 문단 */
+.ad-popup p {
+    margin: 0 0 10px;
+    color: #444;
+}
+
+/* 강조 텍스트 */
+.ad-popup b {
+    color: #222;
+    font-weight: 600;
+}
+
+/* 리스트 */
+.ad-popup ul {
+    margin: 10px 0 0;
+    padding-left: 18px;
+}
+
+.ad-popup li {
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #555;
+}
+
+/* 추천 점수 강조 */
+.ad-popup li b {
+    color: #3DADFF;
+}
+
+/* 버튼 영역 */
+.ad-popup-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+/* 기본 버튼 */
+.ad-popup-actions button {
+    padding: 7px 14px;
+    font-size: 13px;
+    border-radius: 8px;
+    border: 1px solid #d5d5d5;
+    background: #fff;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.1s;
+}
+
+/* 이동 버튼 (Primary) */
+#ad-explain-popup #go-ad-btn {
+    background: #3DADFF;
+    border-color: #3DADFF;
+    color: #fff;
+    font-weight: 600;
+}
+
+#ad-explain-popup #go-ad-btn:hover {
+    background: #2e90d4;
+    transform: translateY(-1px);
+}
+
+/* 닫기 버튼 */
+#ad-explain-popup #close-ad-btn:hover {
+    background: #f0f0f0;
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes popupSlide {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
