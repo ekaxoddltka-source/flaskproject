@@ -4,10 +4,10 @@ from datetime import datetime, timedelta
 
 def get_top_posts_last_3_days(app, limit=10):
     """
-    최근 3일간 게시글 중 board_category 1,2,3에 해당하며
+    최근 14일간 게시글 중 board_category 2,3에 해당하며
     조회수(hit) + 추천수(board_like)가 높은 TOP 10을 가져오는 함수.
     """
-    three_days_ago = datetime.now() - timedelta(days=7)
+    three_days_ago = datetime.now() - timedelta(days=14)
 
     query = """
         SELECT 
