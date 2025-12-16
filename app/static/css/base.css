@@ -787,3 +787,37 @@ footer a {
 footer a:hover {
   text-decoration: underline;
 }
+
+.ad-popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 9998;
+}
+
+.ad-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    width: 360px;
+    padding: 20px;
+    border-radius: 12px;
+    z-index: 9999;
+}
+
+.ad-popup h3 {
+    margin-top: 0;
+}
+
+.ad-popup ul {
+    padding-left: 18px;
+}
+
+.ad-popup-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+}

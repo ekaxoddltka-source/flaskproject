@@ -6,7 +6,7 @@ function loadSidebarAd() {
         .then(r => r.json())
         .then(ads => {
 
-            // ----- 추천 광고 없음 → 기본 광고 고정 -----
+            // ----- 추천 광고 없음 → 기본 광고 -----
             if (!ads || ads.length === 0) {
                 box.innerHTML = `
                     <a href="https://www.eduwill.net/sites/home" target="_blank">
@@ -17,23 +17,25 @@ function loadSidebarAd() {
                 return;
             }
 
-            // ----- 추천 광고 있으면 표시 -----
             const ad = ads[0];
+
+            // ❗ href 제거
             box.innerHTML = `
-                <a href="${ad.url}" target="_blank" class="ad-link">
-                    <img src="${ad.image}" alt="${ad.title}" 
-                        style="width:100%; border-radius:8px;">
-                </a>
+                <div class="ad-link" style="cursor:pointer;">
+                    <img src="${ad.image}" alt="${ad.title}"
+                         style="width:100%; border-radius:8px;">
+                </div>
             `;
 
             logAdView(ad.ad_id);
+
             box.querySelector(".ad-link").addEventListener("click", () => {
                 logAdClick(ad.ad_id);
+                openAdExplainPopup(ad); // 🔥 설명 팝업
             });
 
         })
         .catch(() => {
-            // ----- API 에러 → 기본 광고 -----
             box.innerHTML = `
                 <a href="https://www.eduwill.net/sites/home" target="_blank">
                     <img src="/static/images/adbaner.jpg"
@@ -42,6 +44,76 @@ function loadSidebarAd() {
             `;
         });
 }
+function openAdExplainPopup(ad) {
+  // 기존 팝업 제거
+  const old = document.getElementById("ad-explain-popup");
+  if (old) old.remove();
+
+  // overlay 생성
+  const overlay = document.createElement("div");
+  overlay.id = "ad-explain-popup";
+  overlay.className = "ad-popup-overlay";
+
+  overlay.innerHTML = `
+    <div class="ad-popup" role="dialog" aria-modal="true">
+      <h3>광고 추천 이유</h3>
+
+      <p>
+        AI가 사용자의 <b>게시글 열람</b>, <b>관심 기술</b>, <b>활동 패턴</b>을 분석해
+        하나의 <b>관심도 벡터</b>를 만들고,
+      </p>
+
+      <p>
+        그 벡터를 광고의 벡터들과 비교해서
+        <b>유사도가 가장 높은 광고</b>를 추천합니다.
+      </p>
+
+      <ul>
+        <li>
+          <b>추천 점수</b>: ${ad.score.toFixed(2)}
+          <span style="font-size:12px; color:#666;">
+            (사용자 관심도와 광고의 유사도)
+          </span>
+        </li>
+        <li>사용자의 최근 관심 기술과 <b>높은 관련성</b>이 있습니다.</li>
+        <li><b>개인 메시지/민감정보는 사용하지 않습니다.</b></li>
+      </ul>
+
+      <div class="ad-popup-actions">
+        <button type="button" id="go-ad-btn">광고 페이지로 이동</button>
+        <button type="button" id="close-ad-btn">닫기</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  // 바깥 클릭 시 닫기
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  // 닫기
+  overlay.querySelector("#close-ad-btn").addEventListener("click", () => {
+    overlay.remove();
+  });
+
+  // ✅ 실제 이동은 여기서만
+  overlay.querySelector("#go-ad-btn").addEventListener("click", () => {
+    window.open(ad.url, "_blank", "noopener,noreferrer");
+    overlay.remove();
+  });
+
+  // ESC로 닫기(선택)
+  document.addEventListener("keydown", function escHandler(ev) {
+    if (ev.key === "Escape") {
+      overlay.remove();
+      document.removeEventListener("keydown", escHandler);
+    }
+  });
+}
+
+
 
 
 function logAdView(adId) {
