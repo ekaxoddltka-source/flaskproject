@@ -1,52 +1,84 @@
 // 디바운싱을 위한 변수
 let typingTimer;
-const doneTypingInterval = 500; // 0.5초 후 API 호출
+const doneTypingInterval = 1500; // 1.5초 후 API 호출
+let lastRequestPayload = "";
+let tagRequestController = null;
+
+async function fetchRecommendedTags(title, content, payloadKey) {
+    // 이전 요청 취소
+    if (tagRequestController) {
+        tagRequestController.abort();
+    }
+
+    tagRequestController = new AbortController();
+
+    const recommendedTagsDiv = document.getElementById('recommendedTags');
+
+    recommendedTagsDiv.dataset.loading = "true";
+    recommendedTagsDiv.textContent = "추천 태그를 가져오는 중...";
+
+    try {
+        const response = await fetch('/api/recommend_tags', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, content }),
+            signal: tagRequestController.signal
+        });
+
+        const result = await response.json();
+        recommendedTagsDiv.dataset.loading = "false";
+
+        if (response.ok) {
+            lastRequestPayload = payloadKey;
+            displayRecommendedTags(result.tags);
+        } else {
+            recommendedTagsDiv.textContent = '태그 추천 오류 발생';
+        }
+    } catch (err) {
+      recommendedTagsDiv.dataset.loading = "false";
+
+      if (err.name === "AbortError") {
+          return; // ✅ UI 변경 금지
+      }
+
+      recommendedTagsDiv.textContent = '네트워크 오류 발생';
+  }
+}
 
 /**
  * 제목 또는 내용 입력이 멈추면 태그 추천 API를 호출합니다.
  */
 function handleInputForTagRecommendation() {
     clearTimeout(typingTimer);
-    
-    // 제목 또는 내용이 모두 비어있으면 호출하지 않습니다.
+
     const title = document.getElementById('title').value.trim();
     const content = document.getElementById('content').value.trim();
 
-    if (title.length === 0 && content.length === 0) {
-        document.getElementById('recommendedTags').innerHTML = ''; // 추천 태그 초기화
+    // 둘 다 비어 있으면 종료
+    if (!title && !content) {
+        document.getElementById('recommendedTags').innerHTML = '';
+        lastRequestPayload = "";
         return;
     }
 
-    typingTimer = setTimeout(async () => {
-        const recommendedTagsDiv = document.getElementById('recommendedTags');
-        recommendedTagsDiv.innerHTML = '추천 태그를 가져오는 중...'; // 로딩 표시
+    if (title.length + content.length < 10) return;
 
-        try {
-            const response = await fetch('/api/recommend_tags', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    title: title,
-                    content: content
-                })
-            });
+    // 🔹 요청 내용 문자열화
+    const currentPayload = JSON.stringify({ title, content });
 
-            const result = await response.json();
+    // 🔹 이전 요청과 같으면 API 호출 안 함
+    if (currentPayload === lastRequestPayload) return;
 
-            if (response.ok) {
-                displayRecommendedTags(result.tags);
-            } else {
-                console.error("API Error:", result.error);
-                recommendedTagsDiv.innerHTML = '태그 추천 오류 발생';
-            }
-        } catch (error) {
-            console.error("Fetch Error:", error);
-            recommendedTagsDiv.innerHTML = '네트워크 오류 발생';
-        }
-
+    typingTimer = setTimeout(() => {
+        fetchRecommendedTags(title, content, currentPayload);
     }, doneTypingInterval);
+}
+
+function normalizeTag(tag) {
+    return tag
+        .replace(/^#/, '')
+        .trim()
+        .toLowerCase();
 }
 
 /**
@@ -55,17 +87,34 @@ function handleInputForTagRecommendation() {
  */
 function displayRecommendedTags(tagString) {
     const recommendedTagsDiv = document.getElementById('recommendedTags');
-    const tags = tagString.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
-    
-    recommendedTagsDiv.innerHTML = ''; // 기존 내용 초기화
+    const hashtagInput = document.getElementById('hashtags');
 
-    tags.forEach(tag => {
+    const existingTags = hashtagInput.value
+        .split(',')
+        .map(normalizeTag)
+        .filter(Boolean);
+
+    const uniqueTags = Array.from(
+        new Set(
+            tagString
+                .split(',')
+                .map(normalizeTag)
+                .filter(tag => !existingTags.includes(tag))
+        )
+    );
+
+    recommendedTagsDiv.innerHTML = '';
+
+    uniqueTags.forEach(tag => {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'tag-btn';
         button.textContent = '#' + tag;
-        button.dataset.tag = tag; // 실제 태그 값을 저장
-        button.addEventListener('click', addTagToInput);
+        button.dataset.tag = tag;
+        button.addEventListener('click', (e) => {
+            addTagToInput(e);
+            e.target.remove();
+        });
         recommendedTagsDiv.appendChild(button);
     });
 }
@@ -75,18 +124,20 @@ function displayRecommendedTags(tagString) {
  * @param {Event} event - 클릭 이벤트 객체
  */
 function addTagToInput(event) {
-    const tag = event.target.dataset.tag;
-    const hashtagInput = document.getElementById('hashtags');
-    let currentValue = hashtagInput.value.trim();
+    const newTag = normalizeTag(event.target.dataset.tag);
 
-    // 현재 값에 태그가 포함되어 있지 않을 경우에만 추가
-    if (!currentValue.includes(tag)) {
-        if (currentValue.length > 0) {
-            hashtagInput.value = currentValue + ', ' + tag;
-        } else {
-            hashtagInput.value = tag;
-        }
-    }
+    const hashtagInput = document.getElementById('hashtags');
+
+    const existingTags = hashtagInput.value
+        .split(',')
+        .map(tag => tag.trim().toLowerCase())
+        .filter(Boolean);
+
+    // 정확 일치만 중복으로 판단
+    if (existingTags.includes(newTag)) return;
+
+    existingTags.push(newTag);
+    hashtagInput.value = existingTags.join(', ');
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -96,8 +147,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 제목과 내용 입력 시 이벤트 리스너 등록
     if (titleInput && contentTextarea) {
-        titleInput.addEventListener('keyup', handleInputForTagRecommendation);
-        contentTextarea.addEventListener('keyup', handleInputForTagRecommendation);
+        titleInput.addEventListener('input', handleInputForTagRecommendation);
+        contentTextarea.addEventListener('input', handleInputForTagRecommendation);
     }
 
   // 파일 업로드 처리 (여러 파일 + 삭제 버튼)
@@ -212,7 +263,6 @@ document.addEventListener("DOMContentLoaded", () => {
       extra.innerHTML = ""; // 초기화
 
       if (catValue === "3") {
-        // Q&A
         extra.innerHTML = `
           <label for="lang">언어선택</label>
           <select id="lang" name="lang">
@@ -235,7 +285,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       if (catValue === "2") {
-        // 코딩테스트
         extra.innerHTML = `
           <label for="tech">관련기술</label>
           <select id="tech" name="tech">
@@ -513,9 +562,11 @@ function fetchInitialTags() {
     const title = document.getElementById('title').value.trim();
     const content = document.getElementById('content').value.trim();
 
-    if (title.length === 0 && content.length === 0) return;
+    if (title.length < 5 && content.length < 15) return;
 
-    handleInputForTagRecommendation(); // 기존 함수 재사용
+    const payload = JSON.stringify({ title, content });
+
+    fetchRecommendedTags(title, content, payload);
 }
 
 // DOMContentLoaded 끝에 추가
