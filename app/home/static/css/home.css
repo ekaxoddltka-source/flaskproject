@@ -163,10 +163,12 @@
 /* ====================================
  * 6. 게시글 푸터 (Post Footer)
  * ==================================== */
-.bnote,
 .c-text,
 .a-text {
     white-space: normal !important;
+}
+.bnote{
+    white-space: pre-wrap;
 }
 .post-footer {
     position: relative;
