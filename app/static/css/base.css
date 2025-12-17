@@ -558,14 +558,30 @@ header {
     border-radius: 8px;
     padding: 10px;
 }
+/* 광고 영역 컨테이너 고정 */
+.ad-top {
+    width: 100%;
+    height: 150px;              /* ★ 핵심 */
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background: #f4f6fb;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
 /* 광고 영역 */
 .ad-top img {
     width: 100%;
-    height: auto;
-    max-height: 150px;
-    border-radius: 8px;
+    height: 100%;
     object-fit: cover;
+    border-radius: 8px;
 }
+
 /* 사이드바 탭 */
 .sidebar-tabs {
     display: flex;

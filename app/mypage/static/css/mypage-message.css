@@ -193,25 +193,26 @@
 /* ===== 입력창 + 버튼 통일 ===== */
 .chat-input {
     display: flex;
-    align-items: stretch;
+    align-items: stretch;   /* textarea 높이에 버튼 맞춤 */
     gap: 10px;
     margin-top: 14px;
 }
 
+/* textarea */
 .chat-input textarea {
     flex: 1;
     padding: 12px;
     font-size: 14px;
     border-radius: 6px;
     border: 1px solid #ccc;
-    height: 42px;
     resize: none;
     box-sizing: border-box;
 }
 
+/* 버튼 공통 */
 .chat-input .btn-chat {
     width: 120px;
-    height: 42px;
+    min-height: 42px;       /* 최소 높이만 보장 */
     display: flex;
     align-items: center;
     justify-content: center;
