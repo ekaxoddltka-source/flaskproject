@@ -31,12 +31,11 @@ class MessageDao:
             COALESCE(unread.cnt, 0) AS unread_count
         FROM message_room r
         JOIN user u
-          ON u.id = CASE
-                       WHEN r.user_id_a = %s THEN r.user_id_b
-                       ELSE r.user_id_a
+        ON u.id = CASE
+                    WHEN r.user_id_a = %s THEN r.user_id_b
+                    ELSE r.user_id_a
                     END
         LEFT JOIN (
-            -- 각 room 별 마지막 메시지 1건
             SELECT m1.*
             FROM message m1
             JOIN (
@@ -45,26 +44,33 @@ class MessageDao:
                 WHERE message_deleted = 0
                 GROUP BY room_no
             ) last
-              ON last.room_no = m1.room_no
-             AND last.max_time = m1.message_sent_at
+            ON last.room_no = m1.room_no
+            AND last.max_time = m1.message_sent_at
             WHERE m1.message_deleted = 0
         ) lm
-          ON lm.room_no = r.room_no
+        ON lm.room_no = r.room_no
         LEFT JOIN (
-            -- 각 room 별 안 읽은 메시지 수
             SELECT room_no, COUNT(*) AS cnt
             FROM message
             WHERE receiver_id = %s
-              AND read_at IS NULL
-              AND message_deleted = 0
+            AND read_at IS NULL
+            AND message_deleted = 0
             GROUP BY room_no
         ) unread
-          ON unread.room_no = r.room_no
-        WHERE r.user_id_a = %s OR r.user_id_b = %s
+        ON unread.room_no = r.room_no
+        WHERE (r.user_id_a = %s OR r.user_id_b = %s)
+        AND EXISTS (
+            SELECT 1
+            FROM message m
+            WHERE m.room_no = r.room_no
+                AND m.message_deleted = 0
+                AND (m.sender_id = %s OR m.receiver_id = %s)
+        )
         ORDER BY COALESCE(lm.message_sent_at, r.last_message_at) DESC
         """
 
-        cur.execute(sql, (user_id, user_id, user_id, user_id, user_id))
+
+        cur.execute(sql, (user_id, user_id, user_id, user_id, user_id, user_id, user_id))
         rows = cur.fetchall()
 
         cur.close()

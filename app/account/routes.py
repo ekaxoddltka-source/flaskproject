@@ -8,6 +8,7 @@ from app.account.utils.mail import send_email
 from app.mypage.dao.point_dao import PointDao
 import random, string
 
+
 bp = Blueprint(
     'account',
     __name__,
@@ -76,6 +77,10 @@ def login():
     # ---------------------------------------------------------
     if is_first_today:
         point_dao.add_point(userid, 100, "첫 로그인 보너스")
+
+    session["user"]["user_current_point"] = point_dao.get_total_point(userid)
+    session.modified = True
+
 
     return redirect("/")
 

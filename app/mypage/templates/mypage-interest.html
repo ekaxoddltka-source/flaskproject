@@ -42,15 +42,22 @@ body::before {
     <div class="chart-row">
 
         <!-- 좌측 바 그래프 -->
-        <div class="chart-card">
-            <h3 class="chart-title">관심 기술 TOP 5</h3>
+       <div class="chart-card">
+        <h3 class="chart-title">관심 기술 TOP 5</h3>
+
+        <div class="chart-canvas-wrap">
             <canvas id="top5TechChart"></canvas>
         </div>
+       </div>
+
+                
 
         <!-- 우측 레이더 그래프 -->
         <div class="chart-card">
             <h3 class="chart-title">기술 역량 / 관심도</h3>
+             <div class="chart-canvas-wrap">
             <canvas id="radarTechChart"></canvas>
+        </div>
         </div>
 
     </div>

@@ -15,6 +15,12 @@
 :root {
     --dynamic-bg: url('{{ bg_url }}');
 }
+body::before {
+    content: "";
+    background-image: var(--dynamic-bg);
+    background-size: cover;
+    background-repeat: no-repeat;
+}
 </style>
 
 <script src="{{ url_for('mypage.static', filename='js/mypage-follow.js') }}"></script>
