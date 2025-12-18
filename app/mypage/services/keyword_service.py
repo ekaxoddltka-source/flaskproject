@@ -11,9 +11,10 @@ from app.mypage.utils.tech_keywords import TECH_KEYWORDS
 class KeywordService:
     _post_vectors = None
     _post_infos = None
+    _all_keywords = None   # 🔥 병합 키워드 캐시
 
     # --------------------------------------------------
-    # lazy load (init.py 수정 없음)
+    # lazy load (post vectors / articles)
     # --------------------------------------------------
     @classmethod
     def _load_posts(cls):
@@ -25,6 +26,27 @@ class KeywordService:
                 cls._post_infos = json.load(f)
 
     # --------------------------------------------------
+    # 🔥 TECH_KEYWORDS + auto_tech_keywords.json 병합
+    # --------------------------------------------------
+    @classmethod
+    def _load_all_keywords(cls):
+        if cls._all_keywords is not None:
+            return cls._all_keywords
+
+        keywords = set(TECH_KEYWORDS)
+
+        try:
+            with open("posts_data/auto_tech_keywords.json", encoding="utf-8") as f:
+                auto_keywords = json.load(f)
+                keywords.update(auto_keywords)
+        except FileNotFoundError:
+            # 자동 키워드 파일 없으면 기존 키워드만 사용
+            pass
+
+        cls._all_keywords = keywords
+        return cls._all_keywords
+
+    # --------------------------------------------------
     # 텍스트 정규화
     # --------------------------------------------------
     @staticmethod
@@ -32,31 +54,37 @@ class KeywordService:
         if not text:
             return ""
         text = text.lower()
-        text = re.sub(r"[^a-z0-9\s]", " ", text)  
+        text = re.sub(r"[^a-z0-9가-힣\s\+\#\-]", " ", text)
         for kr, en in KOREAN_TO_ENGLISH.items():
             text = text.replace(kr, en)
         return text
 
     # --------------------------------------------------
-    # 본문 기반 키워드 추출
+    # 🔥 본문 기반 키워드 추출 (자동 확장 포함)
     # --------------------------------------------------
     @classmethod
     def _extract_from_text(cls, text: str):
+        if not text:
+            return Counter()
+
         text = cls._normalize(text)
         counter = Counter()
 
-        sorted_keywords = sorted(TECH_KEYWORDS, key=len, reverse=True)
+        all_keywords = cls._load_all_keywords()
+
+        # 길이 긴 키워드 우선 (react native > react)
+        sorted_keywords = sorted(all_keywords, key=len, reverse=True)
 
         for kw in sorted_keywords:
             pattern = r"\b" + re.escape(kw) + r"\b"
             hits = re.findall(pattern, text)
             if hits:
-                counter[kw] += len(hits) + (len(kw) * 0.1)
+                counter[kw] += len(hits) + (len(kw) * 0.2)
 
         return counter
 
     # --------------------------------------------------
-    # 유저 벡터 → top_keywords
+    # 유저 벡터 → top keywords
     # --------------------------------------------------
     @classmethod
     def build_top_keywords(
@@ -94,14 +122,10 @@ class KeywordService:
 
         return ",".join(keywords)
 
-
-    @staticmethod
-    def extract_keywords_from_post(title, content, tags):
-        text = f"{title} {content} {' '.join(tags or [])}".lower()
-
-        counter = Counter()
-        for kw in TECH_KEYWORDS:
-            if kw in text:
-                counter[kw] += 1
-
-        return counter
+    # --------------------------------------------------
+    # 단일 게시글 키워드 추출 (태그 포함)
+    # --------------------------------------------------
+    @classmethod
+    def extract_keywords_from_post(cls, title, content, tags):
+        text = f"{title} {content} {' '.join(tags or [])}"
+        return cls._extract_from_text(text)

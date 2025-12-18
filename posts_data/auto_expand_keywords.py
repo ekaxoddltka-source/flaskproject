@@ -62,7 +62,7 @@ def main():
     # 최소 5회 이상 등장한 키워드만
     keywords = [
         w for w, c in counter.items()
-        if c >= 5 and len(w) <= 30
+        if c >= 2 and len(w) <= 30
     ]
 
     print(f"✅ 저장 대상 키워드 수: {len(keywords)}")

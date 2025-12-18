@@ -644,16 +644,22 @@ def mypage_interest():
     # --------------------------------------------------
     # 2️⃣ 레이더 그래프 (가벼운 계산만)
     # --------------------------------------------------
-    cat_vectors = np.load(
-        "posts_data/category_vectors.npy",
-        allow_pickle=True
-    ).item()
+    from app.mypage.utils.tech_category import TECH_CATEGORY
 
-    radar_labels = list(cat_vectors.keys())
-    radar_values = [
-        float(cosine_similarity([user_vector], [cat_vectors[c]])[0][0])
-        for c in radar_labels
-    ]
+    radar_labels = list(TECH_CATEGORY.keys())
+    radar_values = []
+
+    for category, keywords in TECH_CATEGORY.items():
+        score = sum(scores_map.get(kw, 0) for kw in keywords)
+        radar_values.append(round(score, 2))
+
+    # 🔒 값이 전부 0이거나 비어 있을 경우 안전 처리
+    if not radar_values or max(radar_values) == 0:
+        radar_values = [0] * len(radar_labels)
+    else:
+        max_val = max(radar_values)
+        radar_values = [round(v / max_val, 3) for v in radar_values]
+
 
     # --------------------------------------------------
     # 3️⃣ AI 추천 글 (벡터만 사용)
