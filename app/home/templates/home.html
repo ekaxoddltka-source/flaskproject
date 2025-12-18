@@ -43,7 +43,12 @@
                 {{ post.nick }}
                 <ul class="dropdown-menu">
                     <li><a href="#">프로필 보기</a></li>
-                    <li><a href="#" class="follow-btn">팔로우 하기</a></li>
+                    <li>
+                        <a href="#"
+                        class="follow-btn {% if post.is_following %}following{% endif %}">
+                            {% if post.is_following %}팔로잉 중{% else %}팔로우 하기{% endif %}
+                        </a>
+                    </li>
                     <li><a href="#">메세지 보내기</a></li>
                     <li><a href="#">차단하기</a></li>
                 </ul>

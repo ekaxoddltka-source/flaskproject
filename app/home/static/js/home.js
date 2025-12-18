@@ -4,6 +4,12 @@ function formatDate(isoString) {
     return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 function renderPost(post, loginUserId) {
     // 게시판 이름
     const categoryMap = {
@@ -100,7 +106,7 @@ function renderPost(post, loginUserId) {
         commentsHtml = post.comments.filter(c => c.commentAnswerType === 1).map(comment => {
             return `
             <div class="comment-item" data-id="${comment.commentAnswerNo}">
-                <span class="c-text">${comment.commentAnswerContent}</span>
+                <span class="c-text">${escapeHtml(comment.commentAnswerContent)}</span>
                 <div class="c-votes">
                     <span class="comment-up" data-id="${comment.commentAnswerNo}">${comment.commentLikeCount} 👍</span>
                     <span class="comment-down" data-id="${comment.commentAnswerNo}">${comment.commentDislikeCount} 👎</span>
@@ -129,7 +135,12 @@ function renderPost(post, loginUserId) {
                 ${post.nick}
                 <ul class="dropdown-menu">
                     <li><a href="#">프로필 보기</a></li>
-                    <li><a href="#" class="follow-btn">팔로우 하기</a></li>
+                    <li>
+                        <a href="#"
+                            class="follow-btn ${post.is_following ? "following" : ""}">
+                            ${post.is_following ? "팔로잉 중" : "팔로우 하기"}
+                        </a>
+                    </li>
                     <li><a href="#">메세지 보내기</a></li>
                     <li><a href="#">차단하기</a></li>
                 </ul>
@@ -191,12 +202,6 @@ document.addEventListener("DOMContentLoaded", async() => {
         }
     } catch (err) {
         console.error("loginUserId fetch error:", err);
-    }
-
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 
     const POST_BODY_MAX_LENGTH = 100;
@@ -386,7 +391,36 @@ document.addEventListener("DOMContentLoaded", async() => {
                 alert("자기 자신은 팔로우할 수 없습니다.");
                 return;
             }
+            
+            const isFollowing = followBtn.classList.contains("following");
 
+            // =========================
+            // 언팔로우
+            // =========================
+            if (isFollowing) {
+                if (!confirm("언팔로우 하시겠습니까?")) return;
+
+                const res = await fetch("/unfollow", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ followed_id: followedId })
+                });
+
+                const data = await res.json();
+                if (!data.success) {
+                    alert(data.msg);
+                    return;
+                }
+
+                followBtn.classList.remove("following");
+                followBtn.textContent = "팔로우 하기";
+                alert("언팔로우 완료");
+                return;
+            }
+
+            // =========================
+            // 팔로우
+            // =========================
             const res = await fetch("/follow", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -399,6 +433,8 @@ document.addEventListener("DOMContentLoaded", async() => {
                 return;
             }
 
+            followBtn.classList.add("following");
+            followBtn.textContent = "팔로잉 중";
             alert("팔로우 완료");
         }
 
@@ -609,6 +645,11 @@ document.addEventListener("DOMContentLoaded", async() => {
             reportModal.style.display = "none";
             return;
         }
+        const isDropdownClick = e.target.closest(".nick.dropdown");
+        if (!isDropdownClick) {
+            document.querySelectorAll(".nick.dropdown.open")
+                .forEach(d => d.classList.remove("open"));
+        }
     });
 
 
@@ -622,9 +663,16 @@ document.addEventListener("DOMContentLoaded", async() => {
     });
 
     window.addEventListener("keydown", (e) => {
-        if (reportModal && e.key === "Escape" && reportModal.style.display === "block") {
+        if (e.key !== "Escape") return;
+
+        // 신고 모달 닫기
+        if (reportModal && reportModal.style.display === "block") {
             reportModal.style.display = "none";
         }
+
+        // 닉네임 드롭다운 닫기
+        document.querySelectorAll(".nick.dropdown.open")
+            .forEach(d => d.classList.remove("open"));
     });
 
     if (reportForm) {

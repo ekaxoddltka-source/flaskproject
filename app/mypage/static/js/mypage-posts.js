@@ -121,12 +121,6 @@ function renderPost(post, loginUserId) {
                     : `<img src="/mypage/static/icons/default.png" alt="기본 아이콘" class="user-icon">`
                 }
                 ${post.nick}
-                <ul class="dropdown-menu">
-                    <li><a href="#">프로필 보기</a></li>
-                    <li><a href="#">팔로우 하기</a></li>
-                    <li><a href="#">메세지 보내기</a></li>
-                    <li><a href="#">차단하기</a></li>
-                </ul>
             </span>
             <span class="hit">조회수: ${post.hit.toLocaleString()}</span>
             <span class="wdate">작성일: ${formatDate(post.boardCreatedAt)}</span>

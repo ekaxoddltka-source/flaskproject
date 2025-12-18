@@ -88,9 +88,9 @@ def load_more_posts():
         if top_filter == "팔로우순" and login_user_id:
             board_filter_sql += """
                 AND id IN (
-                    SELECT following_id
+                    SELECT followed_id
                     FROM follow
-                    WHERE followed_id = %s
+                    WHERE following_id = %s
                 )
             """
             params_filter.append(login_user_id)
@@ -165,6 +165,10 @@ def load_more_posts():
                 board.board_created_at,
                 board.board_updated_at,
                 board.board_deleted,
+                CASE
+                    WHEN f.following_id IS NOT NULL THEN 1
+                    ELSE 0
+                END AS is_following,
                 comment_answer.comment_answer_no,
                 comment_answer.comment_answer_content,
                 comment_answer.comment_answer_type,
@@ -183,6 +187,7 @@ def load_more_posts():
                 tag.tag_name
             FROM board
             LEFT JOIN user ON board.id = user.id
+            LEFT JOIN follow f ON f.following_id = %s AND f.followed_id = board.id
             LEFT JOIN file ON board.board_no = file.board_no
             LEFT JOIN tag_board ON tag_board.board_no = board.board_no
             LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
@@ -190,7 +195,8 @@ def load_more_posts():
             LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
             WHERE board.board_no IN ({format_strings})
         """
-        cursor.execute(sql, tuple(board_nos))
+        params = [login_user_id] + board_nos
+        cursor.execute(sql, tuple(params))
         rows = cursor.fetchall()
 
         # 5️⃣ 게시글 조립
@@ -203,6 +209,7 @@ def load_more_posts():
                     "id": row["writer_id"],
                     "nick": row["writer_nick"],
                     "icon": row["writer_icon"],
+                    "is_following": bool(row["is_following"]),
                     "boardTitle": row["board_title"],
                     "boardContent": row["board_content"],
                     "boardCategory": row["board_category"],
@@ -280,9 +287,9 @@ def home():
         if top_filter == "팔로우순" and login_user_id:
             board_filter_sql += """
             AND id IN (
-                SELECT following_id
-                FROM follow
-                WHERE followed_id = %s
+                SELECT followed_id
+                    FROM follow
+                    WHERE following_id = %s
             )
             """
             params_filter.append(login_user_id)
@@ -339,6 +346,10 @@ def home():
                     board.id AS writer_id,
                     user.nick AS writer_nick,
                     user.icon AS writer_icon,
+                    CASE
+                        WHEN f.following_id IS NOT NULL THEN 1
+                        ELSE 0
+                    END AS is_following,
                     board.board_title,
                     board.board_content,
                     board.board_category,
@@ -366,6 +377,7 @@ def home():
                     tag.tag_name
                 FROM board
                 LEFT JOIN user ON board.id = user.id
+                LEFT JOIN follow f ON f.following_id = %s AND f.followed_id = board.id
                 LEFT JOIN file ON board.board_no = file.board_no
                 LEFT JOIN tag_board ON tag_board.board_no = board.board_no
                 LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
@@ -373,7 +385,7 @@ def home():
                 LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
                 WHERE board.board_no IN ({format_strings})
             """
-            params_for_detail = tuple(board_nos)
+            params_for_detail = (login_user_id, *board_nos)
             cursor.execute(sql, params_for_detail)
             rows = cursor.fetchall()
 
@@ -387,6 +399,7 @@ def home():
                         "id": row["writer_id"],
                         "nick": row["writer_nick"],
                         "icon": row["writer_icon"],
+                        "is_following": bool(row["is_following"]),
                         "boardTitle": row["board_title"],
                         "boardContent": row["board_content"],
                         "boardCategory": row["board_category"],
@@ -822,6 +835,10 @@ def info():
                     board.board_created_at,
                     board.board_updated_at,
                     board.board_deleted,
+                    CASE
+                        WHEN f.following_id IS NOT NULL THEN 1
+                        ELSE 0
+                    END AS is_following,
                     comment_answer.comment_answer_no,
                     comment_answer.comment_answer_content,
                     comment_answer.comment_answer_type,
@@ -840,6 +857,7 @@ def info():
                     tag.tag_name
                 FROM board
                 LEFT JOIN user ON board.id = user.id
+                LEFT JOIN follow f ON f.following_id = %s AND f.followed_id = board.id
                 LEFT JOIN file ON board.board_no = file.board_no
                 LEFT JOIN tag_board ON tag_board.board_no = board.board_no
                 LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
@@ -847,7 +865,7 @@ def info():
                 LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
                 WHERE board.board_no IN ({format_strings})
             """
-            params_for_detail = tuple(board_nos)
+            params_for_detail = (login_user_id, *board_nos)
             cursor.execute(sql, params_for_detail)
             rows = cursor.fetchall()
 
@@ -861,6 +879,7 @@ def info():
                         "id": row["writer_id"],
                         "nick": row["writer_nick"],
                         "icon": row["writer_icon"],
+                        "is_following": bool(row["is_following"]),
                         "boardTitle": row["board_title"],
                         "boardContent": row["board_content"],
                         "boardCategory": row["board_category"],
@@ -1025,6 +1044,10 @@ def terms():
                     board.board_created_at,
                     board.board_updated_at,
                     board.board_deleted,
+                    CASE
+                        WHEN f.following_id IS NOT NULL THEN 1
+                        ELSE 0
+                    END AS is_following,
                     comment_answer.comment_answer_no,
                     comment_answer.comment_answer_content,
                     comment_answer.comment_answer_type,
@@ -1043,6 +1066,7 @@ def terms():
                     tag.tag_name
                 FROM board
                 LEFT JOIN user ON board.id = user.id
+                LEFT JOIN follow f ON f.following_id = %s AND f.followed_id = board.id
                 LEFT JOIN file ON board.board_no = file.board_no
                 LEFT JOIN tag_board ON tag_board.board_no = board.board_no
                 LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
@@ -1050,7 +1074,7 @@ def terms():
                 LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
                 WHERE board.board_no IN ({format_strings})
             """
-            params_for_detail = tuple(board_nos)
+            params_for_detail = (login_user_id, *board_nos)
             cursor.execute(sql, params_for_detail)
             rows = cursor.fetchall()
 
@@ -1064,6 +1088,7 @@ def terms():
                         "id": row["writer_id"],
                         "nick": row["writer_nick"],
                         "icon": row["writer_icon"],
+                        "is_following": bool(row["is_following"]),
                         "boardTitle": row["board_title"],
                         "boardContent": row["board_content"],
                         "boardCategory": row["board_category"],
@@ -1228,6 +1253,10 @@ def privacy():
                     board.board_created_at,
                     board.board_updated_at,
                     board.board_deleted,
+                    CASE
+                        WHEN f.following_id IS NOT NULL THEN 1
+                        ELSE 0
+                    END AS is_following,
                     comment_answer.comment_answer_no,
                     comment_answer.comment_answer_content,
                     comment_answer.comment_answer_type,
@@ -1246,6 +1275,7 @@ def privacy():
                     tag.tag_name
                 FROM board
                 LEFT JOIN user ON board.id = user.id
+                LEFT JOIN follow f ON f.following_id = %s AND f.followed_id = board.id
                 LEFT JOIN file ON board.board_no = file.board_no
                 LEFT JOIN tag_board ON tag_board.board_no = board.board_no
                 LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
@@ -1253,7 +1283,7 @@ def privacy():
                 LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
                 WHERE board.board_no IN ({format_strings})
             """
-            params_for_detail = tuple(board_nos)
+            params_for_detail = (login_user_id, *board_nos)
             cursor.execute(sql, params_for_detail)
             rows = cursor.fetchall()
 
@@ -1267,6 +1297,7 @@ def privacy():
                         "id": row["writer_id"],
                         "nick": row["writer_nick"],
                         "icon": row["writer_icon"],
+                        "is_following": bool(row["is_following"]),
                         "boardTitle": row["board_title"],
                         "boardContent": row["board_content"],
                         "boardCategory": row["board_category"],
@@ -1875,6 +1906,10 @@ def tag_filter(tag_name=None):
                     board.board_created_at,
                     board.board_updated_at,
                     board.board_deleted,
+                    CASE
+                        WHEN f.following_id IS NOT NULL THEN 1
+                        ELSE 0
+                    END AS is_following,
                     comment_answer.comment_answer_no,
                     comment_answer.comment_answer_content,
                     comment_answer.comment_answer_type,
@@ -1893,6 +1928,7 @@ def tag_filter(tag_name=None):
                     tag.tag_name
                 FROM board
                 LEFT JOIN user ON board.id = user.id
+                LEFT JOIN follow f ON f.following_id = %s AND f.followed_id = board.id
                 LEFT JOIN file ON board.board_no = file.board_no
                 LEFT JOIN tag_board ON tag_board.board_no = board.board_no
                 LEFT JOIN tag ON tag.tag_no = tag_board.tag_no
@@ -1900,7 +1936,8 @@ def tag_filter(tag_name=None):
                 LEFT JOIN user AS comment_user ON comment_answer.id = comment_user.id
                 WHERE board.board_no IN ({format_strings})
             """
-            cursor.execute(sql, tuple(board_nos))
+            params_for_detail = (login_user_id, *board_nos)
+            cursor.execute(sql, params_for_detail)
             rows = cursor.fetchall()
 
             # 8️⃣ 게시글 조립
@@ -1913,6 +1950,7 @@ def tag_filter(tag_name=None):
                         "id": row["writer_id"],
                         "nick": row["writer_nick"],
                         "icon": row["writer_icon"],
+                        "is_following": bool(row["is_following"]),
                         "boardTitle": row["board_title"],
                         "boardContent": row["board_content"],
                         "boardCategory": row["board_category"],
