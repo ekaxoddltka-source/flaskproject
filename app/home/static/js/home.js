@@ -129,7 +129,7 @@ function renderPost(post, loginUserId) {
                 ${post.nick}
                 <ul class="dropdown-menu">
                     <li><a href="#">프로필 보기</a></li>
-                    <li><a href="#">팔로우 하기</a></li>
+                    <li><a href="#" class="follow-btn">팔로우 하기</a></li>
                     <li><a href="#">메세지 보내기</a></li>
                     <li><a href="#">차단하기</a></li>
                 </ul>
@@ -363,6 +363,44 @@ document.addEventListener("DOMContentLoaded", async() => {
             return;
         }
 
+        // ------- (4-1) 팔로우 하기 -------
+        const followBtn = e.target.closest(".follow-btn");
+        if (followBtn) {
+            e.preventDefault();
+
+            const post = followBtn.closest(".post");
+            const followedId = post?.dataset.authorId;
+            const loginUserId = post?.dataset.loginUserId;
+
+            if (!loginUserId) {
+                alert("로그인이 필요합니다.");
+                return;
+            }
+
+            if (!followedId) {
+                alert("팔로우 대상 ID를 찾을 수 없습니다.");
+                return;
+            }
+
+            if (loginUserId === followedId) {
+                alert("자기 자신은 팔로우할 수 없습니다.");
+                return;
+            }
+
+            const res = await fetch("/follow", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ followed_id: followedId })
+            });
+
+            const data = await res.json();
+            if (!data.success) {
+                alert(data.msg);
+                return;
+            }
+
+            alert("팔로우 완료");
+        }
 
         // ------- (4) 닉네임 드롭다운 -------
         const clickedDropdown = e.target.closest(".nick.dropdown");
@@ -373,7 +411,6 @@ document.addEventListener("DOMContentLoaded", async() => {
             clickedDropdown.classList.toggle("open");
             return;
         }
-
 
         // ------- (5) 삭제 -------
         const deleteBtn = e.target.closest(".delete-btn");

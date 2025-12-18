@@ -113,9 +113,6 @@ function openAdExplainPopup(ad) {
   });
 }
 
-
-
-
 function logAdView(adId) {
     fetch("/api/ad/view", {
         method: "POST",
@@ -131,10 +128,6 @@ function logAdClick(adId) {
         body: JSON.stringify({ ad_id: adId })
     });
 }
-
-
-
-
 
 document.addEventListener("DOMContentLoaded", () => {
 // ===========================

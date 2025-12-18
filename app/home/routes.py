@@ -2021,3 +2021,83 @@ def recommend_tags():
         print(f"DEBUG_ERROR: Full API/Processing Error: {e}")
         # 이 부분이 실행되었을 때 500 에러 메시지가 브라우저로 갑니다.
         return jsonify({"error": "Failed to get recommendations"}), 500
+    
+@bp.route("/follow", methods=["POST"])
+def follow():
+    user = session.get("user")
+    if not user:
+        return jsonify(success=False, msg="로그인 필요")
+
+    data = request.get_json(silent=True)
+    if not data or "followed_id" not in data:
+        return jsonify(success=False, msg="잘못된 요청")
+
+    following_id = str(user["id"]).strip()
+    followed_id = str(data["followed_id"]).strip()
+
+    # 빈 값 방지
+    if not followed_id:
+        return jsonify(success=False, msg="잘못된 요청")
+
+    # 자기 자신 팔로우 방지
+    if following_id == followed_id:
+        return jsonify(success=False, msg="자기 자신은 팔로우할 수 없습니다.")
+
+    conn = current_app.get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 이미 팔로우 중인지 체크
+        cursor.execute("""
+            SELECT 1
+            FROM follow
+            WHERE following_id=%s AND followed_id=%s
+        """, (following_id, followed_id))
+
+        if cursor.fetchone():
+            return jsonify(success=False, msg="이미 팔로잉 중입니다.")
+
+        # 팔로우 등록
+        cursor.execute("""
+            INSERT INTO follow (following_id, followed_id)
+            VALUES (%s, %s)
+        """, (following_id, followed_id))
+
+        conn.commit()
+        return jsonify(success=True, msg="팔로우 완료")
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@bp.route("/unfollow", methods=["POST"])
+def unfollow():
+    user = session.get("user")
+    if not user:
+        return jsonify(success=False, msg="로그인 필요")
+
+    data = request.get_json(silent=True)
+    if not data or "followed_id" not in data:
+        return jsonify(success=False, msg="잘못된 요청")
+
+    following_id = str(user["id"]).strip()
+    followed_id = str(data["followed_id"]).strip()
+
+    if not followed_id:
+        return jsonify(success=False, msg="잘못된 요청")
+
+    conn = current_app.get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            DELETE FROM follow
+            WHERE following_id=%s AND followed_id=%s
+        """, (following_id, followed_id))
+
+        conn.commit()
+        return jsonify(success=True, msg="언팔로우 완료")
+
+    finally:
+        cursor.close()
+        conn.close()

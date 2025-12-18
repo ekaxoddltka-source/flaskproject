@@ -562,7 +562,7 @@ function fetchInitialTags() {
     const title = document.getElementById('title').value.trim();
     const content = document.getElementById('content').value.trim();
 
-    if (title.length < 5 && content.length < 15) return;
+    if (title.length < 5 || content.length < 15) return;
 
     const payload = JSON.stringify({ title, content });
 
