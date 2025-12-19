@@ -1398,6 +1398,32 @@ def api_start_message():
 
     return jsonify(success=True, room_no=room_no, content=masked_content)
 
+@bp.route("/mypage-message/start/<string:target_id>")
+def mypage_message_start(target_id):
+    user = get_logged_user()
+    if not user:
+        return require_login_js()
+
+    sender_id = user["id"]
+
+    # 자기 자신에게 메시지 방지
+    if sender_id == target_id:
+        return """
+            <script>
+                alert("자기 자신에게는 메시지를 보낼 수 없습니다.");
+                history.back();
+            </script>
+        """
+
+    # 방 생성 또는 조회
+    room_no = message_dao.create_or_get_room(sender_id, target_id)
+
+    # 바로 방으로 이동
+    return redirect(url_for(
+        "mypage.mypage_message_room",
+        room_no=room_no
+    ))
+
 
 # ------------------------------------------------------------
 # 11. 포인트
