@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, jsonify, request, current_app
+from flask import Blueprint, render_template, jsonify, request, current_app, session, abort
 import pymysql
 
 bp = Blueprint(
@@ -8,6 +8,18 @@ bp = Blueprint(
     static_folder='static',
     static_url_path='/admin/static'
 )
+
+@bp.before_request
+def admin_auth_guard():
+    user = session.get("user")
+
+    # 로그인 안 된 경우
+    if not user:
+        abort(404)  # 존재 자체를 숨김 (403보다 안전)
+
+    # 관리자 권한 체크
+    if user.get("user_type") != "admin":
+        abort(404)
 
 @bp.route("/admin-users")
 def admin_users():

@@ -196,15 +196,20 @@ class MessageDao:
         conn = self.db_conn_func()
         cur = conn.cursor()
 
-        sql = """
-        UPDATE message
-        SET message_deleted = 1
-        WHERE room_no = %s
-          AND (sender_id = %s OR receiver_id = %s)
-        """
-        cur.execute(sql, (room_no, user_id, user_id))
-        conn.commit()
+        # 1) 메시지 완전 삭제
+        cur.execute("""
+            DELETE FROM message
+            WHERE room_no = %s
+        """, (room_no,))
 
+        # 2) 대화방 삭제 (참여자만 가능)
+        cur.execute("""
+            DELETE FROM message_room
+            WHERE room_no = %s
+            AND (user_id_a = %s OR user_id_b = %s)
+        """, (room_no, user_id, user_id))
+
+        conn.commit()
         cur.close()
         conn.close()
         return True

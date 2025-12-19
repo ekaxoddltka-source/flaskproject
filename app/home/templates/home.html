@@ -49,7 +49,11 @@
                             {% if post.is_following %}팔로잉 중{% else %}팔로우 하기{% endif %}
                         </a>
                     </li>
-                    <li><a href="#">메세지 보내기</a></li>
+                    <li>
+                        <a href="{{ url_for('mypage.mypage_message_start', target_id=post.id) }}">
+                            메세지 보내기
+                        </a>
+                    </li>
                     <li><a href="#">차단하기</a></li>
                 </ul>
             </span>

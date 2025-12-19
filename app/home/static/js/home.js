@@ -141,7 +141,11 @@ function renderPost(post, loginUserId) {
                             ${post.is_following ? "팔로잉 중" : "팔로우 하기"}
                         </a>
                     </li>
-                    <li><a href="#">메세지 보내기</a></li>
+                    <li>
+                        <a href="/mypage-message/start/${post.id}">
+                            메세지 보내기
+                        </a>
+                    </li>
                     <li><a href="#">차단하기</a></li>
                 </ul>
             </span>
